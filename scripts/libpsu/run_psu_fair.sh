@@ -12,10 +12,10 @@
 #   --suite SUITE     fair (default), small-ec, or all (fair then SMALL_EC)
 #   --small-ec        alias for --suite small-ec
 #   --size N          element count per party (power of two); alternative to LOG args
-#   --no-upsu         skip unbalanced UPSU (balanced PSU + PSI + ASIACCS:BlaAgu12 only)
+#   --no-upsu         skip unbalanced UPSU (balanced PSU + optional legacy PSI + ASIACCS:BlaAgu12 only)
 #   --skip-pt26       skip EUROCRYPT:PisTri26
 #   --no-skip-pt26    run EUROCRYPT:PisTri26 even when LOG >= 18 (default: skip EUROCRYPT:PisTri26 when LOG >= 18)
-#   --no-psi          skip PSI (C:KisSon05, HN12)
+#   --no-psi          skip legacy PSI configs under bench/configs/psi/ (fair C:KisSon05 / JOC:HazNis12 are PSU)
 #   --force           re-run even if complete outputs exist
 #   --from LABEL      resume from config label, e.g. pso/02_PKC:GMRSS21/fair_bench_2p5.conf
 #   --only PAT,...    comma-separated filter (path or pto name substring)
@@ -778,17 +778,14 @@ run_one_unbalanced() {
   if command -v python3 >/dev/null 2>&1; then
     local TEMP_OUT
     TEMP_OUT="$(psu_fair_output_temp_dir)"
-    # Native UPSU writes UPSU_*.output; harness unequal-size PSU (e.g. HaoWan) writes PSU_*.output.
-    if ! python3 "${SCRIPT_DIR}/summarize_upsu_fair_outputs.py" \
+    # Harness unequal-size runs may write PSU_* (including C:KisSon05 / JOC:HazNis12) or native UPSU_*.
+    python3 "${SCRIPT_DIR}/summarize_psu_fair_outputs.py" \
       --temp-dir "${TEMP_OUT}" \
       --only-append "${APPEND}" \
-      --out "${SUMMARY}" 2>> "${LOG_FILE}"; then
-      python3 "${SCRIPT_DIR}/summarize_psu_fair_outputs.py" \
-        --temp-dir "${TEMP_OUT}" \
-        --only-append "${APPEND}" \
-        --no-small-ec-modes \
-        --out "${SUMMARY}" 2>> "${LOG_FILE}" || true
-    fi
+      --no-small-ec-modes \
+      --append-glob 'PSI_*.output' \
+      --append-glob 'UPSU_*.output' \
+      --out "${SUMMARY}" 2>> "${LOG_FILE}" || true
     echo "Unbalanced summary: ${SUMMARY}"
     if [[ -f "${SUMMARY}" ]]; then
       python3 "${SCRIPT_DIR}/short_summarize_psu_fair_outputs.py" \

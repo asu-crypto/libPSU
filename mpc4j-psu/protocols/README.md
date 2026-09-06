@@ -8,7 +8,7 @@ Per-paper protocol implementations. **Maven artifact IDs are unchanged** (`mpc4j
 |------|-----------|
 | `balanced/` | AC:KRTW19, PKC:GMRSS21, JSZ22, ZCL23, CZZ24, ASIACCS:CSSW25, EUROCRYPT:PisTri26, ACISP:DavCid17, ACNS:Frikken07, USENIX:BinYujConYanYu25, Ours |
 | `unbalanced/` | CCS:TCLZ23, USENIX:BinYujConYanYu25 (UPSU) |
-| `psi/` | C:KisSon05, JOC:HazNis12, ASIACCS:BlaAgu12 |
+| `psi/` | C:KisSon05 (PSU + legacy PSI), JOC:HazNis12 (PSU + legacy PSI), ASIACCS:BlaAgu12 |
 | `malicious/` | USENIX:YanShiHonDaw24, EUROCRYPT:PuGaoTri26 |
 
 Removed from this fork (no longer built): ZCL24/DGG25/LBL26/ZLP24 UPSU variants.

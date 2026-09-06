@@ -1,6 +1,6 @@
 # libPSU — Private Set Union Library
 
-**libPSU** is a Java library for **Private Set Union (PSU)** and related private set operations, built on [mpc4j](https://github.com/alibaba-edu/mpc4j). It provides balanced PSU, unbalanced UPSU, PSI baselines, and the ASIACCS:BlaAgu12 garbled-circuit construction, with a unified fair-benchmark harness for reproducible comparisons.
+**libPSU** is a Java library for **Private Set Union (PSU)** and related private set operations, built on [mpc4j](https://github.com/alibaba-edu/mpc4j). It provides balanced PSU, unbalanced UPSU, legacy PSI unit-test drivers, and the ASIACCS:BlaAgu12 garbled-circuit construction, with a unified fair-benchmark harness for reproducible comparisons.
 
 The Maven reactor lives under [`mpc4j-psu/`](mpc4j-psu/) (artifact name unchanged for compatibility).
 
@@ -10,7 +10,7 @@ The Maven reactor lives under [`mpc4j-psu/`](mpc4j-psu/) (artifact name unchange
 |--------|-------------|------------------|
 | **Balanced PSU** | Two parties with equal set sizes; receiver learns the union | `PsuFactory`, `PsuMain` |
 | **Unbalanced UPSU** | Sender and receiver with different set sizes | `UpsuFactory`, `UpsuMain` |
-| **PSI** | Private set intersection baselines (C:KisSon05, HN12) | `PsiFactory`, `PsiMain` |
+| **Legacy PSI** | Optional Protocol 5 / Kissner–Song PSI drivers (unit tests; fair bench uses PSU) | `PsiFactory`, `PsiMain` |
 | **ASIACCS:BlaAgu12** | Bea91 garbled-circuit MPC union (separate `pto_type`) | `Ba12Main` |
 
 Protocols are **research-oriented**: semi-honest by default unless noted (e.g. `EUROCRYPT:PuGaoTri26` is malicious two-sided). The library assumes synchronized, non-crashing parties over a reliable network.
@@ -165,10 +165,10 @@ Useful options / env:
 
 - `--force` — re-run even when complete outputs exist
 - `--only PAT,...` — filter by config path or `psu_pto_name` substring
-- `--no-upsu` — balanced PSU + PSI + ASIACCS:BlaAgu12 only
+- `--no-upsu` — balanced PSU + optional PSI configs + ASIACCS:BlaAgu12 only
 - `--no-skip-pt26` — keep EUROCRYPT:PisTri26 when log ≥ 18 (enabled automatically for 2p20 trials)
 - `PSU_FAIR_PROTOCOL_TIMEOUT_SECONDS` — per-protocol wall limit (default 1800 s; trials use 10800)
-- `PSU_FAIR_C:KisSon05_MAX_LOG_SIZE` — max log₂ set size for C:KisSon05 (default 8)
+- `PSU_FAIR_KS05_MAX_LOG_SIZE` — max log₂ set size for C:KisSon05 (default 8)
 - `PSU_FAIR_KEEP_GOING=1` — continue after individual protocol/network failures
 
 ## Runnable protocols (summary)
@@ -177,7 +177,7 @@ Full mapping: [`mpc4j-psu/docs/PROTOCOL_MAPPING.md`](mpc4j-psu/docs/PROTOCOL_MAP
 
 ### Balanced PSU (`PsuType`)
 
-AC:KRTW19, PKC:GMRSS21, USENIX:JSZDG22, USENIX:JSZDG22_SFS, USENIX:ConYuWeiminDon23_PKE, USENIX:ConYuWeiminDon23_SKE, PKC:CheZhaZha24, ASIACCS:CSSW25, EUROCRYPT:PisTri26, ACISP:DavCid17, ACNS:Frikken07, USENIX:BinYujConYanYu25, USENIX:YanShiHonDaw24, EUROCRYPT:PuGaoTri26, Ours.
+AC:KRTW19, PKC:GMRSS21, USENIX:JSZDG22, USENIX:JSZDG22_SFS, USENIX:ConYuWeiminDon23_PKE, USENIX:ConYuWeiminDon23_SKE, PKC:CheZhaZha24, ASIACCS:CSSW25, EUROCRYPT:PisTri26, ACISP:DavCid17, ACNS:Frikken07, C:KisSon05, JOC:HazNis12, USENIX:BinYujConYanYu25, USENIX:YanShiHonDaw24, EUROCRYPT:PuGaoTri26, Ours.
 
 Deprecated enum ids (`PKC:GMRSS21_PROXY`, `JSZ22_*_PROXY`, `EUROCRYPT:PuGaoTri26`) are not runnable; use the non-`_PROXY` names above.
 
@@ -185,9 +185,9 @@ Deprecated enum ids (`PKC:GMRSS21_PROXY`, `JSZ22_*_PROXY`, `EUROCRYPT:PuGaoTri26
 
 CCS:TCLZ23 (needs FHE native), USENIX:BinYujConYanYu25 (linear pnMCRG path; paper FHE sublinear variant not implemented).
 
-### PSI (`PsiType`)
+### Legacy PSI (`PsiType`)
 
-C:KisSon05, JOC:HazNis12.
+Optional unit-test drivers for C:KisSon05 / JOC:HazNis12 Protocol 5 intersection; fair-bench configs use `PsuType` / `psu_pto_name`.
 
 ### ASIACCS:BlaAgu12
 

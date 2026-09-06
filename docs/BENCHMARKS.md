@@ -1,7 +1,9 @@
 # Fair benchmarks
 
 How to run and summarize libPSU fair benchmarks. Configs live under
-`mpc4j-psu/bench/configs/{psu,psi,upsu,ba12}/`. Script sources live in
+`mpc4j-psu/bench/configs/{psu,upsu,ba12}/` (plus optional legacy `psi/` for
+Protocol 5 / Kissner–Song PSI unit-test drivers). Fair-bench **C:KisSon05** and
+**JOC:HazNis12** are PSU (`psu/23_KS05`, `psu/24_HN12`). Script sources live in
 `scripts/libpsu/`; thin wrappers under `scripts/` call them.
 
 ## Prerequisites

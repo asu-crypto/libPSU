@@ -18,7 +18,6 @@ public final class ProtocolMetadataRegistry {
     static {
         Map<String, ProtocolInfo> map = new LinkedHashMap<>();
         registerBalancedPsu(map);
-        registerPsi(map);
         registerUpsu(map);
         registerBa12(map);
         BY_NAME = Collections.unmodifiableMap(map);
@@ -60,6 +59,10 @@ public final class ProtocolMetadataRegistry {
         put(map, psu(ProtocolNames.EUROCRYPT_PIS_TRI26, "PT26", 2026, ProtocolFamily.IBLT, "mpc4j-psu-protocol-pt26").build());
         put(map, psu(ProtocolNames.ACISP_DAV_CID17, "DC17", 2017, ProtocolFamily.BLOOM_AHE, "mpc4j-psu-protocol-dc17").build());
         put(map, psu(ProtocolNames.ACNS_FRIKKEN07, "F07", 2007, ProtocolFamily.POLYNOMIAL_AHE, "mpc4j-psu-protocol-f07").build());
+        put(map, psu(ProtocolNames.C_KIS_SON05, "KS05", 2005, ProtocolFamily.POLYNOMIAL_AHE, "mpc4j-psu-protocol-ks05").build());
+        put(map, psu(ProtocolNames.JOC_HAZ_NIS12, "HN12", 2012, ProtocolFamily.OTHER, "mpc4j-psu-protocol-hn12")
+            .readiness(ProtocolReadiness.EXPERIMENTAL)
+            .build());
         put(map, psu(ProtocolNames.USENIX_BIN_YUJ_CON_YAN_YU25, "TBZ25", 2025, ProtocolFamily.MCRG_ECRG, "mpc4j-psu-protocol-tbz25").build());
         put(map, psu(ProtocolNames.USENIX_HAO_WAN26, "HaoWan2026", 2026, ProtocolFamily.OTHER, "mpc4j-psu-protocol-haowan2026").build());
         put(map, psu(ProtocolNames.USENIX_YAN_SHI_HON_DAW24, "JSZG24", 2024, ProtocolFamily.MCRG_ECRG, "mpc4j-psu-protocol-jszg24").build());
@@ -80,35 +83,6 @@ public final class ProtocolMetadataRegistry {
             .smallSetOptimization(true)
             .mavenModule("mpc4j-psu-protocol-small-ec-elligator-psu")
             .configPropertyName("psu_pto_name")
-            .build());
-    }
-
-    private static void registerPsi(Map<String, ProtocolInfo> map) {
-        put(map, ProtocolInfo.builder(ProtocolNames.C_KIS_SON05)
-            .citationKey("KS05")
-            .year(2005)
-            .functionality(ProtocolFunctionality.PSI)
-            .family(ProtocolFamily.POLYNOMIAL_AHE)
-            .outputModel(OutputModel.ONE_SIDED)
-            .securityModel(LibPsuSecurityModel.SEMI_HONEST)
-            .setSizeMode(SetSizeMode.BALANCED)
-            .primitiveKind(PrimitiveKind.PUBLIC_KEY)
-            .minimumInputSetSize(2)
-            .mavenModule("mpc4j-psu-protocol-ks05")
-            .configPropertyName("psi_pto_name")
-            .build());
-        put(map, ProtocolInfo.builder(ProtocolNames.JOC_HAZ_NIS12)
-            .citationKey("HN12")
-            .year(2012)
-            .functionality(ProtocolFunctionality.PSI)
-            .family(ProtocolFamily.OTHER)
-            .outputModel(OutputModel.ONE_SIDED)
-            .securityModel(LibPsuSecurityModel.MALICIOUS)
-            .setSizeMode(SetSizeMode.BALANCED)
-            .primitiveKind(PrimitiveKind.HYBRID)
-            .minimumInputSetSize(2)
-            .mavenModule("mpc4j-psu-protocol-hn12")
-            .configPropertyName("psi_pto_name")
             .build());
     }
 

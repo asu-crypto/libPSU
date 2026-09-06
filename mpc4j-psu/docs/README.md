@@ -36,10 +36,10 @@ Benchmark CSVs and summaries use paper-style labels (e.g. `PKC:CheZhaZha24`, `US
 - [USENIX:YanShiHonDaw24](protocols/USENIX-YanShiHonDaw24.md) — `USENIX:YanShiHonDaw24`
 - [EUROCRYPT:PuGaoTri26](protocols/EUROCRYPT-PuGaoTri26.md) — `EUROCRYPT:PuGaoTri26`
 - [Ours](protocols/Ours.md) — `Ours`
+- [C:KisSon05](protocols/C-KisSon05.md) — `C:KisSon05`
+- [JOC:HazNis12](protocols/JOC-HazNis12.md) — `JOC:HazNis12`
 
 ## Other families
 
-- **PSI:** [C:KisSon05](protocols/C-KisSon05.md) — `C:KisSon05`
-- **PSI:** [JOC:HazNis12](protocols/JOC-HazNis12.md) — `JOC:HazNis12`
 - **Unbalanced UPSU:** [CCS:TCLZ23](protocols/CCS-TCLZ23.md) — `CCS:TCLZ23`
 - **Garbled-circuit set ops:** [ASIACCS:BlaAgu12](protocols/ASIACCS-BlaAgu12.md) — `ASIACCS:BlaAgu12`

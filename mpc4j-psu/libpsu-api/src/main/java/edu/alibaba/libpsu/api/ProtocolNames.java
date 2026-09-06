@@ -27,13 +27,11 @@ public final class ProtocolNames {
     public static final String EUROCRYPT_PIS_TRI26 = "EUROCRYPT:PisTri26";
     public static final String ACISP_DAV_CID17 = "ACISP:DavCid17";
     public static final String ACNS_FRIKKEN07 = "ACNS:Frikken07";
+    public static final String C_KIS_SON05 = "C:KisSon05";
+    public static final String JOC_HAZ_NIS12 = "JOC:HazNis12";
     public static final String USENIX_YAN_SHI_HON_DAW24 = "USENIX:YanShiHonDaw24";
     public static final String EUROCRYPT_PU_GAO_TRI26 = "EUROCRYPT:PuGaoTri26";
     public static final String OURS = "Ours";
-
-    // PSI
-    public static final String C_KIS_SON05 = "C:KisSon05";
-    public static final String JOC_HAZ_NIS12 = "JOC:HazNis12";
 
     // UPSU
     public static final String CCS_TCLZ23 = "CCS:TCLZ23";

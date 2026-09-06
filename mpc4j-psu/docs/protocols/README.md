@@ -16,8 +16,10 @@ Display names are defined in `scripts/libpsu/protocol_display_names.py`.
 - [ACISP:DavCid17](ACISP-DavCid17.md) (`ACISP:DavCid17`)
 - [ACNS:Frikken07](ACNS-Frikken07.md) (`ACNS:Frikken07`)
 - [ASIACCS:CSSW25](ASIACCS-CSSW25.md) (`ASIACCS:CSSW25`)
+- [C:KisSon05](C-KisSon05.md) (`C:KisSon05`)
 - [EUROCRYPT:PisTri26](EUROCRYPT-PisTri26.md) (`EUROCRYPT:PisTri26`)
 - [EUROCRYPT:PuGaoTri26](EUROCRYPT-PuGaoTri26.md) (`EUROCRYPT:PuGaoTri26`)
+- [JOC:HazNis12](JOC-HazNis12.md) (`JOC:HazNis12`)
 - [Ours](Ours.md) (`Ours`) — [detailed guide](../Ours_IMPLEMENTATION.md)
 - [PKC:CheZhaZha24](PKC-CheZhaZha24.md) (`PKC:CheZhaZha24`)
 - [PKC:GMRSS21](PKC-GMRSS21.md) (`PKC:GMRSS21`)
@@ -32,11 +34,6 @@ Display names are defined in `scripts/libpsu/protocol_display_names.py`.
 ## Unbalanced UPSU
 
 - [CCS:TCLZ23](CCS-TCLZ23.md) (`CCS:TCLZ23`)
-
-## PSI
-
-- [C:KisSon05](C-KisSon05.md) (`C:KisSon05`)
-- [JOC:HazNis12](JOC-HazNis12.md) (`JOC:HazNis12`)
 
 ## Garbled-circuit set ops
 

@@ -1,18 +1,18 @@
 # C:KisSon05
 
-Kissel–Schneider 2005 Paillier polynomial PSI.
+Kissner–Song 2005 Paillier polynomial PSU (same algebra family as ACNS:Frikken07).
 
 ## At a glance
 
 | | |
 |--|--|
 | **Protocol ID** | `C:KisSon05` |
-| **Functionality** | PSI |
+| **Functionality** | Balanced PSU |
 | **Security** | Semi-honest |
-| **Output** | Client learns intersection |
-| **Factory** | `PsiFactory` |
-| **Driver** | `PsiMain` |
-| **Config key** | `psi_pto_name = C:KisSon05` |
+| **Output** | One-sided (client union) |
+| **Factory** | `PsuFactory` |
+| **Driver** | `PsuMain` |
+| **Config key** | `psu_pto_name = C:KisSon05` |
 | **OT / cost** | NO_OT |
 
 ## Implementation
@@ -21,23 +21,23 @@ Kissel–Schneider 2005 Paillier polynomial PSI.
 |--|--|
 | Path | `mpc4j-psu/protocols/psi/ks05/` |
 | Maven artifact | `mpc4j-psu-protocol-ks05` |
-| Classes | `Ks05PsiConfig, Ks05PsiServer/Client` |
+| Classes | `Ks05PsuConfig, Ks05PsuServer/Client` |
 
 ### Init
 
-Empty.
+Paillier keygen (client).
 
 ### Online
 
-Paillier polynomial PSI in psi().
+Encrypted root polynomial; server returns randomized tuples; client recovers Y \ X and builds union.
 
 ## Benchmarking
 
 | | |
 |--|--|
-| Config folder | `mpc4j-psu/bench/configs/psi/01_KS05/` |
-| Example config | `mpc4j-psu/bench/configs/psi/01_KS05/fair_bench_2p5.conf` |
-| Output files | `temp/PSI_C-KisSon05_fair_bench_2p*_<element_bits>_<party>_<threads>.output` |
+| Config folder | `mpc4j-psu/bench/configs/psu/23_KS05/` |
+| Example config | `mpc4j-psu/bench/configs/psu/23_KS05/fair_bench_2p5.conf` |
+| Output files | `temp/PSU_C-KisSon05_fair_bench_2p*_<element_bits>_<party>_<threads>.output` |
 
 Run (example, 2^5 × 2^5):
 
@@ -53,7 +53,7 @@ python3 scripts/summarize_psu_fair_outputs.py --out temp/psu_fair_summary_2p5.cs
 
 ## Notes
 
-Included in fair bench as PSI baseline.
+Fair-bench default: skip_warmup=true and ks05_max_set_size=256; harness skips log sizes above PSU_FAIR_KS05_MAX_LOG_SIZE (default 8). Legacy PsiType/PsiMain drivers remain for unit tests only.
 
 ## See also
 

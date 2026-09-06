@@ -123,16 +123,15 @@ These do **not** add columns to `.output` files; they appear in logs when INFO i
 | EUROCRYPT:PisTri26 | EUROCRYPT:PisTri26 | yes | `protocols/balanced/pt26` |
 | ACISP:DavCid17 | ACISP:DavCid17 | yes | `protocols/balanced/dc17` |
 | ACNS:Frikken07 | ACNS:Frikken07 | yes | `protocols/balanced/f07` |
+| C:KisSon05 | C:KisSon05 | yes | `protocols/psi/ks05` |
+| JOC:HazNis12 | JOC:HazNis12 | yes | `protocols/psi/hn12` |
 | Ours | Ours | yes | `protocols/balanced/small-ec-elligator-psu` |
 | USENIX:YanShiHonDaw24 | USENIX:YanShiHonDaw24 | yes | `protocols/malicious/jszg24-becrg-psu` |
 | EUROCRYPT:PuGaoTri26 | EUROCRYPT:PuGaoTri26 | yes (`PsuTwoSided*`) | `protocols/malicious/pgt26` |
 
-### PSI (`PsiType`)
+### Legacy PSI (`PsiType`, unit tests)
 
-| Display name | Enum | Module |
-|--------------|------|--------|
-| C:KisSon05 | C:KisSon05 | `protocols/psi/ks05` |
-| JOC:HazNis12 | JOC:HazNis12 | `protocols/psi/hn12` |
+Same modules as C:KisSon05 / JOC:HazNis12 above; fair bench uses `PsuType` / `PsuMain`.
 
 ### UPSU (`UpsuType`)
 
@@ -520,30 +519,36 @@ Blinded X/Y, shuffled U, server-side difference filter, client receives `W \ V` 
 
 ---
 
-### 3.17 C:KisSon05 (PSI)
+### 3.17 C:KisSon05 (PSU)
 
-**Family:** Kissner–Song 2005 — **Paillier** polynomial PSI.
+**Family:** Kissner–Song 2005 — **Paillier** polynomial private set **union** (same algebra
+family as ACNS:Frikken07; client learns \(X \cup Y\)).
 
-**Classes:** `Ks05PsiConfig`, `Ks05PsiServer/Client`
+**Classes:** `Ks05PsuConfig`, `Ks05PsuServer/Client` (`PsuFactory` / `PsuMain`).
+Legacy `Ks05Psi*` remains for unit tests only.
 
 **Cost:** `NO_OT` — client Paillier keygen in **Init**; encrypted polynomial and
-quadratic Paillier work in **Pto** (`PsiMain` same accounting as PSU).
+quadratic Paillier work in **Pto**.
 
-**Status:** `NO_OT`; small-set benchmark baseline. Default configs use
-`skip_warmup = true` and `ks05_max_set_size = 256` so accidental 2^10 warmups or
-2^20 fair configs do not look like hangs.
+**Status:** `NO_OT`; small-set fair baseline. Default configs use
+`skip_warmup = true` and `ks05_max_set_size = 256`; harness skips sizes above
+`PSU_FAIR_KS05_MAX_LOG_SIZE` (default 8).
 
 ---
 
-### 3.19 JOC:HazNis12 (PSI)
+### 3.19 JOC:HazNis12 (PSU)
 
-**Family:** Hazay–Nissim malicious PSI — DDH group, ElGamal, ideal PRF, ZK (DL, com, poly).
+**Family:** Hazay–Nissim **Protocol 8 π∪** — DDH group, ElGamal-in-exponent, Pedersen,
+ideal PRF, ZK (DL, com, poly). Fair bench runs the semi-honest/debug path
+(`hn12_semi_honest_debug` / ideal PRF).
 
-**Classes:** `Hn12PsiConfig`, `Hn12PsiServer/Client`
+**Classes:** `Hn12PsuConfig`, `Hn12PsuServer/Client` (`PsuFactory` / `PsuMain`).
+Legacy Protocol 5 PSI (`Hn12Psi*`) remains for unit tests.
 
-**Cost:** `NO_OT` — no mpc4j OT layer.
+**Cost:** `NO_OT` — no mpc4j OT layer. Online recovers \(Y \setminus X\) when both
+polynomial evaluations are nonzero, then sends the union to P2.
 
-**Status:** `NO_OT`.
+**Status:** `NO_OT`; experimental readiness in metadata (full malicious πCOUNT/πNZ path incomplete).
 
 ---
 

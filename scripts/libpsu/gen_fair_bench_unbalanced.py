@@ -3,7 +3,7 @@
 
 1. Mirror every balanced PSU folder (bench/configs/psu/*) into bench/configs/upsu/*
    with unequal server_log_set_size / client_log_set_size (pto_type stays PSU).
-2. Mirror PSI (C:KisSon05, HN12) and ASIACCS:BlaAgu12 balanced configs into upsu/* (pto_type unchanged).
+2. Mirror ASIACCS:BlaAgu12 balanced configs into upsu/* (pto_type unchanged).
 3. Patch native UPSU folders (09_CCS:TCLZ23, 10_USENIX:BinYujConYanYu25, …) that use pto_type = UPSU.
 
 These harness configs are experimental: balanced protocols at unequal sizes may
@@ -23,7 +23,6 @@ if str(SCRIPT_DIR) not in sys.path:
 
 from fair_bench_conf import (  # noqa: E402
     BA12_ROOT,
-    PSI_ROOT,
     PSU_ROOT,
     REPO,
     UPSU_ROOT,
@@ -160,30 +159,24 @@ def main() -> int:
 
     for folder in sorted(p for p in PSU_ROOT.iterdir() if p.is_dir()):
         if folder.name == "08_USENIX:BinYujConYanYu25":
-            print("skip psu mirror 08_USENIX:BinYujConYanYu25: native UPSU exists (10_USENIX:BinYujConYanYu25)", file=sys.stderr)
+            print(
+                "skip psu mirror 08_USENIX:BinYujConYanYu25: native UPSU exists (10_USENIX:BinYujConYanYu25)",
+                file=sys.stderr,
+            )
             continue
         text = load_balanced_base(folder, s_log)
         if text is None:
             print(f"skip psu mirror {folder.name}: no base config", file=sys.stderr)
             continue
+        body = patch_psu_harness(text, s_log, c_log, append)
+        if "psu_pto_name = C:KisSon05" in body:
+            body = patch_ks05_limits(body, s_log, c_log)
         dest = UPSU_ROOT / folder.name / dest_name
-        if report_write(dest, patch_psu_harness(text, s_log, c_log, append)) == "wrote":
+        if report_write(dest, body) == "wrote":
             written += 1
         else:
             unchanged += 1
 
-    w, u = mirror_harness_tree(
-        PSI_ROOT,
-        s_log,
-        c_log,
-        append,
-        dest_name,
-        patch_extra=lambda text, sl, cl: (
-            patch_ks05_limits(text, sl, cl) if "psi_pto_name = C:KisSon05" in text else text
-        ),
-    )
-    written += w
-    unchanged += u
     w, u = mirror_harness_tree(BA12_ROOT, s_log, c_log, append, dest_name)
     written += w
     unchanged += u

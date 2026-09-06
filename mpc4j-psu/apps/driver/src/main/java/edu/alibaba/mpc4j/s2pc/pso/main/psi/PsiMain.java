@@ -33,7 +33,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
- * PSI benchmark driver (C_KisSon05 and future PSI protocols).
+ * PSI benchmark driver (legacy Protocol 5 / Kissner–Song PSI unit-test configs).
+ * Fair-bench C:KisSon05 and JOC:HazNis12 use {@code PsuMain} / {@code psu_pto_name}.
  */
 public class PsiMain extends AbstractMainTwoPartyPto {
     private static final Logger LOGGER = LoggerFactory.getLogger(PsiMain.class);

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-# Single source of truth (mirrors edu.alibaba.libpsu.spi.ProtocolNames in Java).
+# Single source of truth (mirrors edu.alibaba.libpsu.api.ProtocolNames in Java).
 CANONICAL_PROTOCOL_IDS: tuple[str, ...] = (
     "AC:KRTW19",
     "PKC:GMRSS21",
@@ -19,11 +19,11 @@ CANONICAL_PROTOCOL_IDS: tuple[str, ...] = (
     "EUROCRYPT:PisTri26",
     "ACISP:DavCid17",
     "ACNS:Frikken07",
+    "C:KisSon05",
+    "JOC:HazNis12",
     "USENIX:YanShiHonDaw24",
     "EUROCRYPT:PuGaoTri26",
     "Ours",
-    "C:KisSon05",
-    "JOC:HazNis12",
     "CCS:TCLZ23",
     "ASIACCS:BlaAgu12",
 )

@@ -24,6 +24,8 @@ public enum PsuType {
     EUROCRYPT_PisTri26(ProtocolNames.EUROCRYPT_PIS_TRI26),
     ACISP_DavCid17(ProtocolNames.ACISP_DAV_CID17),
     ACNS_Frikken07(ProtocolNames.ACNS_FRIKKEN07),
+    C_KisSon05(ProtocolNames.C_KIS_SON05),
+    JOC_HazNis12(ProtocolNames.JOC_HAZ_NIS12),
     USENIX_BinYujConYanYu25(ProtocolNames.USENIX_BIN_YUJ_CON_YAN_YU25),
     USENIX_HaoWan26(ProtocolNames.USENIX_HAO_WAN26),
     USENIX_YanShiHonDaw24(ProtocolNames.USENIX_YAN_SHI_HON_DAW24),

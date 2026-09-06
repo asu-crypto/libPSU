@@ -98,6 +98,8 @@ public final class ProtocolRegistry {
         register(descriptors, ProtocolNames.EUROCRYPT_PIS_TRI26, "edu.alibaba.mpc4j.s2pc.pso.psu.pt26.Pt26PsuConfig", "PT26");
         register(descriptors, ProtocolNames.ACISP_DAV_CID17, "edu.alibaba.mpc4j.s2pc.pso.psu.dc17.Dc17PsuConfig", "DC17");
         register(descriptors, ProtocolNames.ACNS_FRIKKEN07, "edu.alibaba.mpc4j.s2pc.pso.psu.f07.F07PsuConfig", "F07");
+        register(descriptors, ProtocolNames.C_KIS_SON05, "edu.alibaba.mpc4j.s2pc.pso.psu.ks05.Ks05PsuConfig", "KS05");
+        register(descriptors, ProtocolNames.JOC_HAZ_NIS12, "edu.alibaba.mpc4j.s2pc.pso.psi.hn12.Hn12PsuConfig", "HN12", "HN12_PSI");
         register(descriptors, ProtocolNames.USENIX_BIN_YUJ_CON_YAN_YU25, "edu.alibaba.mpc4j.s2pc.pso.psu.tbz25.Tbz25PsuConfig", "TBZ25");
         register(descriptors, ProtocolNames.USENIX_HAO_WAN26, "edu.alibaba.mpc4j.s2pc.pso.psu.haowan2026.HaoWan2026PsuConfig", "HAO_WAN2026");
         register(descriptors, ProtocolNames.USENIX_YAN_SHI_HON_DAW24, "edu.alibaba.mpc4j.s2pc.pso.psu.jszg24.Jszg24BecrgPsuConfig", "JSZG24_BECRG_PSU");

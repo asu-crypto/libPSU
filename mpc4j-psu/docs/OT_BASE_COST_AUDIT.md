@@ -38,10 +38,10 @@ Sub-protocols share the root `Rpc`, so **any** wire traffic during `init()` coun
 | CCS:TCLZ23 | CCS:TCLZ23 | UPSU | yes | ALSZ13 Core COT | NP01_BYTE | INCLUDED_INIT | init() | none | Same Core COT pattern as PKC:CheZhaZha24 |
 | ACISP:DavCid17 | ACISP:DavCid17 | PSU | no | PHE / EIBF | — | NO_OT | — | none | |
 | ACNS:Frikken07 | ACNS:Frikken07 | PSU | no | polynomial / legacy | — | NO_OT | — | none | |
+| C:KisSon05 | C:KisSon05 | PSU | no | PHE (Paillier poly union) | — | NO_OT | — | none | Same algebra family as F07; fair bench `psu_pto_name` |
+| JOC:HazNis12 | JOC:HazNis12 | PSU | no | DDH / ElGamal (Protocol 8 π∪) | — | NO_OT | — | none | Semi-honest/debug fair path; legacy PSI unit tests only |
 | Ours | Ours | PSU | no | EC HashDH | — | NO_OT | — | none | **Sender-side set-diff leakage** (not standard PSU); see Ours doc |
 | ASIACCS:BlaAgu12 | ASIACCS:BlaAgu12 | GC / MPC set ops | yes | Bea91 `Z2c` → Z2 triple + COT (ALSZ13 chain) | NP01 via COT | INCLUDED_INIT | `Ba12SetOpsParty.init()` | none | **Not** `PsuMain`; `Ba12Main` + `pto_type=ASIACCS:BlaAgu12`; fair scripts include ASIACCS:BlaAgu12 |
-| C:KisSon05 | C:KisSon05 | PSI | no | PHE | — | NO_OT | — | none | |
-| JOC:HazNis12 | JOC:HazNis12 | PSI | no | DDH / ElGamal | — | NO_OT | — | none | |
 | USENIX:BinYujConYanYu25 | USENIX:BinYujConYanYu25 | PSU / UPSU | yes | RS21 MP-OPRF + Core COT (nECRG) | NP01_BYTE (via ALSZ13) | INCLUDED_INIT | init() | none | Balanced pnMCRG + OTP; linear UPSU wrapper |
 | USENIX:HaoWan26 | USENIX:HaoWan26 | PSU | yes | RS21 + Core COT (ssPMT-fast + ssOTd) | NP01_BYTE (via ALSZ13) | INCLUDED_INIT | init() | none | ePSU-fast only |
 

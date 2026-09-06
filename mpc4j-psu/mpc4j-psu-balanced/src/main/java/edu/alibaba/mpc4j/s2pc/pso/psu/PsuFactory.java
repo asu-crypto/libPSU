@@ -25,6 +25,12 @@ import edu.alibaba.mpc4j.s2pc.pso.psu.dc17.Dc17PsuServer;
 import edu.alibaba.mpc4j.s2pc.pso.psu.f07.F07PsuClient;
 import edu.alibaba.mpc4j.s2pc.pso.psu.f07.F07PsuConfig;
 import edu.alibaba.mpc4j.s2pc.pso.psu.f07.F07PsuServer;
+import edu.alibaba.mpc4j.s2pc.pso.psu.ks05.Ks05PsuClient;
+import edu.alibaba.mpc4j.s2pc.pso.psu.ks05.Ks05PsuConfig;
+import edu.alibaba.mpc4j.s2pc.pso.psu.ks05.Ks05PsuServer;
+import edu.alibaba.mpc4j.s2pc.pso.psi.hn12.Hn12PsuClient;
+import edu.alibaba.mpc4j.s2pc.pso.psi.hn12.Hn12PsuConfig;
+import edu.alibaba.mpc4j.s2pc.pso.psi.hn12.Hn12PsuServer;
 import edu.alibaba.mpc4j.s2pc.pso.psu.jszg24.Jszg24BecrgPsuClient;
 import edu.alibaba.mpc4j.s2pc.pso.psu.jszg24.Jszg24BecrgPsuConfig;
 import edu.alibaba.mpc4j.s2pc.pso.psu.jszg24.Jszg24BecrgPsuServer;
@@ -74,6 +80,10 @@ public class PsuFactory implements PtoFactory {
                 return new Dc17PsuServer(serverRpc, clientParty, (Dc17PsuConfig) config);
             case ACNS_Frikken07:
                 return new F07PsuServer(serverRpc, clientParty, (F07PsuConfig) config);
+            case C_KisSon05:
+                return new Ks05PsuServer(serverRpc, clientParty, (Ks05PsuConfig) config);
+            case JOC_HazNis12:
+                return new Hn12PsuServer(serverRpc, clientParty, (Hn12PsuConfig) config);
             case USENIX_BinYujConYanYu25:
                 return new Tbz25PsuServer(serverRpc, clientParty, (Tbz25PsuConfig) config);
             case USENIX_HaoWan26:
@@ -136,6 +146,10 @@ public class PsuFactory implements PtoFactory {
                 return new Dc17PsuClient(clientRpc, serverParty, (Dc17PsuConfig) config);
             case ACNS_Frikken07:
                 return new F07PsuClient(clientRpc, serverParty, (F07PsuConfig) config);
+            case C_KisSon05:
+                return new Ks05PsuClient(clientRpc, serverParty, (Ks05PsuConfig) config);
+            case JOC_HazNis12:
+                return new Hn12PsuClient(clientRpc, serverParty, (Hn12PsuConfig) config);
             case USENIX_BinYujConYanYu25:
                 return new Tbz25PsuClient(clientRpc, serverParty, (Tbz25PsuConfig) config);
             case USENIX_HaoWan26:

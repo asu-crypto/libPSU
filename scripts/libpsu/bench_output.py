@@ -12,7 +12,7 @@ from protocol_display_names import CANONICAL_PROTOCOL_IDS, to_file_token, should
 
 TIMEOUT_PLACEHOLDER = "--"
 
-_PSI_IDS = ("C:KisSon05", "JOC:HazNis12")
+_PSI_IDS = ()
 _UPSU_IDS = ("CCS:TCLZ23", "USENIX:BinYujConYanYu25")
 
 

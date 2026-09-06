@@ -25,6 +25,8 @@ import edu.alibaba.mpc4j.s2pc.pso.psu.zcl23.Zcl23SkePsuConfig;
 import edu.alibaba.mpc4j.s2pc.pso.psu.pt26.Pt26PsuConfig;
 import edu.alibaba.mpc4j.s2pc.pso.psu.dc17.Dc17PsuConfig;
 import edu.alibaba.mpc4j.s2pc.pso.psu.f07.F07PsuConfig;
+import edu.alibaba.mpc4j.s2pc.pso.psu.ks05.Ks05PsuConfig;
+import edu.alibaba.mpc4j.s2pc.pso.psi.hn12.Hn12PsuConfig;
 import edu.alibaba.mpc4j.s2pc.pso.psu.jszg24.Jszg24BecrgPsuConfig;
 import edu.alibaba.mpc4j.s2pc.pso.psu.tbz25.Tbz25PsuConfig;
 import edu.alibaba.mpc4j.s2pc.pso.psu.haowan2026.HaoWan2026PsuConfig;
@@ -107,6 +109,10 @@ public class PsuConfigUtils {
                 return createDc17PsuConfig(properties);
             case ACNS_Frikken07:
                 return createF07PsuConfig(properties);
+            case C_KisSon05:
+                return createKs05PsuConfig(properties);
+            case JOC_HazNis12:
+                return createHn12PsuConfig(properties);
             case EUROCRYPT_PuGaoTri26:
                 return createPgt26_2mPsuConfig(properties);
             case USENIX_BinYujConYanYu25:
@@ -219,6 +225,24 @@ public class PsuConfigUtils {
 
     private static F07PsuConfig createF07PsuConfig(Properties properties) {
         return new F07PsuConfig.Builder().build();
+    }
+
+    private static Ks05PsuConfig createKs05PsuConfig(Properties properties) {
+        int maxSetSize = PropertiesUtils.readInt(
+            properties, "ks05_max_set_size", Ks05PsuConfig.DEFAULT_MAX_SET_SIZE
+        );
+        return new Ks05PsuConfig.Builder().setMaxSetSize(maxSetSize).build();
+    }
+
+    private static Hn12PsuConfig createHn12PsuConfig(Properties properties) {
+        boolean semiHonest = PropertiesUtils.readBoolean(properties, "hn12_semi_honest_debug", true);
+        boolean idealPrf = PropertiesUtils.readBoolean(properties, "hn12_use_ideal_prf", true);
+        int groupBits = PropertiesUtils.readInt(properties, "hn12_group_bit_length", 256);
+        return new Hn12PsuConfig.Builder()
+            .setEnableSemiHonestDebug(semiHonest)
+            .setUseIdealPrfForTesting(idealPrf)
+            .setGroupBitLength(groupBits)
+            .build();
     }
 
     private static Css25PsuConfig createCss25PsuConfig(Properties properties) {

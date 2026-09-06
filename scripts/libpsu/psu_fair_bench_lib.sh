@@ -280,7 +280,9 @@ read_ks05_max_set_size_from_conf() {
 
 # Largest n with n <= max_size is 2^floor(log2(max_size)).
 ks05_max_log_from_set_size() {
-  local max_size="$1" n="${max_size}" log=0
+  local max_size="$1"
+  local n="${max_size}"
+  local log=0
   [[ "${max_size}" =~ ^[0-9]+$ && "${max_size}" -gt 0 ]] || return 1
   while (( n > 1 )); do
     log=$((log + 1))

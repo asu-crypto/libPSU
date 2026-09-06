@@ -1,18 +1,18 @@
 # JOC:HazNis12
 
-Hazay–Nissim malicious PSI (DDH, ElGamal, ZK).
+Hazay–Nissim Protocol 8 π∪ (DDH, ElGamal, Pedersen, ZK; semi-honest/debug path).
 
 ## At a glance
 
 | | |
 |--|--|
 | **Protocol ID** | `JOC:HazNis12` |
-| **Functionality** | PSI |
-| **Security** | Malicious |
-| **Output** | Client learns intersection |
-| **Factory** | `PsiFactory` |
-| **Driver** | `PsiMain` |
-| **Config key** | `psi_pto_name = JOC:HazNis12` |
+| **Functionality** | Balanced PSU |
+| **Security** | Semi-honest (malicious ZK optional; fair bench uses semi-honest debug) |
+| **Output** | One-sided (client union; server receives union for Y ⊆ U check) |
+| **Factory** | `PsuFactory` |
+| **Driver** | `PsuMain` |
+| **Config key** | `psu_pto_name = JOC:HazNis12` |
 | **OT / cost** | NO_OT |
 
 ## Implementation
@@ -21,23 +21,23 @@ Hazay–Nissim malicious PSI (DDH, ElGamal, ZK).
 |--|--|
 | Path | `mpc4j-psu/protocols/psi/hn12/` |
 | Maven artifact | `mpc4j-psu-protocol-hn12` |
-| Classes | `Hn12PsiConfig, Hn12PsiServer/Client` |
+| Classes | `Hn12PsuConfig, Hn12PsuServer/Client` |
 
 ### Init
 
-Minimal.
+DDH group + ElGamal/Pedersen key setup (client).
 
 ### Online
 
-DDH/ElGamal PSI with ZK proofs.
+Protocol 5 stack through evals; recover Y \ X when both poly evaluations are nonzero; send union to P2.
 
 ## Benchmarking
 
 | | |
 |--|--|
-| Config folder | `mpc4j-psu/bench/configs/psi/19_HN12_PSI/` |
-| Example config | `mpc4j-psu/bench/configs/psi/19_HN12_PSI/fair_bench_2p5.conf` |
-| Output files | `temp/PSI_JOC-HazNis12_fair_bench_2p*_<element_bits>_<party>_<threads>.output` |
+| Config folder | `mpc4j-psu/bench/configs/psu/24_HN12/` |
+| Example config | `mpc4j-psu/bench/configs/psu/24_HN12/fair_bench_2p5.conf` |
+| Output files | `temp/PSU_JOC-HazNis12_fair_bench_2p*_<element_bits>_<party>_<threads>.output` |
 
 Run (example, 2^5 × 2^5):
 
@@ -50,6 +50,10 @@ Summarize:
 ```bash
 python3 scripts/summarize_psu_fair_outputs.py --out temp/psu_fair_summary_2p5.csv
 ```
+
+## Notes
+
+Bench configs use hn12_semi_honest_debug / ideal PRF by default. Legacy Protocol 5 PSI (Hn12Psi*) remains for unit tests; fair bench uses PSU.
 
 ## See also
 

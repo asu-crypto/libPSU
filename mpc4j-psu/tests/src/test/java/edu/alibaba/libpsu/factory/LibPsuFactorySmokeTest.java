@@ -44,12 +44,30 @@ public class LibPsuFactorySmokeTest extends AbstractTwoPartyMemoryRpcPto {
     @Test
     public void createKs05PsiParties() {
         Properties p = new Properties();
-        p.setProperty(PsiConfigUtils.PSI_PTO_NAME_KEY, "C_KisSon05");
+        p.setProperty(PsiConfigUtils.PSI_PTO_NAME_KEY, "C:KisSon05");
         p.setProperty("silent_cot", "true");
         var config = PsiConfigUtils.createConfig(p);
         PsiServer server = PsiFactory.createServer(firstRpc, secondRpc.ownParty(), config);
         PsiClient client = PsiFactory.createClient(secondRpc, firstRpc.ownParty(), config);
         Assert.assertNotNull(server);
         Assert.assertNotNull(client);
+    }
+
+    @Test
+    public void createKs05AndHn12PsuParties() {
+        Properties ks = new Properties();
+        ks.setProperty(PsuConfigUtils.PSU_PTO_NAME_KEY, "C:KisSon05");
+        ks.setProperty("ks05_max_set_size", "32");
+        PsuConfig ksConfig = ProtocolRegistry.createPsuConfig(ks);
+        Assert.assertEquals(PsuType.C_KisSon05, ksConfig.getPtoType());
+        Assert.assertNotNull(ProtocolRegistry.createPsuServer(firstRpc, secondRpc.ownParty(), ksConfig));
+        Assert.assertNotNull(ProtocolRegistry.createPsuClient(secondRpc, firstRpc.ownParty(), ksConfig));
+
+        Properties hn = new Properties();
+        hn.setProperty(PsuConfigUtils.PSU_PTO_NAME_KEY, "JOC:HazNis12");
+        PsuConfig hnConfig = ProtocolRegistry.createPsuConfig(hn);
+        Assert.assertEquals(PsuType.JOC_HazNis12, hnConfig.getPtoType());
+        Assert.assertNotNull(ProtocolRegistry.createPsuServer(firstRpc, secondRpc.ownParty(), hnConfig));
+        Assert.assertNotNull(ProtocolRegistry.createPsuClient(secondRpc, firstRpc.ownParty(), hnConfig));
     }
 }

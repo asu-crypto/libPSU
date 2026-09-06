@@ -23,6 +23,8 @@ Maven **artifact IDs** are unchanged (`mpc4j-psu-protocol-*`). **Physical paths*
 | EUROCRYPT:PisTri26 | EUROCRYPT:PisTri26 | `protocols/balanced/pt26` | mpc4j-psu-protocol-pt26 | IBLT | one-sided | semi-honest |
 | ACISP:DavCid17 | ACISP:DavCid17 | `protocols/balanced/dc17` | mpc4j-psu-protocol-dc17 | Bloom-filter + PHE/AHE | one-sided | semi-honest |
 | ACNS:Frikken07 | ACNS:Frikken07 | `protocols/balanced/f07` | mpc4j-psu-protocol-f07 | polynomial + PHE/AHE | one-sided | semi-honest |
+| C:KisSon05 | C:KisSon05 | `protocols/psi/ks05` | mpc4j-psu-protocol-ks05 | polynomial + PHE/AHE | one-sided | semi-honest |
+| JOC:HazNis12 | JOC:HazNis12 | `protocols/psi/hn12` | mpc4j-psu-protocol-hn12 | DDH / ElGamal / ZK (Protocol 8 π∪) | one-sided | semi-honest (debug ZK) |
 | Ours | Ours | `protocols/balanced/small-ec-elligator-psu` | mpc4j-psu-protocol-small-ec-elligator-psu | EC/Elligator HashDH | client union (**leakage baseline**) | semi-honest |
 
 ### Malicious / two-sided (balanced)
@@ -45,12 +47,11 @@ Fair bench: `bench/configs/upsu/09_CCS:TCLZ23/`, `bench/configs/upsu/10_USENIX:B
 
 **USENIX:BinYujConYanYu25 UPSU note:** Uses the balanced pnMCRG + OTP core (linear in sender and receiver sizes). Paper sublinear FHE MCRG (Fig. 14) is not implemented.
 
-## PSI
+## Legacy PSI drivers (unit tests only)
 
-| Display name | Internal ID | Path | Factory | Config key |
-|--------------|-------------|------|---------|------------|
-| C:KisSon05 | C:KisSon05 | `protocols/psi/ks05` | PsiFactory | `psi_pto_name` |
-| JOC:HazNis12 | JOC:HazNis12 | `protocols/psi/hn12` | PsiFactory | `psi_pto_name` |
+Fair benchmarks use the PSU configs above (`psu_pto_name`). The same modules still expose
+`PsiType` / `PsiFactory` / `PsiMain` for Protocol 5 (HN12) and Kissner–Song PSI unit tests
+(`psi_pto_name`, configs under `bench/configs/psi/`). Prefer PSU for SoK comparisons.
 
 ## ASIACCS:BlaAgu12 (separate `pto_type`)
 

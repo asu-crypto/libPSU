@@ -63,6 +63,16 @@
         </dependency>
         <dependency>
             <groupId>edu.alibaba</groupId>
+            <artifactId>mpc4j-psu-protocol-ks05</artifactId>
+            <version>1.1.5</version>
+        </dependency>
+        <dependency>
+            <groupId>edu.alibaba</groupId>
+            <artifactId>mpc4j-psu-protocol-hn12</artifactId>
+            <version>1.1.5</version>
+        </dependency>
+        <dependency>
+            <groupId>edu.alibaba</groupId>
             <artifactId>mpc4j-psu-protocol-pgt26</artifactId>
             <version>1.1.5</version>
         </dependency>
