@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>mpc4j-psu</artifactId>
+        <groupId>edu.alibaba</groupId>
+        <version>1.1.5</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>protocols</artifactId>
+    <packaging>pom</packaging>
+    <name>libPSU protocols</name>
+    <description>Per-paper PSU / PSI / UPSU protocol implementations</description>
+    <modules>
+        <module>balanced</module>
+        <module>unbalanced</module>
+        <module>psi</module>
+        <module>malicious</module>
+    </modules>
+</project>

@@ -1,0 +1,26 @@
+# Fair benchmark (2^10 = 1024 vs 1024).
+
+server_name = server
+server_ip = 127.0.0.1
+server_port = 19002
+
+client_name = client
+client_ip = 127.0.0.1
+client_port = 19003
+
+append_string = fair_bench_2p10
+
+pto_type = PSU
+
+element_byte_length = 16
+server_log_set_size = 10
+client_log_set_size = 10
+parallel = true
+skip_warmup = true
+
+psu_pto_name = CZZ24_CW_OPRF
+
+silent_cot = true
+compress_encode = true
+rosn_type = GMR21_NET
+

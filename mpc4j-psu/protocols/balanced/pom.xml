@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>protocols</artifactId>
+        <groupId>edu.alibaba</groupId>
+        <version>1.1.5</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>protocols-balanced</artifactId>
+    <packaging>pom</packaging>
+    <name>libPSU balanced PSU protocols</name>
+    <modules>
+        <module>krtw19</module>
+        <module>gmr21</module>
+        <module>jsz22</module>
+        <module>zcl23</module>
+        <module>czz24-cw-oprf</module>
+        <module>css25</module>
+        <module>pt26</module>
+        <module>dc17</module>
+        <module>f07</module>
+        <module>small-ec-elligator-psu</module>
+        <module>tbz25</module>
+        <module>haowan2026</module>
+    </modules>
+</project>

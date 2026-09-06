@@ -1,0 +1,80 @@
+package edu.alibaba.mpc4j.s2pc.opf.haowan26;
+
+import edu.alibaba.mpc4j.common.rpc.MpcAbortException;
+import edu.alibaba.mpc4j.common.rpc.Party;
+import edu.alibaba.mpc4j.common.rpc.PtoState;
+import edu.alibaba.mpc4j.common.rpc.Rpc;
+import edu.alibaba.mpc4j.common.rpc.pto.AbstractTwoPartyPto;
+import edu.alibaba.mpc4j.common.tool.MathPreconditions;
+import edu.alibaba.mpc4j.common.tool.crypto.prg.Prg;
+import edu.alibaba.mpc4j.common.tool.crypto.prg.PrgFactory;
+import edu.alibaba.mpc4j.common.tool.utils.BlockUtils;
+import edu.alibaba.mpc4j.common.tool.utils.BytesUtils;
+import edu.alibaba.mpc4j.s2pc.aby.basics.z2.SquareZ2Vector;
+import edu.alibaba.mpc4j.s2pc.opf.haowan26.HaoWan26SsOtdPtoDesc.PtoStep;
+import edu.alibaba.mpc4j.s2pc.pcg.ot.cot.CotSenderOutput;
+import edu.alibaba.mpc4j.s2pc.pcg.ot.cot.core.CoreCotFactory;
+import edu.alibaba.mpc4j.s2pc.pcg.ot.cot.core.CoreCotSender;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Hao–Wan 2026 ssOTd server (paper S): ROT + masked element transfer (Figure 15).
+ */
+public class HaoWan26SsOtdServer extends AbstractTwoPartyPto {
+    private final CoreCotSender coreCotSender;
+    private int maxN;
+
+    public HaoWan26SsOtdServer(Rpc serverRpc, Party clientParty, HaoWan26SsOtdConfig config) {
+        super(HaoWan26SsOtdPtoDesc.getInstance(), serverRpc, clientParty, config);
+        coreCotSender = CoreCotFactory.createSender(serverRpc, clientParty, config.getCoreCotConfig());
+        addSubPto(coreCotSender);
+    }
+
+    public void init(int maxN) throws MpcAbortException {
+        MathPreconditions.checkPositive("maxN", maxN);
+        this.maxN = maxN;
+        logPhaseInfo(PtoState.INIT_BEGIN);
+        byte[] delta = BlockUtils.randomBlock(secureRandom);
+        coreCotSender.init(delta);
+        initState();
+        logPhaseInfo(PtoState.INIT_END);
+    }
+
+    @Override
+    public void setTaskId(int taskId) {
+        super.setTaskId(taskId);
+        coreCotSender.setTaskId(taskId);
+    }
+
+    /**
+     * Transfers server elements to the client when the reconstructed membership bit is zero.
+     *
+     * @param serverElements server elements in execution order.
+     * @param membershipShare0 {@code [b_i]_0} from ssPMT.
+     */
+    public void execute(byte[][] serverElements, SquareZ2Vector membershipShare0, int elementByteLength)
+        throws MpcAbortException {
+        checkInitialized();
+        int n = serverElements.length;
+        MathPreconditions.checkPositiveInRangeClosed("n", n, maxN);
+        MathPreconditions.checkPositive("elementByteLength", elementByteLength);
+        MathPreconditions.checkEqual("n", "membershipShare0.num", n, membershipShare0.getNum());
+        logPhaseInfo(PtoState.PTO_BEGIN);
+
+        CotSenderOutput cotSenderOutput = coreCotSender.send(n);
+        Prg padPrg = PrgFactory.createInstance(envType, elementByteLength);
+        List<byte[]> payload = new ArrayList<>(n * 2);
+        for (int i = 0; i < n; i++) {
+            boolean share0 = membershipShare0.getBitVector().get(i);
+            byte[] padSeed = share0 ? cotSenderOutput.getR1(i) : cotSenderOutput.getR0(i);
+            byte[] pad = padPrg.extendToBytes(padSeed);
+            byte[] masked = BytesUtils.xor(pad, serverElements[i]);
+            payload.add(masked);
+            payload.add(new byte[] {share0 ? (byte) 1 : (byte) 0});
+        }
+        sendOtherPartyPayload(PtoStep.SERVER_SEND_TRANSFER.ordinal(), payload);
+        logPhaseInfo(PtoState.PTO_END);
+    }
+}

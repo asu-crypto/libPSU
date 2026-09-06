@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>mpc4j</artifactId>
+        <groupId>edu.alibaba</groupId>
+        <version>1.1.5</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>mpc4j-psu</artifactId>
+    <packaging>pom</packaging>
+    <name>mpc4j-psu</name>
+    <description>libPSU — Private Set Union library reactor</description>
+
+    <modules>
+        <!-- Library layers -->
+        <module>libpsu-api</module>
+        <module>libpsu-core</module>
+        <module>libpsu-spi</module>
+        <module>libpsu-factory</module>
+        <!-- Legacy shared modules (SPI + common; Stage 5 may fold into libpsu-spi) -->
+        <module>mpc4j-psu-api</module>
+        <module>mpc4j-psu-core</module>
+        <module>mpc4j-psu-common</module>
+        <module>mpc4j-psu-balanced-spi</module>
+        <module>mpc4j-psu-unbalanced-spi</module>
+        <module>mpc4j-psu-psi-spi</module>
+        <!-- Reusable plugins -->
+        <module>plugins</module>
+        <!-- Protocol implementations -->
+        <module>protocols</module>
+        <!-- Runtime factories -->
+        <module>mpc4j-psu-balanced</module>
+        <module>mpc4j-psu-unbalanced</module>
+        <module>mpc4j-psu-psi</module>
+        <!-- CLI + benchmarks + tests -->
+        <module>apps</module>
+        <module>bench</module>
+        <module>libpsu-test-fixtures</module>
+        <module>tests</module>
+        <module>mpc4j-psu-bom</module>
+    </modules>
+
+    <profiles>
+        <profile>
+            <id>libpsu-fast</id>
+            <properties>
+                <maven.test.skip>false</maven.test.skip>
+                <skipTests>false</skipTests>
+                <failIfNoTests>false</failIfNoTests>
+                <maven.compiler.useIncrementalCompilation>false</maven.compiler.useIncrementalCompilation>
+            </properties>
+        </profile>
+        <profile>
+            <id>libpsu-integration</id>
+            <properties>
+                <maven.test.skip>false</maven.test.skip>
+                <skipTests>false</skipTests>
+                <failIfNoTests>false</failIfNoTests>
+                <maven.compiler.useIncrementalCompilation>false</maven.compiler.useIncrementalCompilation>
+                <libpsu.integration.tests>true</libpsu.integration.tests>
+            </properties>
+        </profile>
+        <profile>
+            <id>libpsu-bench</id>
+            <properties>
+                <maven.test.skip>false</maven.test.skip>
+                <skipTests>false</skipTests>
+                <failIfNoTests>false</failIfNoTests>
+                <maven.compiler.useIncrementalCompilation>false</maven.compiler.useIncrementalCompilation>
+                <libpsu.benchmark.tests>true</libpsu.benchmark.tests>
+            </properties>
+        </profile>
+    </profiles>
+</project>

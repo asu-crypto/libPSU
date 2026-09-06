@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>mpc4j-psu</artifactId>
+        <groupId>edu.alibaba</groupId>
+        <version>1.1.5</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>plugins</artifactId>
+    <packaging>pom</packaging>
+    <name>libPSU plugins</name>
+    <description>Reusable PSU building blocks (COT union, mqRPMT, CCPSI, shared small-set primitives)</description>
+    <modules>
+        <module>cot-union</module>
+        <module>mqrpmt</module>
+        <module>ccpsi</module>
+        <module>aon-output</module>
+    </modules>
+</project>

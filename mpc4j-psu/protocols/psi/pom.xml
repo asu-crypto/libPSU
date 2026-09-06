@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>protocols</artifactId>
+        <groupId>edu.alibaba</groupId>
+        <version>1.1.5</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>protocols-psi</artifactId>
+    <packaging>pom</packaging>
+    <name>libPSU PSI and related protocols</name>
+    <modules>
+        <module>ks05</module>
+        <module>hn12</module>
+        <module>ba12</module>
+    </modules>
+</project>

@@ -1,0 +1,52 @@
+target/
+cmake-build-release/
+cmake-build-debug/
+local/
+temp/
+.local/
+!.mvn/wrapper/maven-wrapper.jar
+.cursor/
+
+### macOS ###
+.DS_Store
+**/.DS_Store
+.AppleDouble
+.LSOverride
+._*
+__MACOSX/
+**/__MACOSX/
+
+### Cache ###
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+.cache/
+**/.cache/
+*.cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.metals
+.vscode
+*.log
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### input and output
+*.input
+*.output
+*.sosd
+
+SEAL/

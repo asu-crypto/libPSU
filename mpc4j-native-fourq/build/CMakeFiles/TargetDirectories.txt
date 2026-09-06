@@ -1,0 +1,11 @@
+/Users/minhthienlongvo/Desktop/mpc4j/mpc4j-native-fourq/build/CMakeFiles/fourq.dir
+/Users/minhthienlongvo/Desktop/mpc4j/mpc4j-native-fourq/build/CMakeFiles/crypto_tests.dir
+/Users/minhthienlongvo/Desktop/mpc4j/mpc4j-native-fourq/build/CMakeFiles/ecc_tests.dir
+/Users/minhthienlongvo/Desktop/mpc4j/mpc4j-native-fourq/build/CMakeFiles/fp_tests.dir
+/Users/minhthienlongvo/Desktop/mpc4j/mpc4j-native-fourq/build/CMakeFiles/test.dir
+/Users/minhthienlongvo/Desktop/mpc4j/mpc4j-native-fourq/build/CMakeFiles/edit_cache.dir
+/Users/minhthienlongvo/Desktop/mpc4j/mpc4j-native-fourq/build/CMakeFiles/rebuild_cache.dir
+/Users/minhthienlongvo/Desktop/mpc4j/mpc4j-native-fourq/build/CMakeFiles/list_install_components.dir
+/Users/minhthienlongvo/Desktop/mpc4j/mpc4j-native-fourq/build/CMakeFiles/install.dir
+/Users/minhthienlongvo/Desktop/mpc4j/mpc4j-native-fourq/build/CMakeFiles/install/local.dir
+/Users/minhthienlongvo/Desktop/mpc4j/mpc4j-native-fourq/build/CMakeFiles/install/strip.dir

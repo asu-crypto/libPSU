@@ -1,0 +1,185 @@
+package edu.alibaba.mpc4j.common.rpc.impl.netty.simple;
+
+import com.google.common.base.Preconditions;
+import edu.alibaba.mpc4j.common.rpc.impl.netty.NettyParty;
+import edu.alibaba.mpc4j.common.rpc.impl.netty.protobuf.SimpleNettyRpcProtobuf;
+import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.pool.*;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.protobuf.ProtobufEncoder;
+import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
+import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.FutureListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.InetSocketAddress;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * 数据发送方管理器，只负责发送数据，使用channelPool来维持一个连接池。
+ * <p>
+ * Netty连接池的核心概念：
+ * <ul>
+ *   <li>Bootstrap: Netty客户端启动器，用于配置并生成Channel</li>
+ *   <li>FixedChannelPool: 固定大小的连接池，每个远程地址对应一个池，池内最多20个Channel</li>
+ *   <li>Channel: 代表一个TCP连接，可复用以发送多个消息</li>
+ *   <li>ChannelPipeline: Channel内的处理链，由多个Handler组成，数据依次流经各Handler</li>
+ * </ul>
+ * </p>
+ *
+ * @author Li Peng, Weiran Liu
+ * @date 2020/10/12
+ */
+public class SimpleDataSendManager {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SimpleDataSendManager.class);
+    /**
+     * ClientHandler
+     */
+    private final SimpleDataSendHandler simpleDataSendHandler;
+    /**
+     * 引导
+     */
+    private final Bootstrap senderBootstrap;
+    /**
+     * 用于管理不同连接池的map，其中每个key对应一个远程地址
+     */
+    public ChannelPoolMap<InetSocketAddress, FixedChannelPool> poolMap;
+    /**
+     * Fast local benchmark shutdown. Netty's default quiet period is 2 seconds.
+     */
+    private static final long SHUTDOWN_QUIET_PERIOD_SECONDS = 0L;
+    private static final long SHUTDOWN_TIMEOUT_SECONDS = 5L;
+
+    /**
+     * 构建client。
+     * <p>
+     * 初始化流程：
+     * <ol>
+     *   <li>创建Handler实例（共享，用于所有Channel）</li>
+     *   <li>创建Bootstrap并配置EventLoopGroup（线程池）和Channel类型</li>
+     *   <li>创建ChannelPoolMap，按远程地址(InetSocketAddress)管理多个连接池</li>
+     * </ol>
+     * </p>
+     */
+    public SimpleDataSendManager() {
+        simpleDataSendHandler = new SimpleDataSendHandler();
+        senderBootstrap = new Bootstrap();
+        // NioEventLoopGroup: Netty的NIO线程组，处理所有Channel的IO事件
+        // NioSocketChannel: 使用NIO的客户端TCP Channel
+        senderBootstrap.group(new NioEventLoopGroup()).channel(NioSocketChannel.class);
+        // 设置channelPool
+        poolMap = new AbstractChannelPoolMap<>() {
+            @Override
+            protected FixedChannelPool newPool(InetSocketAddress key) {
+                ChannelPoolHandler handler = new ChannelPoolHandler() {
+
+                    @Override
+                    public void channelReleased(Channel ch) {
+
+                    }
+
+                    @Override
+                    public void channelCreated(Channel channel) {
+                        // 当连接池需要新建Channel时调用此方法，配置Channel的pipeline
+                        SocketChannel ch = (SocketChannel) channel;
+                        // 在消息前添加varint32格式的长度字段
+                        ch.pipeline().addLast(new ProtobufVarint32LengthFieldPrepender());
+                        // 将Protobuf消息对象编码为字节数组
+                        ch.pipeline().addLast(new ProtobufEncoder());
+                        // 处理Channel生命周期事件（如异常）
+                        ch.pipeline().addLast(simpleDataSendHandler);
+                    }
+
+                    @Override
+                    public void channelAcquired(Channel ch) {
+
+                    }
+                };
+                // 单个host连接池大小，maxConnections暂时设置成20，设置得过小（如3）运行时会出错。
+                return new FixedChannelPool(senderBootstrap.remoteAddress(key), handler, 20);
+            }
+        };
+    }
+
+    /**
+     * 发送数据。
+     *
+     * @param receiver        接收方。
+     * @param dataPacketProto 用protobuf封装的数据包。
+     */
+    public void sendData(NettyParty receiver, SimpleNettyRpcProtobuf.DataPacketProto dataPacketProto) {
+        // 首先获取receiver主机对应的channelPool
+        Preconditions.checkNotNull(dataPacketProto);
+        // poolMap.get永远会返回一个pool。如果key对应的pool还不存在，那会新建一个pool并返回
+        SimpleChannelPool simpleChannelPool = this.poolMap.get(
+            new InetSocketAddress(receiver.getHost(), receiver.getPort())
+        );
+        // 从连接池中尝试获取一个channel
+        // acquire()是异步操作：提交获取请求后立即返回Future，实际结果通过回调获取
+        Future<Channel> f = simpleChannelPool.acquire();
+        // 添加监听器：当acquire完成时（无论成功或失败）在IO线程中被回调
+        f.addListener((FutureListener<Channel>) futureChannel -> {
+            if (futureChannel.isSuccess()) {
+                // if acquire is successful, get channel, send data and get future
+                Channel ch = futureChannel.getNow();
+                // writeAndFlush也是异步：将数据写入发送缓冲区后立即返回ChannelFuture
+                // 实际发送和对端接收完成由回调通知
+                ChannelFuture writeFuture = ch.writeAndFlush(dataPacketProto);
+                // 监听write完成事件，确保数据已写入OS缓冲区
+                writeFuture.addListener(wf -> {
+                    // release channel after write when write is complete
+                    simpleChannelPool.release(ch);
+                    // if write is not successful, throw an exception
+                    if (!wf.isSuccess()) {
+                        LOGGER.error("Failed to send data packet to {}", receiver, wf.cause());
+                        throw new RuntimeException("writeAndFlush failed to " + receiver, wf.cause());
+                    }
+                });
+            } else {
+                // if acquire is not successful, throw an exception
+                LOGGER.error("Failed to acquire channel to {}", receiver, futureChannel.cause());
+                throw new RuntimeException("acquire channel failed to " + receiver, futureChannel.cause());
+            }
+        });
+    }
+
+    /**
+     * 关闭发送管理器，释放所有资源。
+     * <p>
+     * 关闭流程：
+     * <ol>
+     *   <li>关闭所有连接池中的Channel</li>
+     *   <li>关闭EventLoopGroup（NIO线程池）并等待完成</li>
+     * </ol>
+     * </p>
+     */
+    public void close() {
+        // 关闭连接池映射中的所有连接池
+        // AbstractChannelPoolMap 实现了 Iterable<Map.Entry<K, V>>，可直接遍历
+        // 注意：iterator() 返回的是只读迭代器，不能调用 remove()
+        if (poolMap instanceof AbstractChannelPoolMap<InetSocketAddress, FixedChannelPool> abstractPoolMap) {
+            for (java.util.Map.Entry<InetSocketAddress, FixedChannelPool> entry : abstractPoolMap) {
+                FixedChannelPool pool = entry.getValue();
+                if (pool != null) {
+                    pool.close();
+                }
+            }
+        }
+        // 关闭Bootstrap的EventLoopGroup并等待完成
+        // senderBootstrap.group() 返回的是构造函数中创建的 NioEventLoopGroup
+        if (senderBootstrap.config().group() != null) {
+            try {
+                senderBootstrap.config().group()
+                    .shutdownGracefully(SHUTDOWN_QUIET_PERIOD_SECONDS, SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                    .sync();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+}

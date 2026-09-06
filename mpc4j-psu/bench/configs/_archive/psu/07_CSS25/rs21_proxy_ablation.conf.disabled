@@ -1,0 +1,41 @@
+# CSS25 — archived RS21 Circuit-PSI comparison proxy conf.
+#
+# The active CSS25 default is the runnable PSTY19 proxy. This archived conf opts into RS21 via
+# the deprecated `css25_rs21_proxy_ablation` flag, which PsuConfigUtils treats as an alias for
+# `css25_paper_comparison=true`. Kept only so that older driver scripts that reference it do
+# not break.
+#
+# To run the normal PSTY19 OPPRF+GMW backend, use the active `07_CSS25/fair_bench*.conf` files
+# without the comparison flag.
+#
+# This conf is still NOT a paper reproduction. The paper benchmarks RR22 [43] (volePSI) + silent
+# OT [8] for its Circuit-PSI back-end. RR22 is not implemented in MPC4J; RS21 is the closest
+# available family member (OKVS + VOLE-OPRF + PEQT on Cuckoo/simple bins). Do not report
+# numbers from this conf as "CSS25 final" or "CSS25 paper-equivalent".
+
+server_name = server
+server_ip = 127.0.0.1
+server_port = 19002
+
+client_name = client
+client_ip = 127.0.0.1
+client_port = 19003
+
+append_string = rs21_proxy_ablation
+
+pto_type = PSU
+
+element_byte_length = 16
+server_log_set_size = 18
+client_log_set_size = 18
+parallel = true
+
+psu_pto_name = CSS25
+
+# Explicit RS21 ablation. Do NOT set ccpsi_pto_name alongside this — they are mutually exclusive
+# and PsuConfigUtils will throw IllegalArgumentException if both are present.
+css25_rs21_proxy_ablation = true
+
+silent_cot = true
+compress_encode = true
+rosn_type = GMR21_NET
