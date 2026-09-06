@@ -90,12 +90,14 @@ public class Pgt26_2mPsuServer extends AbstractPsuTwoSidedServer {
     }
     byte[][] peerDecompressed = Pgt26EdwardsMath.decompressPoints(peerPoints);
     Pgt26_2mParty.ShuffleOutput shuffle = party.blindShuffle(publicParams, peerDecompressed, peerPoints);
+    // Round 3: pack own shuffle of peer's points (size = clientElementSize).
+    // Peer returns a shuffle of *our* points (size = serverElementSize).
     byte[] proofBytes = Pgt26_2mWire.packAdapted(shuffle.proof, clientElementSize);
     sendOne(PtoStep.ROUND3_SHUFFLE_PROOF, proofBytes);
     sendShuffledPoints(shuffle.shuffled);
     byte[] peerProofBytes = receiveOne(PtoStep.ROUND3_SHUFFLE_PROOF);
-    byte[][] peerShuffled = receiveShuffledPoints(clientElementSize);
-    Pgt26AdaptedShuffleProof peerProof = Pgt26_2mWire.unpackAdapted(peerProofBytes, clientElementSize);
+    byte[][] peerShuffled = receiveShuffledPoints(serverElementSize);
+    Pgt26AdaptedShuffleProof peerProof = Pgt26_2mWire.unpackAdapted(peerProofBytes, serverElementSize);
     byte[][] ownDecompressed = Pgt26EdwardsMath.decompressPoints(gen.points);
     byte[][] peerShuffledDecompressed = Pgt26EdwardsMath.decompressPoints(peerShuffled);
     Pgt26_2mParty.UnblindOutput unblind = party.finalResponse(
@@ -170,7 +172,10 @@ public class Pgt26_2mPsuServer extends AbstractPsuTwoSidedServer {
 
   private byte[][] receiveShuffledPoints(int expected) throws MpcAbortException {
     List<byte[]> payload = receiveList(PtoStep.ROUND3_SHUFFLED_POINTS);
-    MpcAbortPreconditions.checkArgument(payload.size() == expected);
+    MpcAbortPreconditions.checkArgument(
+        payload.size() == expected,
+        "Round-3 shuffled points: expected " + expected + " got " + payload.size()
+    );
     return Pgt26_2mWire.clonePoints(payload.toArray(new byte[0][]));
   }
 

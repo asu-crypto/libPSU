@@ -8,8 +8,8 @@ Hazay–Nissim Protocol 8 π∪ (DDH, ElGamal, Pedersen, ZK; semi-honest/debug p
 |--|--|
 | **Protocol ID** | `JOC:HazNis12` |
 | **Functionality** | Balanced PSU |
-| **Security** | Semi-honest (malicious ZK optional; fair bench uses semi-honest debug) |
-| **Output** | One-sided (client union; server receives union for Y ⊆ U check) |
+| **Security** | Experimental semi-honest/debug only (malicious path explicitly unsupported) |
+| **Output** | Two-sided (client computes union; server also receives the full union) |
 | **Factory** | `PsuFactory` |
 | **Driver** | `PsuMain` |
 | **Config key** | `psu_pto_name = JOC:HazNis12` |

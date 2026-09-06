@@ -170,16 +170,14 @@ public class Css25PsuServer extends AbstractPsuServer {
         endPhaseMetric("CNP", SERIAL);
 
         beginPhaseMetric();
-        int[] inversePi = new int[beta];
-        for (int i = 0; i < beta; i++) {
-            inversePi[pi[i]] = i;
-        }
+        // Final OT slot j corresponds to permuted position j; original cuckoo bin is pi[j]
+        // (same convention as PermutationNetworkUtils / ROSN / CnP permuteByPi).
         CotSenderOutput cotSenderOutput = coreCotSender.send(beta);
         byte[] payloadBot = Css25CnPUtils.botElementBytes(elementByteLength);
         Prg encPrg = PrgFactory.createInstance(envType, elementByteLength);
         List<byte[]> encPayload = new ArrayList<>(beta);
         for (int j = 0; j < beta; j++) {
-            int origBin = inversePi[j];
+            int origBin = pi[j];
             ByteBuffer elem = cuckooTable.get(origBin);
             byte[] ciphertext = encPrg.extendToBytes(cotSenderOutput.getR0(j));
             if (elem == null) {

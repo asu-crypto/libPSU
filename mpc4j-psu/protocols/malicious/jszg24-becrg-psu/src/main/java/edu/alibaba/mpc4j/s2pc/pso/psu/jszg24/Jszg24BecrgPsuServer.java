@@ -190,18 +190,19 @@ public class Jszg24BecrgPsuServer extends AbstractPsuServer {
         Prg prg = PrgFactory.createInstance(envType, elementByteLength);
         List<byte[]> eqOtePayload = new ArrayList<>(binNum);
         for (int i = 0; i < binNum; i++) {
-            byte[] x0 = BytesUtils.randomByteArray(elementByteLength, secureRandom);
-            while (Arrays.equals(x0, r[i])) {
-                x0 = BytesUtils.randomByteArray(elementByteLength, secureRandom);
-            }
-            // want output x_{neq}, where neq = neqShare0 ⊕ neqShare1.
-            // implement by ordering messages according to neqShare0 so receiver choice bit is neqShare1.
+            // Ciphertext uses e = xC ⊕ r; client recovers z = e ⊕ r' = xC ⊕ r ⊕ r'.
+            // Equality (neq=0) must yield z = d ⇒ r' = x0 = xC ⊕ r ⊕ d.
+            // Inequality (neq=1) must yield z = xC ⇒ r' = r.
+            // LNOT eqOT is arranged so the client, choosing with neqShare1, learns the payload for
+            // neq = neqShare0 ⊕ neqShare1 (where neqShare0 stores the PEQT equality share).
+            byte[] x0 = BytesUtils.xor(BytesUtils.xor(xC[i], r[i]), d);
             byte[] m0 = neqShare0[i] ? r[i] : x0;
             byte[] m1 = neqShare0[i] ? x0 : r[i];
             byte[] k0 = prg.extendToBytes(lnotOut0.getRs(i)[0]);
             byte[] k1 = prg.extendToBytes(lnotOut0.getRs(i)[1]);
-            byte[] c0 = BytesUtils.xor(m0, k0);
-            byte[] c1 = BytesUtils.xor(m1, k1);
+            // Clone OT payloads so xC/r/d are never mutated by later XOR masking.
+            byte[] c0 = BytesUtils.xor(BytesUtils.clone(m0), k0);
+            byte[] c1 = BytesUtils.xor(BytesUtils.clone(m1), k1);
             eqOtePayload.add(concat(c0, c1));
         }
         sendOtherPartyEqualSizePayload(PtoStep.BECRG_EQOTE.ordinal(), eqOtePayload);

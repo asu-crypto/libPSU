@@ -1,37 +1,19 @@
 package edu.alibaba.mpc4j.s2pc.pso.psu;
 
-import edu.alibaba.mpc4j.common.rpc.MpcAbortException;
-
 import java.nio.ByteBuffer;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * offline-online PSUЭ��ͻ����̡߳�
- *
- * @author Feng Han
- * @date 2024/12/9
+ * Offline/Online PSU client test thread.
  */
 public class OoPsuClientThread extends Thread {
-    /**
-     * PSU client
-     */
     private final OoPsuClient client;
-    /**
-     * client element set
-     */
     private final Set<ByteBuffer> clientElementSet;
-    /**
-     * server set size
-     */
     private final int serverElementSize;
-    /**
-     * element byte length
-     */
     private final int elementByteLength;
-    /**
-     * client output
-     */
     private PsuClientOutput clientOutput;
+    private final AtomicReference<Throwable> failure = new AtomicReference<>();
 
     OoPsuClientThread(OoPsuClient client, Set<ByteBuffer> clientElementSet, int serverElementSize, int elementByteLength) {
         this.client = client;
@@ -44,14 +26,27 @@ public class OoPsuClientThread extends Thread {
         return clientOutput;
     }
 
+    void rethrowIfFailed() {
+        Throwable t = failure.get();
+        if (t == null) {
+            return;
+        }
+        if (t instanceof Error) {
+            throw (Error) t;
+        }
+        if (t instanceof RuntimeException) {
+            throw (RuntimeException) t;
+        }
+        throw new AssertionError("OoPSU client thread failed", t);
+    }
+
     @Override
     public void run() {
         try {
             client.init(clientElementSet.size(), serverElementSize);
-            client.preCompute(clientElementSet.size(), serverElementSize, elementByteLength);
             clientOutput = client.psu(clientElementSet, serverElementSize, elementByteLength);
-        } catch (MpcAbortException e) {
-            e.printStackTrace();
+        } catch (Throwable e) {
+            failure.set(e);
         }
     }
 }

@@ -12,8 +12,13 @@ import java.util.Optional;
 import org.bouncycastle.jcajce.provider.digest.Blake2s.Blake2s256;
 
 /**
- * Figure 8 HashDH map: H(x) = M2P(Π(x || 0^{γ−ℓ})) on the strict invertible image;
- * blinded wire values use H(x) directly; H⁻¹ applies M2P⁻¹ ∘ Π⁻¹ on the strict image.
+ * HashDH map for Small-EC/Elligator PSU.
+ * <p>
+ * Strict invertible image: {@code M2P(Π(enc(x)))} on the full Ed25519 group (cofactor 8).
+ * HashDH wire points are the prime-order subgroup image {@code [8]·M2P(...)} via
+ * {@link EcGroupOps#clearCofactor}. Recovery applies {@link EcGroupOps#removeCofactor}
+ * once before {@code M2P⁻¹ ∘ Π⁻¹}.
+ * </p>
  */
 public final class ElligatorCodec {
     private final Pgt26FeistelPrp256 perm;
@@ -34,18 +39,25 @@ public final class ElligatorCodec {
         return Pgt26InvertibleMap.padItem(item, SmallEcConstants.ITEM_BYTE_LENGTH);
     }
 
-    /** H(x) = M2P(Π(enc(x))). */
+    /**
+     * Maps an item to the prime-order subgroup HashDH point {@code [8]·M2P(Π(enc(x)))}.
+     */
     public byte[] mapToPoint(byte[] item) {
         Preconditions.checkArgument(item.length == SmallEcConstants.ITEM_BYTE_LENGTH);
-        byte[] point = Pgt26InvertibleMap.mapToPointStrict(item, perm, SmallEcConstants.ITEM_BYTE_LENGTH);
-        EcGroupOps.validatePoint(point);
-        return point;
+        byte[] raw = Pgt26InvertibleMap.mapToPointStrict(item, perm, SmallEcConstants.ITEM_BYTE_LENGTH);
+        EcGroupOps.validatePoint(raw);
+        // clearCofactor validates non-identity subgroup image.
+        return EcGroupOps.clearCofactor(raw);
     }
 
+    /**
+     * Inverse of {@link #mapToPoint}: remove cofactor representation, then strict M2P⁻¹.
+     */
     public Optional<byte[]> inversePointToItem(byte[] point) {
         EcGroupOps.validatePoint(point);
+        byte[] raw = EcGroupOps.removeCofactor(point);
         return Pgt26InvertibleMap.recoverFromPointStrict(
-            point, perm, SmallEcConstants.ITEM_BYTE_LENGTH
+            raw, perm, SmallEcConstants.ITEM_BYTE_LENGTH
         );
     }
 
@@ -61,9 +73,12 @@ public final class ElligatorCodec {
         return Pgt26InvertibleMap.hasValidPadding(item, SmallEcConstants.ITEM_BYTE_LENGTH);
     }
 
-    /** Test helper: strict map without cofactor clearing. */
+    /** Test helper: strict M2P image without cofactor clearing. */
     byte[] mapToPointRawForTest(byte[] item) {
-        return mapToPoint(item);
+        Preconditions.checkArgument(item.length == SmallEcConstants.ITEM_BYTE_LENGTH);
+        byte[] point = Pgt26InvertibleMap.mapToPointStrict(item, perm, SmallEcConstants.ITEM_BYTE_LENGTH);
+        EcGroupOps.validatePoint(point);
+        return point;
     }
 
     /** Test helper: strict inverse without cofactor removal. */

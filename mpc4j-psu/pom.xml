@@ -45,6 +45,18 @@
 
     <profiles>
         <profile>
+            <id>libpsu-unit-tests</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <!-- Override root maven.test.skip so mpc4j-psu unit tests compile and run by default. -->
+                <maven.test.skip>false</maven.test.skip>
+                <skipTests>false</skipTests>
+                <failIfNoTests>false</failIfNoTests>
+            </properties>
+        </profile>
+        <profile>
             <id>libpsu-fast</id>
             <properties>
                 <maven.test.skip>false</maven.test.skip>
@@ -71,6 +83,15 @@
                 <failIfNoTests>false</failIfNoTests>
                 <maven.compiler.useIncrementalCompilation>false</maven.compiler.useIncrementalCompilation>
                 <libpsu.benchmark.tests>true</libpsu.benchmark.tests>
+            </properties>
+        </profile>
+        <profile>
+            <id>libpsu-native-fhe</id>
+            <properties>
+                <maven.test.skip>false</maven.test.skip>
+                <skipTests>false</skipTests>
+                <failIfNoTests>false</failIfNoTests>
+                <libpsu.native.fhe.tests>true</libpsu.native.fhe.tests>
             </properties>
         </profile>
     </profiles>

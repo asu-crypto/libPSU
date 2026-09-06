@@ -9,6 +9,12 @@ import edu.alibaba.mpc4j.s2pc.pso.psu.PsuType;
 
 /**
  * PGT26 malicious-sender one-sided PSU config (Section 5 / Fig. 5).
+ * <p>
+ * <strong>Internal / experimental only.</strong> Not constructed by the public
+ * {@link edu.alibaba.mpc4j.s2pc.pso.psu.PsuFactory} under {@link PsuType#EUROCRYPT_PuGaoTri26}
+ * (that enum value dispatches to two-sided PGT26-2M). Do not treat this config as a supported
+ * public API surface.
+ * </p>
  */
 public class Pgt26_1mPsuConfig extends AbstractMultiPartyPtoConfig implements PsuConfig {
   private final CoreCotConfig coreCotConfig;

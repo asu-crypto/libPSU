@@ -107,7 +107,13 @@ public class Tbz25PsuClient extends AbstractPsuClient {
         logStepInfo(PtoState.PTO_STEP, 3, 3, outTime, "OTP decrypt + union");
 
         logPhaseInfo(PtoState.PTO_END);
-        return new PsuClientOutput(union, 0);
+        long psiCaLong = (long) clientElementSize + (long) serverElementSize - union.size();
+        MpcAbortPreconditions.checkArgument(
+            psiCaLong >= 0 && psiCaLong <= Math.min(clientElementSize, serverElementSize),
+            "invalid PSI-CA: |X|=" + clientElementSize + " |Y|=" + serverElementSize
+                + " |U|=" + union.size() + " psiCa=" + psiCaLong
+        );
+        return new PsuClientOutput(union, Math.toIntExact(psiCaLong));
     }
 
     private byte[] xorPadToPayloadLength(byte[] pad, byte[] ciphertext, int payloadByteLength) {

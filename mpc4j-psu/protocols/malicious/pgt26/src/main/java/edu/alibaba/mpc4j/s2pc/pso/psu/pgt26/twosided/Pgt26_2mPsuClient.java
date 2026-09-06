@@ -99,17 +99,18 @@ public class Pgt26_2mPsuClient extends AbstractPsuTwoSidedClient {
     }
     byte[][] peerDecompressed = Pgt26EdwardsMath.decompressPoints(peerPoints);
     Pgt26_2mParty.ShuffleOutput shuffle = party.blindShuffle(publicParams, peerDecompressed, peerPoints);
-    // Round 3
+    // Round 3: pack own shuffle of peer's points (size = serverElementSize).
+    // Peer returns a shuffle of *our* points (size = clientElementSize).
     byte[] proofBytes = Pgt26_2mWire.packAdapted(shuffle.proof, serverElementSize);
     byte[] peerProofBytes = serverFirst ? null : receiveOne(PtoStep.ROUND3_SHUFFLE_PROOF);
-    byte[][] peerShuffled = serverFirst ? null : receiveShuffledPoints(serverElementSize);
+    byte[][] peerShuffled = serverFirst ? null : receiveShuffledPoints(clientElementSize);
     sendOne(PtoStep.ROUND3_SHUFFLE_PROOF, proofBytes);
     sendShuffledPoints(shuffle.shuffled);
     if (serverFirst) {
       peerProofBytes = receiveOne(PtoStep.ROUND3_SHUFFLE_PROOF);
-      peerShuffled = receiveShuffledPoints(serverElementSize);
+      peerShuffled = receiveShuffledPoints(clientElementSize);
     }
-    Pgt26AdaptedShuffleProof peerProof = Pgt26_2mWire.unpackAdapted(peerProofBytes, serverElementSize);
+    Pgt26AdaptedShuffleProof peerProof = Pgt26_2mWire.unpackAdapted(peerProofBytes, clientElementSize);
     byte[][] ownDecompressed = Pgt26EdwardsMath.decompressPoints(gen.points);
     byte[][] peerShuffledDecompressed = Pgt26EdwardsMath.decompressPoints(peerShuffled);
     Pgt26_2mParty.UnblindOutput unblind = party.finalResponse(
@@ -188,7 +189,10 @@ public class Pgt26_2mPsuClient extends AbstractPsuTwoSidedClient {
 
   private byte[][] receiveShuffledPoints(int expected) throws MpcAbortException {
     List<byte[]> payload = receiveList(PtoStep.ROUND3_SHUFFLED_POINTS);
-    MpcAbortPreconditions.checkArgument(payload.size() == expected);
+    MpcAbortPreconditions.checkArgument(
+        payload.size() == expected,
+        "Round-3 shuffled points: expected " + expected + " got " + payload.size()
+    );
     return Pgt26_2mWire.clonePoints(payload.toArray(new byte[0][]));
   }
 

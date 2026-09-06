@@ -158,6 +158,8 @@ public class OoPsuTest extends AbstractTwoPartyMemoryRpcPto {
             // stop
             serverThread.join();
             clientThread.join();
+            serverThread.rethrowIfFailed();
+            clientThread.rethrowIfFailed();
             stopWatch.stop();
             long time = stopWatch.getTime(TimeUnit.MILLISECONDS);
             stopWatch.reset();

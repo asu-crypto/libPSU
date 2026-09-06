@@ -116,12 +116,10 @@ class Css25CnPUtils {
     static final class CnPOutput {
         final boolean[] zTilde;
         final int[] pi;
-        final int[] inversePi;
 
-        CnPOutput(boolean[] zTilde, int[] pi, int[] inversePi) {
+        CnPOutput(boolean[] zTilde, int[] pi) {
             this.zTilde = zTilde;
             this.pi = pi;
-            this.inversePi = inversePi;
         }
     }
 
@@ -160,7 +158,7 @@ class Css25CnPUtils {
         );
         rpc.send(DataPacket.fromByteArrayList(mTildeHeader, List.of(encodeBits(mTilde))));
 
-        return new CnPOutput(null, pi, inversePermutation(pi));
+        return new CnPOutput(null, pi);
     }
 
     /**
@@ -190,7 +188,7 @@ class Css25CnPUtils {
         boolean[] mTilde = decodeBits(rpc.receive(mTildeHeader).getPayload().get(0), beta);
         boolean[] zTilde = xor(mTilde, b);
 
-        return new CnPOutput(zTilde, null, null);
+        return new CnPOutput(zTilde, null);
     }
 
     private static boolean[] lsbVector(byte[][] rows, int beta) throws MpcAbortException {
@@ -202,22 +200,14 @@ class Css25CnPUtils {
         return bits;
     }
 
-    private static int[] inversePermutation(int[] pi) {
-        int[] inversePi = new int[pi.length];
-        for (int i = 0; i < pi.length; i++) {
-            inversePi[pi[i]] = i;
-        }
-        return inversePi;
-    }
-
     /**
-     * π(v): position j holds v[inversePi[j]] (consistent with Cuckoo-table OT indexing in Css25PsuServer).
+     * Applies permutation π with the repository-wide convention
+     * {@code out[j] = v[pi[j]]} (same as {@code PermutationNetworkUtils.permutation} / ROSN).
      */
     private static boolean[] permuteByPi(int[] pi, boolean[] v) {
-        int[] inversePi = inversePermutation(pi);
         boolean[] out = new boolean[v.length];
         for (int j = 0; j < v.length; j++) {
-            out[j] = v[inversePi[j]];
+            out[j] = v[pi[j]];
         }
         return out;
     }

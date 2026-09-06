@@ -84,6 +84,8 @@ public class SmallEcElligatorPsuOptimizationTest extends AbstractTwoPartyMemoryR
         ct.start();
         st.join();
         ct.join();
+        st.rethrowIfFailed();
+        ct.rethrowIfFailed();
 
         int n = sets.get(0).size();
         int expectedUnionSize = n + clientSize - intersectionSize;

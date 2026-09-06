@@ -150,7 +150,7 @@ public class OtBaseCostAuditTest extends AbstractTwoPartyMemoryRpcPto {
     @Test
     public void tcl23ConfigUsesCoreCot() {
         Properties properties = new Properties();
-        properties.setProperty(UpsuConfigUtils.UPSU_PTO_NAME_KEY, UpsuType.TCL23.name());
+        properties.setProperty(UpsuConfigUtils.UPSU_PTO_NAME_KEY, UpsuType.CCS_TCLZ23.name());
         UpsuConfig config = UpsuConfigUtils.createConfig(properties);
         OtConfigInspector.OtConfigScan scan = OtConfigInspector.scan(config);
         Assert.assertTrue(scan.usesCoreCot);

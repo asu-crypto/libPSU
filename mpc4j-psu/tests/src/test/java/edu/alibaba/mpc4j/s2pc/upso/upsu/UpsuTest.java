@@ -6,6 +6,7 @@ import edu.alibaba.mpc4j.s2pc.opf.pmpeqt.tcl23.Tcl23ByteEccDdhPmPeqtConfig;
 import edu.alibaba.mpc4j.psu.common.PsuBenchmarkUtils;
 import edu.alibaba.mpc4j.s2pc.upso.upsu.tcl23.Tcl23UpsuConfig;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -45,7 +46,7 @@ public class UpsuTest extends AbstractTwoPartyMemoryRpcPto {
     public static Collection<Object[]> configurations() {
         Collection<Object[]> configurations = new ArrayList<>();
         configurations.add(new Object[]{
-            UpsuType.TCL23.name() + " Byte Ecc DDH",
+            UpsuType.CCS_TCLZ23.name() + " Byte Ecc DDH",
             new Tcl23UpsuConfig.Builder()
                 .setPmPeqtConfig(new Tcl23ByteEccDdhPmPeqtConfig.Builder().build())
                 .build()
@@ -69,6 +70,7 @@ public class UpsuTest extends AbstractTwoPartyMemoryRpcPto {
     }
 
     public void testUpsu(int senderElementSize, int receiverElementSize, boolean parallel) {
+        assumeNativeFheAvailable();
         List<Set<ByteBuffer>> sets = PsuBenchmarkUtils.generateBytesSets(senderElementSize, receiverElementSize, ELEMENT_BYTE_LENGTH);
         Set<ByteBuffer> senderElementSet = sets.get(0);
         Set<ByteBuffer> receiverElementSet = sets.get(1);
@@ -95,6 +97,8 @@ public class UpsuTest extends AbstractTwoPartyMemoryRpcPto {
             // stop
             senderThread.join();
             receiverThread.join();
+            senderThread.rethrowIfFailed();
+            receiverThread.rethrowIfFailed();
             STOP_WATCH.stop();
             long time = STOP_WATCH.getTime(TimeUnit.MILLISECONDS);
             STOP_WATCH.reset();
@@ -106,8 +110,33 @@ public class UpsuTest extends AbstractTwoPartyMemoryRpcPto {
             new Thread(sender::destroy).start();
             new Thread(receiver::destroy).start();
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            Thread.currentThread().interrupt();
+            throw new AssertionError("UPSU test interrupted", e);
         }
+    }
+
+    private static Boolean nativeFheAvailable;
+
+    private static void assumeNativeFheAvailable() {
+        if (nativeFheAvailable == null) {
+            String required = System.getProperty("libpsu.native.fhe.tests");
+            try {
+                System.loadLibrary(CommonConstants.MPC4J_NATIVE_FHE_NAME);
+                nativeFheAvailable = true;
+            } catch (UnsatisfiedLinkError e) {
+                nativeFheAvailable = false;
+            }
+            if ("true".equalsIgnoreCase(required) && !nativeFheAvailable) {
+                Assert.fail(
+                    "Profile libpsu-native-fhe requested but libmpc4j-native-fhe is missing. "
+                        + "Set MPC4J_NATIVE_FHE_DIR / java.library.path to the built native library."
+                );
+            }
+        }
+        Assume.assumeTrue(
+            "CCS:TCLZ23 UPSU requires libmpc4j-native-fhe (activate -Plibpsu-native-fhe with MPC4J_NATIVE_FHE_DIR)",
+            nativeFheAvailable
+        );
     }
 
     private void assertOutput(Set<ByteBuffer> senderElementSet, Set<ByteBuffer> receiverElementSet,

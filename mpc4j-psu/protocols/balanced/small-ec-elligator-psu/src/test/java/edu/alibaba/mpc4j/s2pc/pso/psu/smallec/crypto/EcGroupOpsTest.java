@@ -17,7 +17,7 @@ public class EcGroupOpsTest {
         for (int i = 0; i < 32; i++) {
             ByteBuffer bb = ByteBuffer.allocate(16);
             bb.putInt(12, i);
-            byte[] h = EcGroupOps.clearCofactor(codec.mapToPoint(bb.array()));
+            byte[] h = codec.mapToPoint(bb.array());
             byte[] u = EcGroupOps.scalarMul(EcGroupOps.scalarMul(h, k0), k1);
             byte[] uPrime = EcGroupOps.scalarMul(u, EcGroupOps.invertScalar(k0));
             byte[] direct = EcGroupOps.scalarMul(h, k1);

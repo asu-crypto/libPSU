@@ -35,7 +35,8 @@ public class LibPsuBalancedFactorySmokeTest extends AbstractTwoPartyMemoryRpcPto
             Assert.assertTrue("metadata: " + name, ProtocolRegistry.isKnownBenchmarkProtocol(name));
             Properties p = minimalProperties(name);
             PsuConfig config = PsuConfigUtils.createConfig(p);
-            Assert.assertEquals(name, config.getPtoType().protocolId());
+            Assert.assertEquals(type.protocolId(), config.getPtoType().protocolId());
+            Assert.assertEquals(type, config.getPtoType());
             Rpc serverRpc = firstRpc;
             Rpc clientRpc = secondRpc;
             Party clientParty = secondRpc.ownParty();

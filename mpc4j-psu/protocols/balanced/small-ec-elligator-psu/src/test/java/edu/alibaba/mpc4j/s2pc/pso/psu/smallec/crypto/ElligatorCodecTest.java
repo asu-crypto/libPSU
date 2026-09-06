@@ -114,6 +114,34 @@ public class ElligatorCodecTest {
     }
 
     @Test
+    public void testSubgroupScalarCancellation256() {
+        ElligatorCodec codec = ElligatorCodec.protocolInstance();
+        SecureRandom rnd = new SecureRandom();
+        rnd.setSeed(20260906L);
+        for (int i = 0; i < 256; i++) {
+            byte[] x = new byte[SmallEcConstants.ITEM_BYTE_LENGTH];
+            rnd.nextBytes(x);
+            byte[] h = codec.mapToPoint(x);
+            byte[] k = EcGroupOps.randomNonZeroScalar(rnd);
+            byte[] inv = EcGroupOps.invertScalar(k);
+            byte[] recovered = EcGroupOps.scalarMul(EcGroupOps.scalarMul(h, k), inv);
+            Assert.assertArrayEquals("scalar cancellation failed at i=" + i, h, recovered);
+        }
+    }
+
+    @Test
+    public void testDeterministicRoundTrip256() throws MpcAbortException {
+        ElligatorCodec codec = ElligatorCodec.protocolInstance();
+        SecureRandom rnd = new SecureRandom();
+        rnd.setSeed(20260906L);
+        for (int i = 0; i < 256; i++) {
+            byte[] x = new byte[SmallEcConstants.ITEM_BYTE_LENGTH];
+            rnd.nextBytes(x);
+            Assert.assertArrayEquals(x, codec.inversePointToItemStrict(codec.mapToPoint(x)));
+        }
+    }
+
+    @Test
     public void testMapToPointDeterministic() {
         ElligatorCodec codec = ElligatorCodec.protocolInstance();
         byte[] x = new byte[SmallEcConstants.ITEM_BYTE_LENGTH];

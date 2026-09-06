@@ -75,6 +75,8 @@ public class SmallEcElligatorPsuMicrobenchTest extends AbstractTwoPartyMemoryRpc
         ct.start();
         st.join();
         ct.join();
+        st.rethrowIfFailed();
+        ct.rethrowIfFailed();
         long elapsedMs = (System.nanoTime() - t0) / 1_000_000L;
 
         long serverSend = firstRpc.getSendByteLength();

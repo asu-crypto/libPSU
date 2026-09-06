@@ -2,6 +2,10 @@ package edu.alibaba.mpc4j.s2pc.pso.psu;
 
 import edu.alibaba.mpc4j.common.rpc.pto.AbstractTwoPartyMemoryRpcPto;
 import edu.alibaba.mpc4j.common.tool.CommonConstants;
+import edu.alibaba.mpc4j.common.tool.EnvType;
+import edu.alibaba.mpc4j.common.tool.crypto.prf.Prf;
+import edu.alibaba.mpc4j.common.tool.crypto.prf.PrfFactory;
+import edu.alibaba.mpc4j.common.tool.utils.BlockUtils;
 import edu.alibaba.mpc4j.s2pc.pso.psu.jszg24.Jszg24BecrgPsuConfig;
 import org.junit.Assert;
 import org.junit.Test;
@@ -12,16 +16,10 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * JSZG24 bECRG PSU (Fig.17) correctness tests at 2^5 only.
+ * JSZG24 bECRG PSU (Fig.17) correctness tests at 2^5 with exact union and PSI-CA.
  */
 public class Jszg24BecrgPsu2p5Test extends AbstractTwoPartyMemoryRpcPto {
-    /**
-     * 2^5
-     */
     private static final int N = 1 << 5;
-    /**
-     * item byte length (128-bit)
-     */
     private static final int ELEMENT_BYTE_LENGTH = CommonConstants.BLOCK_BYTE_LENGTH;
 
     public Jszg24BecrgPsu2p5Test() {
@@ -43,8 +41,55 @@ public class Jszg24BecrgPsu2p5Test extends AbstractTwoPartyMemoryRpcPto {
         runOnce(N, N, N);
     }
 
+    @Test
+    public void testUnequalSizes() throws Exception {
+        runOnce(N, N / 2, N / 4);
+        runOnce(N / 2, N, N / 4);
+    }
+
+    @Test
+    public void testClientAndCuckooShareNegativePrfBinIndex() {
+        byte[][] keys = BlockUtils.randomBlocks(3, SECURE_RANDOM);
+        Prf hash = PrfFactory.createInstance(EnvType.STANDARD_JDK, Integer.BYTES);
+        hash.setKey(keys[0]);
+        int binNum = 1 << 8;
+        byte[] item = null;
+        int getIntegerBin = -1;
+        int floorModBin = -1;
+        for (int i = 0; i < 100_000; i++) {
+            byte[] candidate = BlockUtils.randomBlock(SECURE_RANDOM);
+            int raw = java.nio.ByteBuffer.wrap(hash.getBytes(candidate)).getInt();
+            if (raw >= 0) {
+                continue;
+            }
+            int candidateGetInteger = hash.getInteger(candidate, binNum);
+            int candidateFloorMod = Math.floorMod(raw, binNum);
+            if (candidateGetInteger == candidateFloorMod) {
+                continue;
+            }
+            item = candidate;
+            getIntegerBin = candidateGetInteger;
+            floorModBin = candidateFloorMod;
+            break;
+        }
+        Assert.assertNotNull("failed to sample negative PRF integer that diverges under floorMod", item);
+        Assert.assertTrue(getIntegerBin >= 0 && getIntegerBin < binNum);
+        Assert.assertNotEquals(
+            "negative PRF ints must diverge between floorMod and Prf.getInteger",
+            floorModBin,
+            getIntegerBin
+        );
+        // Cuckoo and client both use Prf.getInteger; verify all three hash locations.
+        for (int h = 0; h < keys.length; h++) {
+            Prf prf = PrfFactory.createInstance(EnvType.STANDARD_JDK, Integer.BYTES);
+            prf.setKey(keys[h]);
+            int bin = prf.getInteger(item, binNum);
+            Assert.assertTrue(bin >= 0 && bin < binNum);
+            Assert.assertEquals(bin, Math.abs(java.nio.ByteBuffer.wrap(prf.getBytes(item)).getInt() % binNum));
+        }
+    }
+
     private void runOnce(int serverSize, int clientSize, int intersectionSize) throws Exception {
-        // protocol config (semi-honest; symmetric-key primitives only)
         Jszg24BecrgPsuConfig config = new Jszg24BecrgPsuConfig.Builder(false).build();
         PsuServer server = PsuFactory.createServer(firstRpc, secondRpc.ownParty(), config);
         PsuClient client = PsuFactory.createClient(secondRpc, firstRpc.ownParty(), config);
@@ -62,6 +107,8 @@ public class Jszg24BecrgPsu2p5Test extends AbstractTwoPartyMemoryRpcPto {
         ct.start();
         st.join();
         ct.join();
+        st.rethrowIfFailed();
+        ct.rethrowIfFailed();
 
         Set<ByteBuffer> expectUnion = new HashSet<>(serverSet);
         expectUnion.addAll(clientSet);
@@ -70,14 +117,12 @@ public class Jszg24BecrgPsu2p5Test extends AbstractTwoPartyMemoryRpcPto {
         Assert.assertEquals(expectUnion.size(), out.getUnion().size());
         Assert.assertTrue(out.getUnion().containsAll(expectUnion));
         Assert.assertTrue(expectUnion.containsAll(out.getUnion()));
+        Assert.assertEquals(intersectionSize, out.getPsiCa());
 
         new Thread(server::destroy).start();
         new Thread(client::destroy).start();
     }
 
-    /**
-     * Deterministically generates two fixed-length byte-array sets with the requested intersection size.
-     */
     private static ArrayList<Set<ByteBuffer>> generateBytesSets(int serverSize, int clientSize, int intersectionSize,
                                                                 int elementByteLength) {
         Assert.assertTrue(serverSize >= 1);
@@ -86,7 +131,6 @@ public class Jszg24BecrgPsu2p5Test extends AbstractTwoPartyMemoryRpcPto {
         Assert.assertTrue(intersectionSize <= Math.min(serverSize, clientSize));
         Set<ByteBuffer> serverSet = new HashSet<>(serverSize);
         Set<ByteBuffer> clientSet = new HashSet<>(clientSize);
-        // shared items: [0, 0, 0, i]
         for (int i = 0; i < intersectionSize; i++) {
             ByteBuffer bb = ByteBuffer.allocate(elementByteLength);
             bb.putInt(elementByteLength - Integer.BYTES, i);
@@ -94,7 +138,6 @@ public class Jszg24BecrgPsu2p5Test extends AbstractTwoPartyMemoryRpcPto {
             serverSet.add(ByteBuffer.wrap(v.clone()));
             clientSet.add(ByteBuffer.wrap(v.clone()));
         }
-        // server-only items: [0, 0, 1, i]
         int s = intersectionSize;
         while (serverSet.size() < serverSize) {
             ByteBuffer bb = ByteBuffer.allocate(elementByteLength);
@@ -102,7 +145,6 @@ public class Jszg24BecrgPsu2p5Test extends AbstractTwoPartyMemoryRpcPto {
             bb.putInt(elementByteLength - Integer.BYTES, s++);
             serverSet.add(bb);
         }
-        // client-only items: [0, 0, 2, i]
         int c = intersectionSize;
         while (clientSet.size() < clientSize) {
             ByteBuffer bb = ByteBuffer.allocate(elementByteLength);
@@ -116,4 +158,3 @@ public class Jszg24BecrgPsu2p5Test extends AbstractTwoPartyMemoryRpcPto {
         return out;
     }
 }
-

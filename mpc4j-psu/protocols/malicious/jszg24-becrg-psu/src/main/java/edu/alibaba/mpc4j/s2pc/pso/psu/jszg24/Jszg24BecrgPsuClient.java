@@ -130,7 +130,8 @@ public class Jszg24BecrgPsuClient extends AbstractPsuClient {
         for (ByteBuffer y : clientElementSet) {
             byte[] yBytes = y.array();
             for (int h = 0; h < gamma; h++) {
-                int idx = Math.floorMod(IntUtils.byteArrayToInt(hashes[h].getBytes(yBytes)), binNum);
+                // Must match AbstractNoStashCuckooHashBin: hashes[h].getInteger(itemBytes, binNum).
+                int idx = hashes[h].getInteger(yBytes, binNum);
                 // Deduplicate within a bin: multiple hash functions can map the same item to the same bin.
                 // Clone to enforce a canonical (position=0, limit=len) buffer identity for HashSet semantics.
                 yBinSets[idx].add(ByteBuffer.wrap(yBytes.clone()));
@@ -242,8 +243,16 @@ public class Jszg24BecrgPsuClient extends AbstractPsuClient {
         stopWatch.reset();
         logStepInfo(PtoState.PTO_STEP, 6, 6, outTime, "Fig.17 Step 6-8: decrypt + output union");
 
+        long psiCaLong = (long) clientElementSize + (long) serverElementSize - union.size();
+        MpcAbortPreconditions.checkArgument(
+            psiCaLong >= 0 && psiCaLong <= Math.min(clientElementSize, serverElementSize),
+            "invalid PSI-CA: |X|=" + clientElementSize + " |Y|=" + serverElementSize
+                + " |U|=" + union.size() + " psiCa=" + psiCaLong
+        );
+        int psiCa = Math.toIntExact(psiCaLong);
+
         logPhaseInfo(PtoState.PTO_END);
-        return new PsuClientOutput(union, 0);
+        return new PsuClientOutput(union, psiCa);
     }
 
     private static byte[] concat(byte[][] xs) {

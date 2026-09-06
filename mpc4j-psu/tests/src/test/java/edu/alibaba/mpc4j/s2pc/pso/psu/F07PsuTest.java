@@ -85,6 +85,8 @@ public class F07PsuTest extends AbstractTwoPartyMemoryRpcPto {
         clientThread.start();
         serverThread.join();
         clientThread.join();
+        serverThread.rethrowIfFailed();
+        clientThread.rethrowIfFailed();
 
         PsuClientOutput out = clientThread.getClientOutput();
         Set<ByteBuffer> actual = out.getUnion();

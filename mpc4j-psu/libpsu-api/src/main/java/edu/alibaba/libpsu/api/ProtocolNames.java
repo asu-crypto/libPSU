@@ -103,6 +103,17 @@ public final class ProtocolNames {
         alias(map, "HN12_PSI", JOC_HAZ_NIS12);
         alias(map, "TCL23", CCS_TCLZ23);
         alias(map, "BA12", ASIACCS_BLA_AGU12);
+        // Enum / config names use '_' where canonical wire ids use ':'.
+        for (String canonical : new String[]{
+            AC_KRTW19, PKC_GMRSS21, USENIX_JSZDG22, USENIX_JSZDG22_SFS,
+            USENIX_CON_YU_WEIMIN_DON23_PKE, USENIX_CON_YU_WEIMIN_DON23_SKE,
+            PKC_CHE_ZHA_ZHA24, ASIACCS_CSSW25, EUROCRYPT_PIS_TRI26,
+            ACISP_DAV_CID17, ACNS_FRIKKEN07, C_KIS_SON05, JOC_HAZ_NIS12,
+            USENIX_BIN_YUJ_CON_YAN_YU25, USENIX_HAO_WAN26, USENIX_YAN_SHI_HON_DAW24,
+            EUROCRYPT_PU_GAO_TRI26, OURS, CCS_TCLZ23, ASIACCS_BLA_AGU12
+        }) {
+            alias(map, canonical.replace(':', '_'), canonical);
+        }
         for (Map.Entry<String, String> entry : new HashMap<>(map).entrySet()) {
             alias(map, toFileToken(entry.getValue()), entry.getValue());
         }

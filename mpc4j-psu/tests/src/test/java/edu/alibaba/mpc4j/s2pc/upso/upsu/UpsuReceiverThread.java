@@ -1,38 +1,19 @@
 package edu.alibaba.mpc4j.s2pc.upso.upsu;
 
-import edu.alibaba.mpc4j.common.rpc.MpcAbortException;
-
 import java.nio.ByteBuffer;
 import java.util.Set;
-
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * UPSU receiver thread.
- *
- * @author Liqiang Peng
- * @date 2024/3/12
+ * UPSU receiver thread. Failures must be rethrown via {@link #rethrowIfFailed()} after join.
  */
 public class UpsuReceiverThread extends Thread {
-    /**
-     * UPSU receiver
-     */
     private final UpsuReceiver receiver;
-    /**
-     * receiver element set
-     */
     private final Set<ByteBuffer> receiverElementSet;
-    /**
-     * sender element size
-     */
     private final int senderElementSize;
-    /**
-     * element byte length
-     */
     private final int elementByteLength;
-    /**
-     * receiver output
-     */
     private UpsuReceiverOutput receiverOutput;
+    private final AtomicReference<Throwable> failure = new AtomicReference<>();
 
     UpsuReceiverThread(UpsuReceiver receiver, int senderElementSize, Set<ByteBuffer> receiverElementSet,
                        int elementByteLength) {
@@ -46,13 +27,27 @@ public class UpsuReceiverThread extends Thread {
         return receiverOutput;
     }
 
+    public void rethrowIfFailed() {
+        Throwable t = failure.get();
+        if (t == null) {
+            return;
+        }
+        if (t instanceof Error) {
+            throw (Error) t;
+        }
+        if (t instanceof RuntimeException) {
+            throw (RuntimeException) t;
+        }
+        throw new AssertionError("UPSU receiver thread failed", t);
+    }
+
     @Override
     public void run() {
         try {
             receiver.init(receiverElementSet, senderElementSize, elementByteLength);
             receiverOutput = receiver.psu(senderElementSize);
-        } catch (MpcAbortException e) {
-            e.printStackTrace();
+        } catch (Throwable e) {
+            failure.set(e);
         }
     }
 }

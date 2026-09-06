@@ -1,5 +1,6 @@
 package edu.alibaba.libpsu.factory;
 
+import edu.alibaba.libpsu.api.ProtocolFunctionality;
 import edu.alibaba.libpsu.api.ProtocolInfo;
 import edu.alibaba.libpsu.api.ProtocolNames;
 import edu.alibaba.libpsu.api.ProtocolMetadataRegistry;
@@ -139,7 +140,8 @@ public final class ProtocolRegistry {
 
         @Override
         public ProtocolInfo getProtocolInfo() {
-            return ProtocolMetadataRegistry.findByName(protocolName)
+            return ProtocolMetadataRegistry.findByNameAndFunctionality(protocolName, ProtocolFunctionality.PSU)
+                .or(() -> ProtocolMetadataRegistry.findByName(protocolName))
                 .orElseThrow(() -> new IllegalStateException("Missing protocol metadata: " + protocolName));
         }
 

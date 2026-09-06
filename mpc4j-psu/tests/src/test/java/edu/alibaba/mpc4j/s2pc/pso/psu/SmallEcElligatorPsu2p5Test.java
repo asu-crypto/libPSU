@@ -78,6 +78,8 @@ public class SmallEcElligatorPsu2p5Test extends AbstractTwoPartyMemoryRpcPto {
         ct.start();
         st.join();
         ct.join();
+        st.rethrowIfFailed();
+        ct.rethrowIfFailed();
         Set<ByteBuffer> expectUnion = new HashSet<>();
         for (int v : new int[] {1, 2, 3}) {
             ByteBuffer bb = ByteBuffer.allocate(elementByteLength);
@@ -144,6 +146,8 @@ public class SmallEcElligatorPsu2p5Test extends AbstractTwoPartyMemoryRpcPto {
         ct.start();
         st.join();
         ct.join();
+        st.rethrowIfFailed();
+        ct.rethrowIfFailed();
 
         int n = serverSet.size();
         int expectedUnionSize = n + clientSet.size() - intersectionSize;

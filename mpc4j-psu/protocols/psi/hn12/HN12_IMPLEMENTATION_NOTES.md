@@ -6,15 +6,17 @@ HN12 is **polynomial / ElGamal-in-exponent / Pedersen / ZK / OPRF** based. It is
 
 | Name | Paper | Status | Output |
 |------|-------|--------|--------|
-| `JOC:HazNis12` (fair bench) | Protocol 8, π∪ | **Implemented** (`Hn12Psu*`) | P1 learns `X ∪ Y`; P2 receives union |
+| `JOC:HazNis12` (fair bench) | Protocol 8, π∪ | **Experimental semi-honest/debug** (`Hn12Psu*`) | **Two-sided**: P1 learns `X ∪ Y`; P2 also receives the full union |
 | Protocol 5, π∩ | Legacy PSI | Unit tests (`Hn12Psi*`) | P1 learns `X ∩ Y`; P2 no output |
 
-Protocol 8 differs from Protocol 5 after polynomial evaluations: recover server elements when **both** evaluations are nonzero (`Y \ X`), form the union, and send it to P2. Fair bench uses the semi-honest/debug path; full malicious πCOUNT / πNZ checks are incomplete.
+Protocol 8 differs from Protocol 5 after polynomial evaluations: recover server elements when **both** evaluations are nonzero (`Y \ X`), form the union, and send it to P2. Fair bench uses the semi-honest/debug path only.
+
+**Malicious security is not implemented.** Setting `enableSemiHonestDebug=false` fails closed at config `build()` because πCOUNT / πNZ verification and the production OPRF are incomplete. Do not advertise this stack as maliciously secure.
 
 ## Roles (MPC4J mapping)
 
 - **Client = P1**: set `X`, builds encrypted polynomials, recovers difference / union.
-- **Server = P2**: set `Y`, Pedersen commitments, homomorphic evaluation, PRF key holder.
+- **Server = P2**: set `Y`, Pedersen commitments, homomorphic evaluation, PRF key holder; receives the full union from P1.
 
 ## Tests / benchmarks
 
@@ -23,8 +25,8 @@ Protocol 8 differs from Protocol 5 after polynomial evaluations: recover server 
 
 ## Config flags
 
-- `enableSemiHonestDebug` / `hn12_semi_honest_debug`: FNP-style baseline (no malicious ZK verify).
-- `useIdealPrfForTesting` / `hn12_use_ideal_prf`: ideal PRF for tests and fair bench; production malicious mode must use real OPRF (TODO).
+- `enableSemiHonestDebug` (default `true`): required for the runnable path. `false` is rejected.
+- `useIdealPrfForTesting` / `hn12_use_ideal_prf` (default `true`): **test/benchmark-only** ideal PRF; not a production OPRF.
 
 ## Package layout
 

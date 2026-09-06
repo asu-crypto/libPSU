@@ -82,6 +82,27 @@ def display_protocol_name(value: str) -> str:
     return canonicalize(value)
 
 
+def fidelity_label(protocol_id: str, *, css25_mode: str | None = None, functionality: str | None = None) -> str:
+    """Human-visible fidelity label for summaries (never implies unsupported paper-exact)."""
+    canonical = canonicalize(protocol_id)
+    if canonical == "ASIACCS:CSSW25":
+        mode = (css25_mode or "PROXY").upper()
+        if mode in ("PAPER_EXACT", "EXACT"):
+            return "ASIACCS:CSSW25 [paper-exact UNSUPPORTED]"
+        if mode in ("PAPER_COMPARISON_PROXY", "RS21", "COMPARISON"):
+            return "ASIACCS:CSSW25 [RS21 paper-comparison proxy]"
+        return "ASIACCS:CSSW25 [PSTY19 runnable proxy]"
+    if canonical == "USENIX:BinYujConYanYu25" and (functionality or "").upper() == "UPSU":
+        return "USENIX:BinYujConYanYu25 [linear balanced-pnMCRG UPSU wrapper; not paper FHE Fig.14]"
+    if canonical == "USENIX:HaoWan26":
+        return "USENIX:HaoWan26 [ePSU-fast only; not ePSU-low]"
+    if canonical == "Ours":
+        return "Ours [leakage baseline; not standard one-sided PSU]"
+    if canonical == "JOC:HazNis12":
+        return "JOC:HazNis12 [experimental semi-honest/debug; two-sided]"
+    return canonical
+
+
 def should_omit_from_summary(_internal: str) -> bool:
     return False
 
@@ -90,6 +111,14 @@ def apply_display_to_meta(meta: dict[str, str]) -> None:
     for key in ("psu_type", "upsu_type", "psi_type", "protocol"):
         if key in meta and meta[key]:
             meta[key] = display_protocol_name(meta[key])
+    # Preserve fidelity annotations in a dedicated field when configs expose mode flags.
+    proto = internal_protocol_from_meta(meta)
+    if proto:
+        meta["fidelity_label"] = fidelity_label(
+            proto,
+            css25_mode=meta.get("css25_mode") or meta.get("css25_paper_comparison"),
+            functionality=meta.get("functionality") or ("UPSU" if meta.get("upsu_type") else "PSU"),
+        )
 
 
 def internal_protocol_from_meta(meta: dict[str, str]) -> str:

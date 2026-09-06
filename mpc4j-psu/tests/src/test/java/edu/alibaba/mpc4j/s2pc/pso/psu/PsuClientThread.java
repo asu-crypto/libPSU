@@ -1,37 +1,20 @@
 package edu.alibaba.mpc4j.s2pc.pso.psu;
 
-import edu.alibaba.mpc4j.common.rpc.MpcAbortException;
-
 import java.nio.ByteBuffer;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * PSU协议客户端线程。
- *
- * @author Weiran Liu
- * @date 2022/02/15
+ * PSU protocol client test thread. Failures are stored and must be rethrown via
+ * {@link #rethrowIfFailed()} after {@link #join()}.
  */
 class PsuClientThread extends Thread {
-    /**
-     * PSU客户端
-     */
     private final PsuClient client;
-    /**
-     * 客户端集合
-     */
     private final Set<ByteBuffer> clientElementSet;
-    /**
-     * 服务端元素数量
-     */
     private final int serverElementSize;
-    /**
-     * 元素字节长度
-     */
     private final int elementByteLength;
-    /**
-     * 客户端并集
-     */
     private PsuClientOutput clientOutput;
+    private final AtomicReference<Throwable> failure = new AtomicReference<>();
 
     PsuClientThread(PsuClient client, Set<ByteBuffer> clientElementSet, int serverElementSize,
                     int elementByteLength) {
@@ -45,13 +28,27 @@ class PsuClientThread extends Thread {
         return clientOutput;
     }
 
+    void rethrowIfFailed() {
+        Throwable t = failure.get();
+        if (t == null) {
+            return;
+        }
+        if (t instanceof Error) {
+            throw (Error) t;
+        }
+        if (t instanceof RuntimeException) {
+            throw (RuntimeException) t;
+        }
+        throw new AssertionError("PSU client thread failed", t);
+    }
+
     @Override
     public void run() {
         try {
             client.init(clientElementSet.size(), serverElementSize);
             clientOutput = client.psu(clientElementSet, serverElementSize, elementByteLength);
-        } catch (MpcAbortException e) {
-            e.printStackTrace();
+        } catch (Throwable e) {
+            failure.set(e);
         }
     }
 }

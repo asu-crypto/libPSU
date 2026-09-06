@@ -21,9 +21,15 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * PGT26-1M correctness and malicious-sender tests (not EUROCRYPT_PisTri26).
+ * PGT26-1M correctness and malicious-sender tests.
+ * <p>
+ * One-sided PGT26 is <strong>internal experimental code</strong> and is not exposed through the
+ * public {@link PsuFactory} / {@link edu.alibaba.libpsu.factory.ProtocolRegistry} under
+ * {@code EUROCRYPT:PuGaoTri26} (that enum value maps to two-sided PGT26-2M only). These tests remain
+ * ignored until a dedicated one-sided factory API and no-hook correctness suite exist.
+ * </p>
  */
-@Ignore("EUROCRYPT_PuGaoTri26 is removed from the public PSU library surface.")
+@Ignore("PGT26-1M is internal/experimental and not on the public PSU factory surface; EUROCRYPT:PuGaoTri26 is two-sided only.")
 public class Pgt26_1mPsuTest extends AbstractTwoPartyMemoryRpcPto {
   private static final Logger LOGGER = LoggerFactory.getLogger(Pgt26_1mPsuTest.class);
   private static final int SIZE_2P5 = 1 << 5;
@@ -145,6 +151,8 @@ public class Pgt26_1mPsuTest extends AbstractTwoPartyMemoryRpcPto {
     ct.start();
     st.join();
     ct.join();
+    st.rethrowIfFailed();
+    ct.rethrowIfFailed();
     server.destroy();
     client.destroy();
     return ct.getClientOutput();

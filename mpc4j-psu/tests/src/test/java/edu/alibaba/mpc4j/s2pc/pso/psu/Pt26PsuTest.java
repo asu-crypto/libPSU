@@ -65,6 +65,8 @@ public class Pt26PsuTest extends AbstractTwoPartyMemoryRpcPto {
         clientThread.start();
         serverThread.join();
         clientThread.join();
+        serverThread.rethrowIfFailed();
+        clientThread.rethrowIfFailed();
 
         assertUnionAndPsiCa(serverSet, clientSet, clientThread.getClientOutput());
         printAndResetRpc(0);

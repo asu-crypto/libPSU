@@ -78,5 +78,83 @@ public class Tbz25Psu2p5Test extends AbstractTwoPartyMemoryRpcPto {
         Assert.assertEquals(expectUnion.size(), actualUnion.size());
         Assert.assertTrue(actualUnion.containsAll(expectUnion));
         Assert.assertTrue(expectUnion.containsAll(actualUnion));
+        int expectPsiCa = serverSet.size() + clientSet.size() - expectUnion.size();
+        Assert.assertEquals(expectPsiCa, clientOut.get().getPsiCa());
+    }
+
+    @Test(timeout = 120_000)
+    public void testBalancedUnequalPartialDisjointFull() throws InterruptedException {
+        runExact(10, 8, 4);
+        runExact(8, 8, 0);
+        runExact(8, 8, 8);
+    }
+
+    private void runExact(int serverSize, int clientSize, int intersectionSize) throws InterruptedException {
+        Tbz25PsuConfig config = new Tbz25PsuConfig.Builder(false).build();
+        Tbz25PsuServer server = new Tbz25PsuServer(firstRpc, secondRpc.ownParty(), config);
+        Tbz25PsuClient client = new Tbz25PsuClient(secondRpc, firstRpc.ownParty(), config);
+        int taskId = Math.abs(SECURE_RANDOM.nextInt());
+        server.setTaskId(taskId);
+        client.setTaskId(taskId);
+
+        Set<ByteBuffer> serverSet = new HashSet<>();
+        Set<ByteBuffer> clientSet = new HashSet<>();
+        for (int i = 0; i < intersectionSize; i++) {
+            ByteBuffer shared = ByteBuffer.allocate(ELEMENT_BYTE_LENGTH);
+            shared.putInt(ELEMENT_BYTE_LENGTH - Integer.BYTES, i);
+            byte[] v = shared.array();
+            serverSet.add(ByteBuffer.wrap(v.clone()));
+            clientSet.add(ByteBuffer.wrap(v.clone()));
+        }
+        int s = intersectionSize;
+        while (serverSet.size() < serverSize) {
+            ByteBuffer bb = ByteBuffer.allocate(ELEMENT_BYTE_LENGTH);
+            bb.putInt(ELEMENT_BYTE_LENGTH - Integer.BYTES * 2, 1);
+            bb.putInt(ELEMENT_BYTE_LENGTH - Integer.BYTES, s++);
+            serverSet.add(bb);
+        }
+        int c = intersectionSize;
+        while (clientSet.size() < clientSize) {
+            ByteBuffer bb = ByteBuffer.allocate(ELEMENT_BYTE_LENGTH);
+            bb.putInt(ELEMENT_BYTE_LENGTH - Integer.BYTES * 2, 2);
+            bb.putInt(ELEMENT_BYTE_LENGTH - Integer.BYTES, c++);
+            clientSet.add(bb);
+        }
+
+        AtomicReference<PsuClientOutput> clientOut = new AtomicReference<>();
+        AtomicReference<Throwable> serverErr = new AtomicReference<>();
+        AtomicReference<Throwable> clientErr = new AtomicReference<>();
+        Thread serverThread = new Thread(() -> {
+            try {
+                server.init(serverSet.size(), clientSet.size());
+                server.psu(serverSet, clientSet.size(), ELEMENT_BYTE_LENGTH);
+            } catch (Throwable t) {
+                serverErr.set(t);
+            }
+        });
+        Thread clientThread = new Thread(() -> {
+            try {
+                client.init(clientSet.size(), serverSet.size());
+                clientOut.set(client.psu(clientSet, serverSet.size(), ELEMENT_BYTE_LENGTH));
+            } catch (Throwable t) {
+                clientErr.set(t);
+            }
+        });
+        serverThread.start();
+        clientThread.start();
+        serverThread.join();
+        clientThread.join();
+        if (serverErr.get() != null) {
+            throw new AssertionError("server failed", serverErr.get());
+        }
+        if (clientErr.get() != null) {
+            throw new AssertionError("client failed", clientErr.get());
+        }
+        Set<ByteBuffer> expectUnion = new HashSet<>(serverSet);
+        expectUnion.addAll(clientSet);
+        Assert.assertEquals(expectUnion, clientOut.get().getUnion());
+        Assert.assertEquals(intersectionSize, clientOut.get().getPsiCa());
+        server.destroy();
+        client.destroy();
     }
 }

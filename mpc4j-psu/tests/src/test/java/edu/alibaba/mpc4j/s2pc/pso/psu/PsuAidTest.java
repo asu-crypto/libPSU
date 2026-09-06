@@ -156,6 +156,8 @@ public class PsuAidTest extends AbstractThreePartyMemoryRpcPto {
             // stop
             serverThread.join();
             clientThread.join();
+            serverThread.rethrowIfFailed();
+            clientThread.rethrowIfFailed();
             stopWatch.stop();
             long time = stopWatch.getTime(TimeUnit.MILLISECONDS);
             stopWatch.reset();
