@@ -147,29 +147,63 @@ public final class Pgt26EdwardsMath {
     return multiscalarMul(pts, scs);
   }
 
+  public static boolean isCanonicalScalar(byte[] le) {
+    if (le == null || le.length != Ed25519ByteEccUtils.SCALAR_BYTES) {
+      return false;
+    }
+    return scalarLe(le).compareTo(SUBGROUP_ORDER) < 0;
+  }
+
   public static boolean isValidNonIdentityPoint(byte[] point) {
-    if (!isValidPoint(point)) {
+    if (point == null || point.length != Ed25519ByteEccUtils.POINT_BYTES) {
       return false;
     }
-    if (Arrays.equals(point, Ed25519ByteEccUtils.POINT_INFINITY)) {
+    try {
+      edu.alibaba.mpc4j.common.tool.crypto.ecc.cafe.CafeEdwardsCompressedPoint compressed =
+          new edu.alibaba.mpc4j.common.tool.crypto.ecc.cafe.CafeEdwardsCompressedPoint(BytesUtils.clone(point));
+      edu.alibaba.mpc4j.common.tool.crypto.ecc.cafe.CafeEdwardsPoint pt = compressed.decompress();
+      byte[] recompressed = pt.compress().encode();
+      if (!Arrays.equals(point, recompressed)) {
+        return false;
+      }
+      if (pt.isIdentity()) {
+        return false;
+      }
+      return pt.isTorsionFree();
+    } catch (RuntimeException e) {
       return false;
     }
-    // PGT26-2M uses Edwards25519 points encoded as CompressedEdwardsY (32 bytes). We must validate them as ED25519,
-    // not as X25519 Montgomery u-coordinates.
-    return !isLowOrderPoint(point);
   }
 
   public static boolean isValidPoint(byte[] point) {
-    return point != null
-        && point.length == Ed25519ByteEccUtils.POINT_BYTES
-        && ED25519.isValidPoint(point);
+    if (point == null || point.length != Ed25519ByteEccUtils.POINT_BYTES) {
+      return false;
+    }
+    try {
+      edu.alibaba.mpc4j.common.tool.crypto.ecc.cafe.CafeEdwardsCompressedPoint compressed =
+          new edu.alibaba.mpc4j.common.tool.crypto.ecc.cafe.CafeEdwardsCompressedPoint(BytesUtils.clone(point));
+      edu.alibaba.mpc4j.common.tool.crypto.ecc.cafe.CafeEdwardsPoint pt = compressed.decompress();
+      return Arrays.equals(point, pt.compress().encode());
+    } catch (RuntimeException e) {
+      return false;
+    }
   }
 
   public static boolean isLowOrderPoint(byte[] point) {
-    if (!isValidPoint(point)) {
+    if (point == null || point.length != Ed25519ByteEccUtils.POINT_BYTES) {
       return false;
     }
-    return Arrays.equals(cofactorClear(point), Ed25519ByteEccUtils.POINT_INFINITY);
+    try {
+      edu.alibaba.mpc4j.common.tool.crypto.ecc.cafe.CafeEdwardsCompressedPoint compressed =
+          new edu.alibaba.mpc4j.common.tool.crypto.ecc.cafe.CafeEdwardsCompressedPoint(BytesUtils.clone(point));
+      edu.alibaba.mpc4j.common.tool.crypto.ecc.cafe.CafeEdwardsPoint pt = compressed.decompress();
+      if (!Arrays.equals(point, pt.compress().encode())) {
+        return false;
+      }
+      return pt.isIdentity() || !pt.isTorsionFree();
+    } catch (RuntimeException e) {
+      return false;
+    }
   }
 
   public static byte[] scalarFromHash(byte[] digest32) {

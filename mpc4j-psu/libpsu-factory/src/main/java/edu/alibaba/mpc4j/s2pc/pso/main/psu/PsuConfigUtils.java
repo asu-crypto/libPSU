@@ -285,24 +285,19 @@ public class PsuConfigUtils {
     }
 
     private static Pgt26_2mPsuConfig createPgt26_2mPsuConfig(Properties properties) {
-        boolean skipShuffle = PropertiesUtils.readBoolean(properties, "pgt26_2m_skip_shuffle_proof", false);
-        boolean skipRddh = PropertiesUtils.readBoolean(properties, "pgt26_2m_skip_rddh_proof", false);
-        String append = properties.getProperty("append_string", "");
-        if (append.contains("fair_bench") && (skipShuffle || skipRddh)) {
-            throw new IllegalArgumentException(
-                "EUROCRYPT_PuGaoTri26 fair benchmark must not skip shuffle/RDDH proofs"
-            );
+        boolean skipShufflePresent = properties.containsKey("pgt26_2m_skip_shuffle_proof");
+        boolean skipRddhPresent = properties.containsKey("pgt26_2m_skip_rddh_proof");
+        if (skipShufflePresent || skipRddhPresent) {
+            boolean skipShuffle = PropertiesUtils.readBoolean(properties, "pgt26_2m_skip_shuffle_proof", false);
+            boolean skipRddh = PropertiesUtils.readBoolean(properties, "pgt26_2m_skip_rddh_proof", false);
+            if (skipShuffle || skipRddh) {
+                throw new IllegalArgumentException(
+                    "EUROCRYPT_PuGaoTri26 does not allow proof-bypass properties in production configs"
+                );
+            }
+            // Legacy conf files may still list the keys as false; ignore them.
         }
-        if (skipShuffle || skipRddh) {
-            LOGGER.warn(
-                "EUROCRYPT_PuGaoTri26 debug mode: skipShuffleProof={}, skipRddhProof={} (not malicious-security accounting)",
-                skipShuffle, skipRddh
-            );
-        }
-        return new Pgt26_2mPsuConfig.Builder()
-            .setSkipShuffleProof(skipShuffle)
-            .setSkipRddhProof(skipRddh)
-            .build();
+        return new Pgt26_2mPsuConfig.Builder().build();
     }
 
     private static Krtw19PsuConfig createKrtw19PsuConfig() {

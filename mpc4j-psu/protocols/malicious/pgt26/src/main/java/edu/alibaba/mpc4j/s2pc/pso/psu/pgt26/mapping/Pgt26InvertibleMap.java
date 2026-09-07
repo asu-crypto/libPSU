@@ -3,9 +3,7 @@ package edu.alibaba.mpc4j.s2pc.pso.psu.pgt26.mapping;
 import edu.alibaba.mpc4j.common.tool.utils.BytesUtils;
 import edu.alibaba.mpc4j.s2pc.pso.psu.pgt26.Pgt26Constants;
 import edu.alibaba.mpc4j.s2pc.pso.psu.pgt26.Pgt26EdwardsMath;
-import edu.alibaba.mpc4j.s2pc.pso.psu.pgt26.Pgt26TestHooks;
 
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Optional;
 
@@ -13,7 +11,6 @@ import java.util.Optional;
  * H = M2P ∘ Π and H⁻¹ (reference {@code mapping.rs} {@code hash_to_point}, {@code recover_from_point}).
  * <p>
  * Encoding matches reference {@code mapping.rs}: {@code M2P(Π(pad(item)))} with no hash-to-curve fallback.
- * {@link Pgt26TestHooks#candidatePointCache} supports tests that need a fast recovery path.
  * </p>
  */
 public final class Pgt26InvertibleMap {
@@ -67,7 +64,10 @@ public final class Pgt26InvertibleMap {
     } catch (RuntimeException ex) {
       throw new IllegalArgumentException("M2P failed", ex);
     }
-    if (!Pgt26EdwardsMath.isValidNonIdentityPoint(ed)) {
+    if (!Pgt26EdwardsMath.isValidPoint(ed)
+        || Arrays.equals(ed, edu.alibaba.mpc4j.common.tool.crypto.ecc.utils.Ed25519ByteEccUtils.POINT_INFINITY)
+        || Arrays.equals(Pgt26EdwardsMath.cofactorClear(ed),
+            edu.alibaba.mpc4j.common.tool.crypto.ecc.utils.Ed25519ByteEccUtils.POINT_INFINITY)) {
       throw new IllegalArgumentException("M2P produced invalid Edwards point");
     }
     Optional<byte[]> roundtrip = recoverFromPoint(ed, permut, itemByteLength);
@@ -91,19 +91,6 @@ public final class Pgt26InvertibleMap {
   }
 
   public static Optional<byte[]> recoverFromPoint(byte[] edwardsPoint, Pgt26FeistelPrp256 permut, int itemByteLength) {
-    if (Pgt26TestHooks.candidatePointCache != null) {
-      byte[] hit = Pgt26TestHooks.candidatePointCache.get(pointKey(edwardsPoint));
-      if (hit != null) {
-        return Optional.of(Arrays.copyOf(hit, itemByteLength));
-      }
-      for (byte[] torsion : Pgt26EdwardsMath.EIGHT_TORSION) {
-        byte[] shifted = Pgt26EdwardsMath.pointAdd(edwardsPoint, torsion);
-        hit = Pgt26TestHooks.candidatePointCache.get(pointKey(shifted));
-        if (hit != null) {
-          return Optional.of(Arrays.copyOf(hit, itemByteLength));
-        }
-      }
-    }
     for (byte[] torsion : Pgt26EdwardsMath.EIGHT_TORSION) {
       byte[] shifted = Pgt26EdwardsMath.pointAdd(edwardsPoint, torsion);
       Optional<byte[]> item = tryRecoverRepresentative(shifted, permut, itemByteLength);
@@ -189,9 +176,5 @@ public final class Pgt26InvertibleMap {
       }
     }
     return true;
-  }
-
-  private static ByteBuffer pointKey(byte[] point) {
-    return ByteBuffer.wrap(BytesUtils.clone(point));
   }
 }

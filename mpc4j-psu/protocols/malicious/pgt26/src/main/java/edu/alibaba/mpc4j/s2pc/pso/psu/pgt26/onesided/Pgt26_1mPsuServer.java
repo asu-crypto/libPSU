@@ -20,8 +20,6 @@ import edu.alibaba.mpc4j.common.tool.crypto.ecc.utils.Ed25519ByteEccUtils;
 import edu.alibaba.mpc4j.s2pc.pso.psu.pgt26.Pgt26Constants;
 import edu.alibaba.mpc4j.s2pc.pso.psu.pgt26.Pgt26CurveOps;
 import edu.alibaba.mpc4j.s2pc.pso.psu.pgt26.Pgt26ProtocolTag;
-import edu.alibaba.mpc4j.s2pc.pso.psu.pgt26.Pgt26TestHooks;
-import edu.alibaba.mpc4j.s2pc.pso.psu.pgt26.Pgt26TestHooks.Mode;
 import edu.alibaba.mpc4j.s2pc.pso.psu.pgt26.aok.Pgt26DdhKnowledgeProof;
 import edu.alibaba.mpc4j.s2pc.pso.psu.pgt26.onesided.Pgt26_1mPsuPtoDesc.PtoStep;
 import edu.alibaba.mpc4j.s2pc.pso.psu.pgt26.shuffled.Pgt26ShuffledHashDh;
@@ -117,14 +115,6 @@ public class Pgt26_1mPsuServer extends AbstractPsuServer implements PsuServer {
       byte[] proof = Pgt26DdhKnowledgeProof.prove(
           item, hx[j], blindedY[j], senderScalar, secureRandom, protocolTag
       );
-      if (Pgt26TestHooks.mode == Mode.INVALID_PROOF) {
-        secureRandom.nextBytes(proof);
-      } else if (Pgt26TestHooks.mode == Mode.WRONG_ITEM_BINDING && j == 0) {
-        item = BytesUtils.randomByteArray(Pgt26Constants.ITEM_BYTE_LENGTH, secureRandom);
-        proof = Pgt26DdhKnowledgeProof.prove(
-            serverItems[0], hx[0], blindedY[0], senderScalar, secureRandom, protocolTag
-        );
-      }
       byte[] payload = new byte[OT_PAYLOAD_BYTES];
       System.arraycopy(item, 0, payload, 0, Pgt26Constants.ITEM_BYTE_LENGTH);
       System.arraycopy(proof, 0, payload, Pgt26Constants.ITEM_BYTE_LENGTH, Pgt26DdhKnowledgeProof.PROOF_BYTES);

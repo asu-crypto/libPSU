@@ -2,13 +2,10 @@ package edu.alibaba.mpc4j.s2pc.pso.psu;
 
 import edu.alibaba.mpc4j.common.rpc.pto.AbstractTwoPartyMemoryRpcPto;
 import edu.alibaba.mpc4j.s2pc.pso.psu.pgt26.Pgt26Constants;
-import edu.alibaba.mpc4j.s2pc.pso.psu.pgt26.Pgt26TestHooks;
 import edu.alibaba.mpc4j.psu.test.TwoPartyTestJoin;
 import edu.alibaba.mpc4j.s2pc.pso.psu.pgt26.twosided.Pgt26_2mPsuConfig;
 import edu.alibaba.mpc4j.psu.common.PsuBenchmarkUtils;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
@@ -20,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * PGT26-2M correctness tests with full shuffle + RDDH proofs and no {@link Pgt26TestHooks}.
+ * PGT26-2M correctness tests with full shuffle + RDDH proofs.
  */
 public class Pgt26_2mPsuTest extends AbstractTwoPartyMemoryRpcPto {
   private static final int SIZE_2P5 = 1 << 5;
@@ -29,16 +26,6 @@ public class Pgt26_2mPsuTest extends AbstractTwoPartyMemoryRpcPto {
 
   public Pgt26_2mPsuTest() {
     super("EUROCRYPT_PuGaoTri26");
-  }
-
-  @Before
-  public void clearHooks() {
-    Pgt26TestHooks.reset();
-  }
-
-  @After
-  public void tearDownHooks() {
-    Pgt26TestHooks.reset();
   }
 
   @Test
@@ -71,7 +58,7 @@ public class Pgt26_2mPsuTest extends AbstractTwoPartyMemoryRpcPto {
     runHonest(1 << 3, 1 << 5, 4);
   }
 
-  /** Fair-bench 2^5 layout with full shuffle + RDDH proofs and no {@link Pgt26TestHooks}. */
+  /** Fair-bench 2^5 layout with full shuffle + RDDH proofs. */
   @Test
   public void testPGT26_2M_2p5_fairBenchElements_noHooks_fullProofs() throws Exception {
     ArrayList<Set<ByteBuffer>> sets = PsuBenchmarkUtils.generateBytesSets(SIZE_2P5, SIZE_2P5, ELEMENT_LEN);
@@ -83,8 +70,6 @@ public class Pgt26_2mPsuTest extends AbstractTwoPartyMemoryRpcPto {
   }
 
   private void runHonest(int serverSize, int clientSize, int intersectionSize) throws Exception {
-    Assert.assertNull(Pgt26TestHooks.candidateItems);
-    Assert.assertNull(Pgt26TestHooks.candidatePointCache);
     ArrayList<Set<ByteBuffer>> sets = generateSets(serverSize, clientSize, intersectionSize);
     Set<ByteBuffer> expect = new HashSet<>(sets.get(0));
     expect.addAll(sets.get(1));
@@ -96,7 +81,6 @@ public class Pgt26_2mPsuTest extends AbstractTwoPartyMemoryRpcPto {
   private ParallelOut runParallel(
       Set<ByteBuffer> serverSet, int clientSize, Set<ByteBuffer> clientSet, int serverSize
   ) throws Exception {
-    Pgt26TestHooks.reset();
     Pgt26_2mPsuConfig config = new Pgt26_2mPsuConfig.Builder().build();
     PsuTwoSidedServer server = PsuFactory.createTwoSidedServer(firstRpc, secondRpc.ownParty(), config);
     PsuTwoSidedClient client = PsuFactory.createTwoSidedClient(secondRpc, firstRpc.ownParty(), config);
@@ -105,19 +89,15 @@ public class Pgt26_2mPsuTest extends AbstractTwoPartyMemoryRpcPto {
     client.setTaskId(taskId);
     PsuTwoSidedServerThread st = new PsuTwoSidedServerThread(server, serverSet, clientSize, ELEMENT_LEN);
     PsuTwoSidedClientThread ct = new PsuTwoSidedClientThread(client, clientSet, serverSize, ELEMENT_LEN);
-    try {
-      st.start();
-      ct.start();
-      TwoPartyTestJoin.joinFailFast(
-          st, st::getFailure, server::destroy,
-          ct, ct::getFailure, client::destroy,
-          TIMEOUT_MS,
-          "PGT26-2M"
-      );
-      return new ParallelOut(ct.getOutput(), st.getOutput());
-    } finally {
-      Pgt26TestHooks.reset();
-    }
+    st.start();
+    ct.start();
+    TwoPartyTestJoin.joinFailFast(
+        st, st::getFailure, server::destroy,
+        ct, ct::getFailure, client::destroy,
+        TIMEOUT_MS,
+        "PGT26-2M"
+    );
+    return new ParallelOut(ct.getOutput(), st.getOutput());
   }
 
   private static final class ParallelOut {

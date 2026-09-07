@@ -34,19 +34,15 @@ import java.util.concurrent.TimeUnit;
 public class Pgt26_2mPsuClient extends AbstractPsuTwoSidedClient {
   private Pgt26PublicParams publicParams;
   private Pgt26_2mParty party;
-  private final boolean skipShuffleProof;
-  private final boolean skipRddhProof;
 
   public Pgt26_2mPsuClient(Rpc clientRpc, Party serverParty, Pgt26_2mPsuConfig config) {
     super(Pgt26_2mPsuPtoDesc.getInstance(), clientRpc, serverParty, config);
-    this.skipShuffleProof = config.isSkipShuffleProof();
-    this.skipRddhProof = config.isSkipRddhProof();
   }
 
   @Override
   public void init(int maxClientElementSize, int maxServerElementSize) throws MpcAbortException {
     setInitInput(maxClientElementSize, maxServerElementSize);
-    logPhaseInfo(PtoState.INIT_BEGIN, proofModeLogLine());
+    logPhaseInfo(PtoState.INIT_BEGIN);
     stopWatch.start();
     int maxN = Math.max(maxClientElementSize, maxServerElementSize);
     publicParams = Pgt26PublicParams.setup(maxN);
@@ -61,7 +57,7 @@ public class Pgt26_2mPsuClient extends AbstractPsuTwoSidedClient {
       throws MpcAbortException {
     setPtoInput(clientElementSet, serverElementSize, elementByteLength);
     Pgt26ShuffledHashDh.assertItemLength(elementByteLength);
-    logPhaseInfo(PtoState.PTO_BEGIN, proofModeLogLine());
+    logPhaseInfo(PtoState.PTO_BEGIN);
     byte[][] items = Pgt26ShuffledHashDh.itemsFromByteBuffers(clientElementArrayList, elementByteLength);
     byte[] aesKey = Pgt26ProtocolTag.feistelKey(getPtoDesc(), clientElementSize, serverElementSize);
     party = Pgt26_2mParty.create(items, aesKey, publicParams, serverElementSize, secureRandom);
@@ -71,6 +67,8 @@ public class Pgt26_2mPsuClient extends AbstractPsuTwoSidedClient {
       return new PsuTwoSidedOutput(union);
     } catch (IOException e) {
       throw new MpcAbortException("PGT26-2M IO error: " + e.getMessage());
+    } catch (IllegalArgumentException e) {
+      throw new MpcAbortException("PGT26-2M malformed peer data: " + e.getMessage());
     }
   }
 
@@ -115,7 +113,7 @@ public class Pgt26_2mPsuClient extends AbstractPsuTwoSidedClient {
     byte[][] peerShuffledDecompressed = Pgt26EdwardsMath.decompressPoints(peerShuffled);
     Pgt26_2mParty.UnblindOutput unblind = party.finalResponse(
         publicParams, peerPk, ownDecompressed, peerShuffledDecompressed, gen.points, peerShuffled, peerPoints,
-        peerProof, skipShuffleProof, secureRandom
+        peerProof, false, secureRandom
     );
     if (unblind == null) {
       String stage = party.lastShuffleVerifyFailure;
@@ -138,21 +136,18 @@ public class Pgt26_2mPsuClient extends AbstractPsuTwoSidedClient {
     int[] peerInd = Pgt26_2mWire.unpackIndices(peerR4.get(peerR4.size() - 1));
     MpcAbortPreconditions.checkArgument(peerR4.size() == peerInd.length + 2);
     byte[][] peerUnblinded = peerR4.subList(1, 1 + peerInd.length).toArray(new byte[0][]);
+    java.util.BitSet expected = Pgt26_2mCoverageCheck.expectedResponseIndices(
+        shuffle.shuffled, peerShuffled, party.permutation.perm, peerPoints.length
+    );
+    Pgt26_2mCoverageCheck.validateReceivedIndices(peerInd, peerUnblinded, expected, shuffle.shuffled.length);
     byte[][] peerShrinked = new byte[peerInd.length][];
-    // The peer proves against the shuffled points we sent to it in Round 3, not the peer's shuffled points.
     for (int i = 0; i < peerInd.length; i++) {
-      MpcAbortPreconditions.checkArgument(peerInd[i] >= 0 && peerInd[i] < shuffle.shuffled.length);
       peerShrinked[i] = shuffle.shuffled[peerInd[i]];
     }
-    byte[][] peerItems = party.revealPeerItems(peerPk, peerUnblinded, peerShrinked, peerDdh, skipRddhProof);
+    byte[][] peerItems = party.revealPeerItems(peerPk, peerUnblinded, peerShrinked, peerDdh, false);
     if (peerItems == null) {
-      if (skipRddhProof) {
-        // Benchmark/debug mode: mapping/recovery may be incomplete; keep protocol running for timing.
-        peerItems = new byte[0][];
-      } else {
-        String stage = party.lastRevealFailure;
-        throw new MpcAbortException(stage == null ? "bad RDDH or decode" : "bad RDDH or decode: " + stage);
-      }
+      String stage = party.lastRevealFailure;
+      throw new MpcAbortException(stage == null ? "bad RDDH or decode" : "bad RDDH or decode: " + stage);
     }
     Set<ByteBuffer> union = new HashSet<>(clientElementArrayList);
     for (byte[] it : peerItems) {
@@ -194,10 +189,6 @@ public class Pgt26_2mPsuClient extends AbstractPsuTwoSidedClient {
         "Round-3 shuffled points: expected " + expected + " got " + payload.size()
     );
     return Pgt26_2mWire.clonePoints(payload.toArray(new byte[0][]));
-  }
-
-  private String proofModeLogLine() {
-    return "shuffleProofEnabled=" + !skipShuffleProof + ", rddhProofEnabled=" + !skipRddhProof;
   }
 
   private DataPacketHeader header(PtoStep step, int from, int to) {
