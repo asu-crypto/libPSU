@@ -6,51 +6,50 @@ import edu.alibaba.mpc4j.common.rpc.Party;
 import edu.alibaba.mpc4j.common.rpc.PtoState;
 import edu.alibaba.mpc4j.common.rpc.Rpc;
 import edu.alibaba.mpc4j.common.rpc.pto.AbstractTwoPartyPto;
-import edu.alibaba.mpc4j.common.structure.okve.dokvs.gf2k.Gf2kDokvs;
-import edu.alibaba.mpc4j.common.structure.okve.dokvs.gf2k.Gf2kDokvsFactory;
-import edu.alibaba.mpc4j.common.structure.okve.dokvs.gf2k.Gf2kDokvsFactory.Gf2kDokvsType;
+import edu.alibaba.mpc4j.common.structure.okve.dokvs.gf2e.Gf2eDokvs;
+import edu.alibaba.mpc4j.common.structure.okve.dokvs.gf2e.Gf2eDokvsFactory;
+import edu.alibaba.mpc4j.common.structure.okve.dokvs.gf2e.Gf2eDokvsFactory.Gf2eDokvsType;
 import edu.alibaba.mpc4j.common.tool.MathPreconditions;
-import edu.alibaba.mpc4j.common.tool.galoisfield.gf2k.Gf2k;
-import edu.alibaba.mpc4j.common.tool.galoisfield.gf2k.Gf2kFactory;
+import edu.alibaba.mpc4j.common.tool.utils.BytesUtils;
 import edu.alibaba.mpc4j.s2pc.aby.basics.z2.SquareZ2Vector;
 import edu.alibaba.mpc4j.s2pc.aby.operator.row.peqt.PeqtFactory;
 import edu.alibaba.mpc4j.s2pc.aby.operator.row.peqt.PeqtParty;
+import edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.F32SowOprfFactory;
+import edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.F32SowOprfReceiver;
+import edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.F32Wprf;
+import edu.alibaba.mpc4j.s2pc.opf.haowan26.HaoWan26AltModExpand.ExpandProfile;
 import edu.alibaba.mpc4j.s2pc.opf.haowan26.HaoWan26SsPmtFastPtoDesc.PtoStep;
-import edu.alibaba.mpc4j.s2pc.opf.oprf.OprfFactory;
-import edu.alibaba.mpc4j.s2pc.opf.oprf.rs21.Rs21MpOprfConfig;
-import edu.alibaba.mpc4j.s2pc.opf.oprf.rs21.Rs21MpOprfSender;
-import edu.alibaba.mpc4j.s2pc.opf.oprf.rs21.Rs21MpOprfSenderOutput;
 
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.stream.IntStream;
 
 /**
- * Hao–Wan 2026 ssPMT-fast server (paper S): MP-OPRF sender, OKVS decode, ssPEQT.
+ * Hao–Wan 2026 ssPMT-fast server (paper S): F32 SOW receiver (query holder), OKVS decode, ssPEQT.
  * <p>
  * Checks membership of each server element {@code x_i ∈ X} in the client set {@code Y}.
- * Supports unequal {@code |X|} and {@code |Y|}: OKVS / RS21 batch = {@code |Y|}, PEQT = {@code |X|}.
+ * SOW batch = {@code |X|}; OKVS keyed by {@code |Y|}. Does not learn full {@code F(x)} (only a share).
  * </p>
  */
 public class HaoWan26SsPmtFastServer extends AbstractTwoPartyPto {
-    private final Rs21MpOprfSender rs21MpOprfSender;
+    private final F32SowOprfReceiver f32SowReceiver;
     private final PeqtParty peqtSender;
-    private final Gf2kDokvsType gf2kDokvsType;
-    private final int peqtBitLength;
+    private final Gf2eDokvsType gf2eDokvsType;
+    private final ExpandProfile expandProfile;
+    private final boolean fullOutputLength;
     private int maxServerN;
     private int maxClientN;
-    private Gf2k gf2k;
+    private int maxEllBits;
 
     public HaoWan26SsPmtFastServer(Rpc serverRpc, Party clientParty, HaoWan26SsPmtFastConfig config) {
         super(HaoWan26SsPmtFastPtoDesc.getInstance(), serverRpc, clientParty, config);
-        Rs21MpOprfConfig rs21 = config.getRs21MpOprfConfig();
-        rs21MpOprfSender = (Rs21MpOprfSender) OprfFactory.createOprfSender(serverRpc, clientParty, rs21);
-        addSubPto(rs21MpOprfSender);
+        f32SowReceiver = F32SowOprfFactory.createReceiver(serverRpc, clientParty, config.getF32SowOprfConfig());
+        addSubPto(f32SowReceiver);
         peqtSender = PeqtFactory.createSender(serverRpc, clientParty, config.getPeqtConfig());
         addSubPto(peqtSender);
-        gf2kDokvsType = rs21.getOkvsType();
-        gf2k = Gf2kFactory.createInstance(envType);
-        peqtBitLength = gf2k.getL();
+        gf2eDokvsType = config.getGf2eDokvsType();
+        expandProfile = config.getExpandProfile();
+        fullOutputLength = config.isFullOutputLength();
     }
 
     public void init(int maxServerN, int maxClientN) throws MpcAbortException {
@@ -58,10 +57,12 @@ public class HaoWan26SsPmtFastServer extends AbstractTwoPartyPto {
         MathPreconditions.checkPositive("maxClientN", maxClientN);
         this.maxServerN = maxServerN;
         this.maxClientN = maxClientN;
+        maxEllBits = fullOutputLength
+            ? F32Wprf.getOutputByteLength() * Byte.SIZE
+            : HaoWan26Truncate.ellBits(maxServerN);
         logPhaseInfo(PtoState.INIT_BEGIN);
-        // RS21 batch is sized by the OPRF-receiver set Y.
-        rs21MpOprfSender.init(maxClientN, maxClientN);
-        peqtSender.init(peqtBitLength, maxServerN);
+        f32SowReceiver.init(maxServerN);
+        peqtSender.init(maxEllBits, maxServerN);
         initState();
         logPhaseInfo(PtoState.INIT_END);
     }
@@ -74,21 +75,21 @@ public class HaoWan26SsPmtFastServer extends AbstractTwoPartyPto {
     @Override
     public void setParallel(boolean parallel) {
         super.setParallel(parallel);
-        rs21MpOprfSender.setParallel(parallel);
+        f32SowReceiver.setParallel(parallel);
         peqtSender.setParallel(parallel);
     }
 
     @Override
     public void setTaskId(int taskId) {
         super.setTaskId(taskId);
-        rs21MpOprfSender.setTaskId(taskId);
+        f32SowReceiver.setTaskId(taskId);
         peqtSender.setTaskId(taskId);
     }
 
     /**
      * Runs ssPMT-fast on the server's (permuted) input set {@code X}.
      *
-     * @param serverElements server set elements in execution order ({@code |X|}).
+     * @param serverElements    server set elements in execution order ({@code |X|}).
      * @param clientElementSize client set size {@code |Y|}.
      * @return secret-shared membership bits {@code [b_i]_0} of length {@code |X|}.
      */
@@ -97,39 +98,36 @@ public class HaoWan26SsPmtFastServer extends AbstractTwoPartyPto {
         int serverN = serverElements.length;
         MathPreconditions.checkPositiveInRangeClosed("serverN", serverN, maxServerN);
         MathPreconditions.checkPositiveInRangeClosed("clientElementSize", clientElementSize, maxClientN);
+        int ellBits = fullOutputLength
+            ? F32Wprf.getOutputByteLength() * Byte.SIZE
+            : HaoWan26Truncate.ellBits(serverN);
         logPhaseInfo(PtoState.PTO_BEGIN);
 
-        // T-shares are aligned with server queries (|X|), not |Y|.
-        List<byte[]> tSharePayload = receiveOtherPartyPayload(PtoStep.CLIENT_SEND_T_SHARES.ordinal());
-        MpcAbortPreconditions.checkArgument(tSharePayload.size() == serverN);
-        byte[][] clientTShares = tSharePayload.toArray(new byte[0][]);
-
-        // RS21 interactive batch must match the client's OPRF input size |Y|.
-        Rs21MpOprfSenderOutput rs21Out = (Rs21MpOprfSenderOutput) rs21MpOprfSender.oprf(clientElementSize);
-
-        byte[][] serverTShares = IntStream.range(0, serverN)
-            .mapToObj(i -> {
-                byte[] fx = rs21Out.getPrf(serverElements[i]);
-                return gf2k.add(fx, clientTShares[i]);
-            })
+        // Paper S = F32 SOW receiver: [t_i]_0 for expanded queries.
+        byte[][] expandedX = IntStream.range(0, serverN)
+            .mapToObj(i -> HaoWan26AltModExpand.expand(serverElements[i], expandProfile))
             .toArray(byte[][]::new);
+        byte[][] serverTShares = f32SowReceiver.oprf(expandedX);
 
         List<byte[]> okvsPayload = receiveOtherPartyPayload(PtoStep.CLIENT_SEND_OKVS.ordinal());
-        int okvsKeyNum = Gf2kDokvsFactory.getHashKeyNum(gf2kDokvsType);
-        int okvsM = Gf2kDokvsFactory.getM(envType, gf2kDokvsType, clientElementSize);
+        int okvsKeyNum = Gf2eDokvsFactory.getHashKeyNum(gf2eDokvsType);
+        int okvsM = Gf2eDokvsFactory.getM(envType, gf2eDokvsType, clientElementSize);
         MpcAbortPreconditions.checkArgument(okvsPayload.size() == okvsKeyNum + okvsM);
         byte[][] okvsKeys = IntStream.range(0, okvsKeyNum).mapToObj(okvsPayload::get).toArray(byte[][]::new);
         byte[][] storage = IntStream.range(okvsKeyNum, okvsPayload.size()).mapToObj(okvsPayload::get).toArray(byte[][]::new);
-        Gf2kDokvs<ByteBuffer> dokvs = Gf2kDokvsFactory.createInstance(
-            envType, gf2kDokvsType, clientElementSize, okvsKeys
+        Gf2eDokvs<ByteBuffer> dokvs = Gf2eDokvsFactory.createInstance(
+            envType, gf2eDokvsType, clientElementSize, ellBits, okvsKeys
         );
         dokvs.setParallelEncode(parallel);
+
+        byte[][] peqtInputs = new byte[serverN][];
         for (int i = 0; i < serverN; i++) {
             byte[] decoded = dokvs.decode(storage, ByteBuffer.wrap(serverElements[i]));
-            gf2k.addi(serverTShares[i], decoded);
+            byte[] share0 = HaoWan26Truncate.truncate(serverTShares[i], ellBits);
+            peqtInputs[i] = BytesUtils.xor(share0, decoded);
         }
 
-        SquareZ2Vector membershipShare = peqtSender.peqt(peqtBitLength, serverTShares);
+        SquareZ2Vector membershipShare = peqtSender.peqt(ellBits, peqtInputs);
         logPhaseInfo(PtoState.PTO_END);
         return membershipShare;
     }

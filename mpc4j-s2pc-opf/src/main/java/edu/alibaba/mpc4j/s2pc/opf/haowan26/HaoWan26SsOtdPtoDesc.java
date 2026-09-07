@@ -4,7 +4,7 @@ import edu.alibaba.mpc4j.common.rpc.desc.PtoDesc;
 import edu.alibaba.mpc4j.common.rpc.desc.PtoDescManager;
 
 /**
- * Hao–Wan 2026 ssOTd (Figure 15): ROT-based conditional element transfer.
+ * Hao–Wan 2026 ssOTd (Figure 15): ROT-based conditional element transfer with completion barrier.
  */
 class HaoWan26SsOtdPtoDesc implements PtoDesc {
     private static final int PTO_ID = Math.abs((int) 0x48574F54L);
@@ -15,6 +15,14 @@ class HaoWan26SsOtdPtoDesc implements PtoDesc {
          * Server sends masked elements and membership-bit shares {@code [b_i]_0}.
          */
         SERVER_SEND_TRANSFER,
+        /**
+         * Client acknowledges receipt / local decrypt completion.
+         */
+        CLIENT_SEND_FINISH_ACK,
+        /**
+         * Server confirms completion ({@code finished}).
+         */
+        SERVER_SEND_FINISH_CONFIRM,
     }
 
     private static final HaoWan26SsOtdPtoDesc INSTANCE = new HaoWan26SsOtdPtoDesc();

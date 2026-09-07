@@ -39,7 +39,7 @@ public class HaoWan2026PsuConfig extends AbstractMultiPartyPtoConfig implements 
 
         public Builder(boolean silent) {
             ssPmtFastConfig = HaoWan26SsPmtFastConfig.createDefault(SecurityModel.SEMI_HONEST, silent);
-            ssOtdConfig = HaoWan26SsOtdConfig.createDefault(SecurityModel.SEMI_HONEST);
+            ssOtdConfig = HaoWan26SsOtdConfig.createDefault(SecurityModel.SEMI_HONEST, silent);
         }
 
         public Builder setSsPmtFastConfig(HaoWan26SsPmtFastConfig ssPmtFastConfig) {
