@@ -39,6 +39,13 @@ public final class ProtocolRegistry {
         if (protocolName == null) {
             return Optional.empty();
         }
+        String trimmed = protocolName.trim();
+        if ("PGT26_1M".equals(trimmed) || "PGT26-1M".equals(trimmed)) {
+            throw new IllegalArgumentException(
+                "PGT26_1M denotes internal one-sided PGT26 experimental code and has no public "
+                    + "factory API. Use EUROCRYPT:PuGaoTri26 / PGT26_2M for public two-sided PGT26."
+            );
+        }
         return Optional.ofNullable(PSU_DESCRIPTORS_BY_NAME.get(ProtocolNames.canonicalize(protocolName)));
     }
 

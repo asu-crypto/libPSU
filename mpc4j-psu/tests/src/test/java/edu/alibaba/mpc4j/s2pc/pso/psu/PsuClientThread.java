@@ -28,6 +28,10 @@ class PsuClientThread extends Thread {
         return clientOutput;
     }
 
+    Throwable getFailure() {
+        return failure.get();
+    }
+
     void rethrowIfFailed() {
         Throwable t = failure.get();
         if (t == null) {

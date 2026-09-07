@@ -3,6 +3,7 @@ package edu.alibaba.mpc4j.s2pc.pso.psu;
 import edu.alibaba.mpc4j.common.rpc.desc.SecurityModel;
 import edu.alibaba.mpc4j.common.rpc.pto.AbstractTwoPartyMemoryRpcPto;
 import edu.alibaba.mpc4j.common.tool.CommonConstants;
+import edu.alibaba.mpc4j.psu.test.TwoPartyTestJoin;
 import edu.alibaba.mpc4j.s2pc.pso.psi.hn12.Hn12PsuConfig;
 import edu.alibaba.mpc4j.s2pc.pso.psu.PsuFactory;
 import org.junit.Assert;
@@ -41,6 +42,26 @@ public class Hn12PsuTest extends AbstractTwoPartyMemoryRpcPto {
     }
 
     @Test
+    public void nonIdealPrfConfigIsUnsupported() {
+        UnsupportedOperationException ex = Assert.assertThrows(
+            UnsupportedOperationException.class,
+            () -> new Hn12PsuConfig.Builder().setUseIdealPrfForTesting(false).build()
+        );
+        Assert.assertTrue(ex.getMessage().contains("ideal-PRF"));
+    }
+
+    @Test
+    public void propertiesRejectNonIdealPrf() {
+        java.util.Properties p = new java.util.Properties();
+        p.setProperty(edu.alibaba.mpc4j.s2pc.pso.main.psu.PsuConfigUtils.PSU_PTO_NAME_KEY, "JOC:HazNis12");
+        p.setProperty("hn12_use_ideal_prf", "false");
+        Assert.assertThrows(
+            UnsupportedOperationException.class,
+            () -> edu.alibaba.mpc4j.s2pc.pso.main.psu.PsuConfigUtils.createConfig(p)
+        );
+    }
+
+    @Test
     public void debugModeExactUnionAndPsiCa() throws Exception {
         runOnce(10, 8, 4);
         runOnce(8, 8, 0);
@@ -62,10 +83,11 @@ public class Hn12PsuTest extends AbstractTwoPartyMemoryRpcPto {
         PsuClientThread ct = new PsuClientThread(client, clientSet, serverSet.size(), ELEMENT_BYTE_LENGTH);
         st.start();
         ct.start();
-        st.join();
-        ct.join();
-        st.rethrowIfFailed();
-        ct.rethrowIfFailed();
+        TwoPartyTestJoin.joinFailFast(
+            st, st::getFailure, server::destroy,
+            ct, ct::getFailure, client::destroy,
+            "HN12"
+        );
 
         Set<ByteBuffer> expectUnion = new HashSet<>(serverSet);
         expectUnion.addAll(clientSet);
@@ -73,9 +95,6 @@ public class Hn12PsuTest extends AbstractTwoPartyMemoryRpcPto {
         Assert.assertNotNull(out);
         Assert.assertEquals(expectUnion, out.getUnion());
         Assert.assertEquals(intersectionSize, out.getPsiCa());
-
-        server.destroy();
-        client.destroy();
     }
 
     private static ArrayList<Set<ByteBuffer>> generateBytesSets(

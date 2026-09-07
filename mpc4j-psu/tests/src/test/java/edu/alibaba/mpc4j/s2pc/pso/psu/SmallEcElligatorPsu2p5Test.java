@@ -1,6 +1,7 @@
 package edu.alibaba.mpc4j.s2pc.pso.psu;
 
 import edu.alibaba.mpc4j.common.rpc.pto.AbstractTwoPartyMemoryRpcPto;
+import edu.alibaba.mpc4j.psu.test.TwoPartyTestJoin;
 import edu.alibaba.mpc4j.s2pc.pso.psu.smallec.SmallEcConstants;
 import edu.alibaba.mpc4j.s2pc.pso.psu.smallec.SmallEcElligatorPsuConfig;
 import edu.alibaba.mpc4j.s2pc.pso.psu.smallec.SmallEcHashDhCore;
@@ -76,10 +77,11 @@ public class SmallEcElligatorPsu2p5Test extends AbstractTwoPartyMemoryRpcPto {
         PsuClientThread ct = new PsuClientThread(client, clientSet, n, elementByteLength);
         st.start();
         ct.start();
-        st.join();
-        ct.join();
-        st.rethrowIfFailed();
-        ct.rethrowIfFailed();
+        TwoPartyTestJoin.joinFailFast(
+            st, st::getFailure, server::destroy,
+            ct, ct::getFailure, client::destroy,
+            "Ours-dedup"
+        );
         Set<ByteBuffer> expectUnion = new HashSet<>();
         for (int v : new int[] {1, 2, 3}) {
             ByteBuffer bb = ByteBuffer.allocate(elementByteLength);
@@ -90,8 +92,6 @@ public class SmallEcElligatorPsu2p5Test extends AbstractTwoPartyMemoryRpcPto {
         Assert.assertEquals(3, out.getUnion().size());
         Assert.assertEquals(1, out.getPsiCa());
         assertUnionEqual(expectUnion, out.getUnion());
-        server.destroy();
-        client.destroy();
     }
 
     @Test
@@ -144,10 +144,11 @@ public class SmallEcElligatorPsu2p5Test extends AbstractTwoPartyMemoryRpcPto {
         PsuClientThread ct = new PsuClientThread(client, clientSet, serverSet.size(), elementByteLength);
         st.start();
         ct.start();
-        st.join();
-        ct.join();
-        st.rethrowIfFailed();
-        ct.rethrowIfFailed();
+        TwoPartyTestJoin.joinFailFast(
+            st, st::getFailure, server::destroy,
+            ct, ct::getFailure, client::destroy,
+            "Ours"
+        );
 
         int n = serverSet.size();
         int expectedUnionSize = n + clientSet.size() - intersectionSize;
@@ -160,8 +161,6 @@ public class SmallEcElligatorPsu2p5Test extends AbstractTwoPartyMemoryRpcPto {
         Assert.assertEquals(expectedUnionSize, out.getUnion().size());
         Assert.assertEquals(expectedRecoveredDiff, expectedUnionSize - clientSet.size());
         assertUnionEqual(expectUnion, out.getUnion());
-        server.destroy();
-        client.destroy();
     }
 
     private static void assertUnionEqual(Set<ByteBuffer> expected, Set<ByteBuffer> actual) {

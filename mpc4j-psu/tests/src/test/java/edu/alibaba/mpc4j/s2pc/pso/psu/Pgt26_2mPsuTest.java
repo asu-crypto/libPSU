@@ -3,6 +3,7 @@ package edu.alibaba.mpc4j.s2pc.pso.psu;
 import edu.alibaba.mpc4j.common.rpc.pto.AbstractTwoPartyMemoryRpcPto;
 import edu.alibaba.mpc4j.s2pc.pso.psu.pgt26.Pgt26Constants;
 import edu.alibaba.mpc4j.s2pc.pso.psu.pgt26.Pgt26TestHooks;
+import edu.alibaba.mpc4j.psu.test.TwoPartyTestJoin;
 import edu.alibaba.mpc4j.s2pc.pso.psu.pgt26.twosided.Pgt26_2mPsuConfig;
 import edu.alibaba.mpc4j.psu.common.PsuBenchmarkUtils;
 import org.junit.After;
@@ -107,38 +108,14 @@ public class Pgt26_2mPsuTest extends AbstractTwoPartyMemoryRpcPto {
     try {
       st.start();
       ct.start();
-      st.join(TIMEOUT_MS);
-      ct.join(TIMEOUT_MS);
-      if (st.isAlive() || ct.isAlive()) {
-        st.interrupt();
-        ct.interrupt();
-        try {
-          server.destroy();
-        } catch (Throwable ignored) {
-          // best-effort cleanup on timeout
-        }
-        try {
-          client.destroy();
-        } catch (Throwable ignored) {
-          // best-effort cleanup on timeout
-        }
-        Assert.fail("PGT26-2M timed out after " + TIMEOUT_MS + " ms (serverAlive=" + st.isAlive()
-            + ", clientAlive=" + ct.isAlive() + ")");
-      }
-      st.rethrowIfFailed();
-      ct.rethrowIfFailed();
+      TwoPartyTestJoin.joinFailFast(
+          st, st::getFailure, server::destroy,
+          ct, ct::getFailure, client::destroy,
+          TIMEOUT_MS,
+          "PGT26-2M"
+      );
       return new ParallelOut(ct.getOutput(), st.getOutput());
     } finally {
-      try {
-        server.destroy();
-      } catch (Throwable ignored) {
-        // ignore destroy races after failure
-      }
-      try {
-        client.destroy();
-      } catch (Throwable ignored) {
-        // ignore destroy races after failure
-      }
       Pgt26TestHooks.reset();
     }
   }
@@ -247,6 +224,10 @@ public class Pgt26_2mPsuTest extends AbstractTwoPartyMemoryRpcPto {
       throw new AssertionError("PGT26-2M client failed", t);
     }
 
+    Throwable getFailure() {
+      return failure.get();
+    }
+
     PsuTwoSidedOutput getOutput() {
       return output;
     }
@@ -290,6 +271,10 @@ public class Pgt26_2mPsuTest extends AbstractTwoPartyMemoryRpcPto {
         throw (RuntimeException) t;
       }
       throw new AssertionError("PGT26-2M server failed", t);
+    }
+
+    Throwable getFailure() {
+      return failure.get();
     }
 
     PsuTwoSidedOutput getOutput() {

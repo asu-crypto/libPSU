@@ -237,10 +237,16 @@ public class PsuConfigUtils {
     private static Hn12PsuConfig createHn12PsuConfig(Properties properties) {
         boolean semiHonest = PropertiesUtils.readBoolean(properties, "hn12_semi_honest_debug", true);
         boolean idealPrf = PropertiesUtils.readBoolean(properties, "hn12_use_ideal_prf", true);
+        if (!idealPrf) {
+            throw new UnsupportedOperationException(
+                "hn12_use_ideal_prf=false is unsupported: JOC:HazNis12 has no production OPRF/PRF. "
+                    + "Only experimental ideal-PRF debug mode (hn12_use_ideal_prf=true) is implemented."
+            );
+        }
         int groupBits = PropertiesUtils.readInt(properties, "hn12_group_bit_length", 256);
         return new Hn12PsuConfig.Builder()
             .setEnableSemiHonestDebug(semiHonest)
-            .setUseIdealPrfForTesting(idealPrf)
+            .setUseIdealPrfForTesting(true)
             .setGroupBitLength(groupBits)
             .build();
     }

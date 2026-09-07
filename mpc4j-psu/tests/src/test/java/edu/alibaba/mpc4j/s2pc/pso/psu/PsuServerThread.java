@@ -23,6 +23,10 @@ class PsuServerThread extends Thread {
         this.elementByteLength = elementByteLength;
     }
 
+    Throwable getFailure() {
+        return failure.get();
+    }
+
     void rethrowIfFailed() {
         Throwable t = failure.get();
         if (t == null) {

@@ -12,8 +12,13 @@ public class ProtocolRegistryTest {
     @Test
     public void testFindsDescriptorAndAliases() {
         ProtocolDescriptor descriptor = ProtocolRegistry.findDescriptor("PKC_GMRSS21").orElseThrow();
-        Assert.assertEquals("PKC_GMRSS21", descriptor.getProtocolName());
-        Assert.assertTrue(descriptor.supportsName("PKC_GMRSS21"));
+        Assert.assertEquals("PKC:GMRSS21", descriptor.getProtocolName());
+        Assert.assertTrue(descriptor.supportsName("PKC:GMRSS21"));
+        Assert.assertTrue(ProtocolRegistry.findDescriptor("GMR21").isPresent());
+        Assert.assertEquals(
+            "PKC:GMRSS21",
+            ProtocolRegistry.findDescriptor("GMR21").orElseThrow().getProtocolName()
+        );
     }
 
     @Test

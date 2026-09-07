@@ -16,4 +16,16 @@
         <module>tcl23</module>
         <module>tbz25</module>
     </modules>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>--add-modules=jdk.incubator.vector -Djava.library.path=${env.MPC4J_NATIVE_TOOL_DIR}:${project.basedir}/../../../../mpc4j-native-tool/cmake-build-release:${env.MPC4J_NATIVE_FHE_DIR}:${project.basedir}/../../../../mpc4j-native-fhe/cmake-build-release</argLine>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

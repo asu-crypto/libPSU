@@ -8,9 +8,10 @@ import edu.alibaba.mpc4j.s2pc.pso.psu.PsuType;
 /**
  * JOC:HazNis12 PSU config (Protocol 8 π∪).
  * <p>
- * The runnable path is the semi-honest/debug implementation: ideal PRF and skipped
- * malicious ZK (πCOUNT/πNZ). Full malicious security is not implemented; requesting
- * it fails closed at {@link Builder#build()}.
+ * Only the <strong>experimental ideal-PRF / debug</strong> path is implemented
+ * ({@code enableSemiHonestDebug=true} and {@code useIdealPrfForTesting=true}).
+ * There is no production OPRF and no malicious πCOUNT/πNZ path; requesting either
+ * unsupported mode fails closed at {@link Builder#build()}.
  * </p>
  */
 public class Hn12PsuConfig extends AbstractMultiPartyPtoConfig implements PsuConfig {
@@ -71,7 +72,14 @@ public class Hn12PsuConfig extends AbstractMultiPartyPtoConfig implements PsuCon
                 throw new UnsupportedOperationException(
                     "JOC:HazNis12 malicious mode (enableSemiHonestDebug=false) is not implemented: "
                         + "πCOUNT/πNZ verification and production OPRF are incomplete. "
-                        + "Use the semi-honest/debug path (default)."
+                        + "Use the experimental ideal-PRF debug path (default)."
+                );
+            }
+            if (!useIdealPrfForTesting) {
+                throw new UnsupportedOperationException(
+                    "JOC:HazNis12 production PRF/OPRF (useIdealPrfForTesting=false) is not implemented. "
+                        + "Only the experimental ideal-PRF debug mode is supported "
+                        + "(hn12_use_ideal_prf=true / setUseIdealPrfForTesting(true))."
                 );
             }
             return new Hn12PsuConfig(this);

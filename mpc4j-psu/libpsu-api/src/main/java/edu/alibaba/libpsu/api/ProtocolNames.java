@@ -95,7 +95,7 @@ public final class ProtocolNames {
         alias(map, "F07", ACNS_FRIKKEN07);
         alias(map, "JSZG24_BECRG_PSU", USENIX_YAN_SHI_HON_DAW24);
         alias(map, "PGT26_2M", EUROCRYPT_PU_GAO_TRI26);
-        alias(map, "PGT26_1M", EUROCRYPT_PU_GAO_TRI26);
+        // PGT26_1M must NOT alias to two-sided EUROCRYPT:PuGaoTri26 (rejected in PsuType / factory).
         alias(map, "SMALL_EC_ELLIGATOR_PSU", OURS);
         alias(map, "CUSTOM_SMALL_EC_ELLIGATOR_PSU", OURS);
         alias(map, "KS05", C_KIS_SON05);

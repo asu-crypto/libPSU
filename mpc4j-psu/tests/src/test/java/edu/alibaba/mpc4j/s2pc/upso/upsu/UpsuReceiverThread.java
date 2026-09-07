@@ -27,6 +27,10 @@ public class UpsuReceiverThread extends Thread {
         return receiverOutput;
     }
 
+    public Throwable getFailure() {
+        return failure.get();
+    }
+
     public void rethrowIfFailed() {
         Throwable t = failure.get();
         if (t == null) {

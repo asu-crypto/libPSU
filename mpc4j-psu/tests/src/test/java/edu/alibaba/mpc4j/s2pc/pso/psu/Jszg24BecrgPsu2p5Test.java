@@ -1,6 +1,7 @@
 package edu.alibaba.mpc4j.s2pc.pso.psu;
 
 import edu.alibaba.mpc4j.common.rpc.pto.AbstractTwoPartyMemoryRpcPto;
+import edu.alibaba.mpc4j.psu.test.TwoPartyTestJoin;
 import edu.alibaba.mpc4j.common.tool.CommonConstants;
 import edu.alibaba.mpc4j.common.tool.EnvType;
 import edu.alibaba.mpc4j.common.tool.crypto.prf.Prf;
@@ -105,10 +106,11 @@ public class Jszg24BecrgPsu2p5Test extends AbstractTwoPartyMemoryRpcPto {
         PsuClientThread ct = new PsuClientThread(client, clientSet, serverSet.size(), ELEMENT_BYTE_LENGTH);
         st.start();
         ct.start();
-        st.join();
-        ct.join();
-        st.rethrowIfFailed();
-        ct.rethrowIfFailed();
+        TwoPartyTestJoin.joinFailFast(
+            st, st::getFailure, server::destroy,
+            ct, ct::getFailure, client::destroy,
+            "JSZG24"
+        );
 
         Set<ByteBuffer> expectUnion = new HashSet<>(serverSet);
         expectUnion.addAll(clientSet);
@@ -118,9 +120,6 @@ public class Jszg24BecrgPsu2p5Test extends AbstractTwoPartyMemoryRpcPto {
         Assert.assertTrue(out.getUnion().containsAll(expectUnion));
         Assert.assertTrue(expectUnion.containsAll(out.getUnion()));
         Assert.assertEquals(intersectionSize, out.getPsiCa());
-
-        new Thread(server::destroy).start();
-        new Thread(client::destroy).start();
     }
 
     private static ArrayList<Set<ByteBuffer>> generateBytesSets(int serverSize, int clientSize, int intersectionSize,

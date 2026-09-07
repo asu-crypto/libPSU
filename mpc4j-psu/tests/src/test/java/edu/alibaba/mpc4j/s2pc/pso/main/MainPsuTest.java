@@ -58,8 +58,8 @@ public class MainPsuTest extends AbstractTwoPartyMemoryRpcPto {
         String path = "conf_psu_example.conf";
         String configPath = Objects.requireNonNull(getClass().getClassLoader().getResource(path)).getPath();
         Properties properties = PropertiesUtils.loadProperties(configPath);
-        Assert.assertEquals(properties.get(MainPtoConfigUtils.PTO_TYPE_KEY), PsuMain.PTO_TYPE_NAME);
-        Assert.assertEquals(properties.get(PsuMain.PTO_NAME_KEY), "AC_KRTW19");
+        Assert.assertEquals(PsuMain.PTO_TYPE_NAME, properties.get(MainPtoConfigUtils.PTO_TYPE_KEY));
+        Assert.assertEquals("AC:KRTW19", properties.get(PsuMain.PTO_NAME_KEY));
         properties.setProperty(PsuMain.PTO_NAME_KEY, typeName);
         if (correct) {
             runMain(properties);

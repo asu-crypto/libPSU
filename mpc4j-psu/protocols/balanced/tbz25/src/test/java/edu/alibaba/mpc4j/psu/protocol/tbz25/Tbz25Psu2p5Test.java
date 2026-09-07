@@ -2,6 +2,7 @@ package edu.alibaba.mpc4j.psu.protocol.tbz25;
 
 import edu.alibaba.mpc4j.common.rpc.pto.AbstractTwoPartyMemoryRpcPto;
 import edu.alibaba.mpc4j.psu.common.PsuBenchmarkUtils;
+import edu.alibaba.mpc4j.psu.test.TwoPartyTestJoin;
 import edu.alibaba.mpc4j.s2pc.pso.psu.PsuClient;
 import edu.alibaba.mpc4j.s2pc.pso.psu.PsuClientOutput;
 import edu.alibaba.mpc4j.s2pc.pso.psu.tbz25.Tbz25PsuClient;
@@ -62,15 +63,11 @@ public class Tbz25Psu2p5Test extends AbstractTwoPartyMemoryRpcPto {
         });
         serverThread.start();
         clientThread.start();
-        serverThread.join();
-        clientThread.join();
-
-        if (serverErr.get() != null) {
-            throw new AssertionError("server failed", serverErr.get());
-        }
-        if (clientErr.get() != null) {
-            throw new AssertionError("client failed", clientErr.get());
-        }
+        TwoPartyTestJoin.joinFailFast(
+            serverThread, serverErr::get, server::destroy,
+            clientThread, clientErr::get, client::destroy,
+            "TBZ25-PSU"
+        );
 
         Set<ByteBuffer> expectUnion = new HashSet<>(serverSet);
         expectUnion.addAll(clientSet);
@@ -142,19 +139,14 @@ public class Tbz25Psu2p5Test extends AbstractTwoPartyMemoryRpcPto {
         });
         serverThread.start();
         clientThread.start();
-        serverThread.join();
-        clientThread.join();
-        if (serverErr.get() != null) {
-            throw new AssertionError("server failed", serverErr.get());
-        }
-        if (clientErr.get() != null) {
-            throw new AssertionError("client failed", clientErr.get());
-        }
+        TwoPartyTestJoin.joinFailFast(
+            serverThread, serverErr::get, server::destroy,
+            clientThread, clientErr::get, client::destroy,
+            "TBZ25-PSU-exact"
+        );
         Set<ByteBuffer> expectUnion = new HashSet<>(serverSet);
         expectUnion.addAll(clientSet);
         Assert.assertEquals(expectUnion, clientOut.get().getUnion());
         Assert.assertEquals(intersectionSize, clientOut.get().getPsiCa());
-        server.destroy();
-        client.destroy();
     }
 }

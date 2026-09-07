@@ -22,6 +22,7 @@ def _prefixes(ids: tuple[str, ...]) -> tuple[str, ...]:
 
 PSI_TYPE_PREFIXES = _prefixes(_PSI_IDS)
 UPSU_TYPE_PREFIXES = _prefixes(_UPSU_IDS)
+UPSU_TYPE_PREFIXES = UPSU_TYPE_PREFIXES + ("TBZ25", "TCL23")
 PSU_TYPE_PREFIXES = _prefixes(
     tuple(i for i in CANONICAL_PROTOCOL_IDS if i not in _PSI_IDS and i not in _UPSU_IDS)
 )
@@ -32,6 +33,7 @@ PSU_TYPE_PREFIXES = PSU_TYPE_PREFIXES + (
     "HAO_WAN2026",
     "JSZG24_BECRG_PSU",
     "PGT26_2M",
+    "PGT26_1M",
     "JSZ22_SFC",
     "JSZ22_SFS",
     "ZCL23_PKE",
@@ -43,6 +45,7 @@ PSU_TYPE_PREFIXES = PSU_TYPE_PREFIXES + (
     "PT26",
     "DC17",
     "F07",
+    "HN12",
 )
 
 FAIR_BENCH_LOG_RE = re.compile(r"^fair_bench_2p(\d+)$")
@@ -265,20 +268,38 @@ def build_timeout_row(
     return rec
 
 
-def read_tsv_rows(path: Path) -> tuple[list[str], list[list[str]]]:
+def read_tsv_rows(path: Path) -> tuple[list[str], list[list[str]], dict[str, str]]:
+    """Return (header, data rows, file-level #libpsu_meta key/values)."""
     text = path.read_text(encoding="utf-8", errors="replace").strip()
     if not text:
-        return [], []
+        return [], [], {}
     lines = text.splitlines()
     if not lines:
-        return [], []
-    header = lines[0].split("\t")
+        return [], [], {}
+    file_meta: dict[str, str] = {}
+    data_start = 0
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped.startswith("#libpsu_meta"):
+            payload = stripped[len("#libpsu_meta") :].lstrip("\t ").strip()
+            for part in payload.replace(",", "\t").split("\t"):
+                part = part.strip()
+                if not part or "=" not in part:
+                    continue
+                key, value = part.split("=", 1)
+                file_meta[key.strip()] = value.strip()
+            data_start = i + 1
+            continue
+        break
+    if data_start >= len(lines):
+        return [], [], file_meta
+    header = lines[data_start].split("\t")
     rows: list[list[str]] = []
-    for line in lines[1:]:
-        if not line.strip():
+    for line in lines[data_start + 1 :]:
+        if not line.strip() or line.lstrip().startswith("#"):
             continue
         rows.append(line.split("\t"))
-    return header, rows
+    return header, rows, file_meta
 
 
 def append_matches(append_string: str, only_append: list[str]) -> bool:
@@ -316,6 +337,8 @@ def collect_records(
         if meta is None:
             print(f"skip (unparsed name): {fp.name}", file=sys.stderr)
             continue
+        header, rows, file_meta = read_tsv_rows(fp)
+        meta.update(file_meta)
         if should_omit_from_summary(omit_protocol(meta)):
             continue
         if after_parse is not None:
@@ -323,7 +346,6 @@ def collect_records(
         if not append_matches(meta["append_string"], only_append):
             skipped_append += 1
             continue
-        header, rows = read_tsv_rows(fp)
         if not header:
             print(f"skip (empty file): {fp.name}", file=sys.stderr)
             continue

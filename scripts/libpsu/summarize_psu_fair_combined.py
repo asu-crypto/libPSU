@@ -34,7 +34,10 @@ from bench_output import (  # noqa: E402
     parse_upsu_basename,
     write_csv,
 )
-from protocol_display_names import display_protocol_name  # noqa: E402
+from protocol_display_names import (  # noqa: E402
+    apply_display_to_meta,
+    display_protocol_name,
+)
 
 
 def default_matrix_appends() -> list[str]:
@@ -88,7 +91,8 @@ def parse_combined(stem: str) -> dict[str, str] | None:
 
 
 def decorate_meta(meta: dict[str, str]) -> None:
-    meta["protocol"] = display_protocol_name(meta["protocol"])
+    apply_display_to_meta(meta)
+    meta["protocol"] = display_protocol_name(meta.get("protocol", ""))
     meta["bench_shape"] = bench_shape(meta["append_string"])
 
 
@@ -102,6 +106,8 @@ def collect_rows(
         "family",
         "bench_shape",
         "protocol",
+        "fidelity_label",
+        "css25_mode",
         "append_string",
         "element_bits",
         "party_id",

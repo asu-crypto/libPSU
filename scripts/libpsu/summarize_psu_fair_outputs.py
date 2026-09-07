@@ -114,6 +114,8 @@ def main() -> int:
     meta_cols = [
         "source_file",
         "psu_type",
+        "fidelity_label",
+        "css25_mode",
         "append_string",
         *SMALL_EC_META_COLS,
         "element_bits",

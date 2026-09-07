@@ -49,6 +49,19 @@ public enum PsuType {
     }
 
     public static PsuType fromProtocolId(String raw) {
+        if (raw != null) {
+            String trimmed = raw.trim();
+            String canonicalAttempt = ProtocolNames.canonicalize(trimmed);
+            if ("PGT26_1M".equals(trimmed)
+                || "PGT26-1M".equals(trimmed)
+                || "PGT26_1M".equals(canonicalAttempt)
+                || "PGT26-1M".equals(canonicalAttempt)) {
+                throw new IllegalArgumentException(
+                    "PGT26_1M denotes internal one-sided PGT26 experimental code and has no public "
+                        + "factory/config API. Use EUROCRYPT:PuGaoTri26 / PGT26_2M for public two-sided PGT26."
+                );
+            }
+        }
         String canonical = ProtocolNames.canonicalize(raw);
         PsuType type = BY_PROTOCOL_ID.get(canonical);
         if (type == null) {

@@ -68,6 +68,7 @@ def main() -> int:
     meta_cols = [
         "source_file",
         "upsu_type",
+        "fidelity_label",
         "append_string",
         "element_bits",
         "party_id",

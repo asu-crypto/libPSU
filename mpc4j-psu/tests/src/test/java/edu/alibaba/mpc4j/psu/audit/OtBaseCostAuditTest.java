@@ -184,7 +184,7 @@ public class OtBaseCostAuditTest extends AbstractTwoPartyMemoryRpcPto {
         properties.setProperty(PsuConfigUtils.PSU_PTO_NAME_KEY, type.name());
         try {
             return PsuConfigUtils.createConfig(properties);
-        } catch (IllegalArgumentException e) {
+        } catch (RuntimeException e) {
             switch (type) {
                 case AC_KRTW19:
                     return new Krtw19PsuConfig.Builder().build();

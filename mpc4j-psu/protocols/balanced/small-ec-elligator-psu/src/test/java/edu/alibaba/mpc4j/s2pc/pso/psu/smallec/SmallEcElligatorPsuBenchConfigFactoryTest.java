@@ -7,9 +7,9 @@ import java.util.Properties;
 
 public class SmallEcElligatorPsuBenchConfigFactoryTest {
     @Test
-    public void case4EnablesFingerprint64() {
+    public void case6EnablesFingerprint64Async() {
         Properties p = new Properties();
-        p.setProperty("append_string", "small_ec_bench_2p5_case4_fp64_async");
+        p.setProperty("append_string", "small_ec_bench_2p5_case6_fp64_async_no_parallel");
         p.setProperty("small_ec_log_stats", "true");
         SmallEcElligatorPsuConfig config = SmallEcElligatorPsuBenchConfigFactory.createForProperties(p);
         Assert.assertNotNull(config);
@@ -24,7 +24,7 @@ public class SmallEcElligatorPsuBenchConfigFactoryTest {
     @Test
     public void case1DisablesAsync() {
         Properties p = new Properties();
-        p.setProperty("append_string", "small_ec_bench_2p5_case1_exact_no_async");
+        p.setProperty("append_string", "small_ec_bench_2p5_case1_exact_no_async_no_parallel");
         SmallEcElligatorPsuConfig config = SmallEcElligatorPsuBenchConfigFactory.createForProperties(p);
         Assert.assertNotNull(config);
         Assert.assertEquals(SmallEcElligatorPsuConfig.WCompareMode.FULL_POINT_EXACT, config.getWCompareMode());
@@ -33,9 +33,9 @@ public class SmallEcElligatorPsuBenchConfigFactoryTest {
     }
 
     @Test
-    public void case5AutoFingerprint() {
+    public void case8AutoFingerprint() {
         Properties p = new Properties();
-        p.setProperty("append_string", "small_ec_bench_2p5_case5_fp_auto_parallel");
+        p.setProperty("append_string", "small_ec_bench_2p5_case8_fp_auto_async_parallel");
         SmallEcElligatorPsuConfig config = SmallEcElligatorPsuBenchConfigFactory.createForProperties(p);
         Assert.assertNotNull(config);
         Assert.assertEquals(

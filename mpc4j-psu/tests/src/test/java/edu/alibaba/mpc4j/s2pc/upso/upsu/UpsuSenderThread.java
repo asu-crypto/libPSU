@@ -22,6 +22,10 @@ public class UpsuSenderThread extends Thread {
         this.elementByteLength = elementByteLength;
     }
 
+    public Throwable getFailure() {
+        return failure.get();
+    }
+
     public void rethrowIfFailed() {
         Throwable t = failure.get();
         if (t == null) {

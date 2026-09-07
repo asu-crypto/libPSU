@@ -16,6 +16,7 @@ import edu.alibaba.mpc4j.s2pc.pso.psu.PsuType;
 import edu.alibaba.mpc4j.s2pc.pso.psu.PsuServer;
 import edu.alibaba.mpc4j.s2pc.pso.psu.PsuTwoSidedClient;
 import edu.alibaba.mpc4j.s2pc.pso.psu.PsuTwoSidedServer;
+import edu.alibaba.mpc4j.s2pc.pso.psu.css25.Css25PsuConfig;
 import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -127,6 +128,16 @@ public class PsuMain extends AbstractMainTwoPartyPto {
         return config.getPtoType() == PsuType.EUROCRYPT_PuGaoTri26;
     }
 
+    /**
+     * Emit structured fidelity metadata consumed by fair-bench summarizers.
+     * Lines start with {@code #libpsu_meta} so TSV parsers can skip them.
+     */
+    private static void writeFidelityMeta(PrintWriter printWriter, PsuConfig config) {
+        if (config instanceof Css25PsuConfig) {
+            printWriter.println("#libpsu_meta\tcss25_mode=" + ((Css25PsuConfig) config).getMode().name());
+        }
+    }
+
     private void runBenchmarkGc() {
         if (!skipGc) {
             System.gc();
@@ -161,6 +172,7 @@ public class PsuMain extends AbstractMainTwoPartyPto {
             + ".output";
         FileWriter fileWriter = new FileWriter(filePath);
         PrintWriter printWriter = new PrintWriter(fileWriter, true);
+        writeFidelityMeta(printWriter, psuConfig);
         // 写入统计结果头文件
         String tab = "Party ID\tServer Set Size\tClient Set Size\tIs Parallel\tThread Num"
             + "\tInit Time(ms)\tInit DataPacket Num\tInit Payload Bytes(B)\tInit Send Bytes(B)"
@@ -378,6 +390,7 @@ public class PsuMain extends AbstractMainTwoPartyPto {
             + ".output";
         FileWriter fileWriter = new FileWriter(filePath);
         PrintWriter printWriter = new PrintWriter(fileWriter, true);
+        writeFidelityMeta(printWriter, psuConfig);
         // 写入统计结果头文件
         String tab = "Party ID\tServer Set Size\tClient Set Size\tIs Parallel\tThread Num"
             + "\tInit Time(ms)\tInit DataPacket Num\tInit Payload Bytes(B)\tInit Send Bytes(B)"

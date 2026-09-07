@@ -2,10 +2,11 @@ package edu.alibaba.mpc4j.s2pc.pso.psu;
 
 import java.nio.ByteBuffer;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Offline/Online PSU client test thread.
+ * Offline/Online PSU client test thread: {@code init → preCompute → psu}.
  */
 public class OoPsuClientThread extends Thread {
     private final OoPsuClient client;
@@ -14,6 +15,7 @@ public class OoPsuClientThread extends Thread {
     private final int elementByteLength;
     private PsuClientOutput clientOutput;
     private final AtomicReference<Throwable> failure = new AtomicReference<>();
+    private final AtomicInteger preComputeCalls = new AtomicInteger();
 
     OoPsuClientThread(OoPsuClient client, Set<ByteBuffer> clientElementSet, int serverElementSize, int elementByteLength) {
         this.client = client;
@@ -24,6 +26,14 @@ public class OoPsuClientThread extends Thread {
 
     PsuClientOutput getClientOutput() {
         return clientOutput;
+    }
+
+    Throwable getFailure() {
+        return failure.get();
+    }
+
+    int getPreComputeCalls() {
+        return preComputeCalls.get();
     }
 
     void rethrowIfFailed() {
@@ -44,6 +54,8 @@ public class OoPsuClientThread extends Thread {
     public void run() {
         try {
             client.init(clientElementSet.size(), serverElementSize);
+            client.preCompute(clientElementSet.size(), serverElementSize, elementByteLength);
+            preComputeCalls.incrementAndGet();
             clientOutput = client.psu(clientElementSet, serverElementSize, elementByteLength);
         } catch (Throwable e) {
             failure.set(e);

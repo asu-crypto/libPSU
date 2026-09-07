@@ -4,6 +4,7 @@ import edu.alibaba.mpc4j.common.tool.CommonConstants;
 import edu.alibaba.mpc4j.common.rpc.pto.AbstractTwoPartyMemoryRpcPto;
 import edu.alibaba.mpc4j.s2pc.opf.pmpeqt.tcl23.Tcl23ByteEccDdhPmPeqtConfig;
 import edu.alibaba.mpc4j.psu.common.PsuBenchmarkUtils;
+import edu.alibaba.mpc4j.psu.test.TwoPartyTestJoin;
 import edu.alibaba.mpc4j.s2pc.upso.upsu.tcl23.Tcl23UpsuConfig;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -91,27 +92,23 @@ public class UpsuTest extends AbstractTwoPartyMemoryRpcPto {
                 receiver, senderElementSize, receiverElementSet, ELEMENT_BYTE_LENGTH
             );
             STOP_WATCH.start();
-            // start
             senderThread.start();
             receiverThread.start();
-            // stop
-            senderThread.join();
-            receiverThread.join();
-            senderThread.rethrowIfFailed();
-            receiverThread.rethrowIfFailed();
+            TwoPartyTestJoin.joinFailFast(
+                senderThread, senderThread::getFailure, sender::destroy,
+                receiverThread, receiverThread::getFailure, receiver::destroy,
+                "UPSU"
+            );
             STOP_WATCH.stop();
             long time = STOP_WATCH.getTime(TimeUnit.MILLISECONDS);
             STOP_WATCH.reset();
-            // verify
             UpsuReceiverOutput receiverOutput = receiverThread.getReceiverOutput();
             assertOutput(senderElementSet, receiverElementSet, receiverOutput);
             printAndResetRpc(time);
-            // destroy
-            new Thread(sender::destroy).start();
-            new Thread(receiver::destroy).start();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new AssertionError("UPSU test interrupted", e);
+        } catch (RuntimeException | Error e) {
+            throw e;
+        } catch (Exception e) {
+            throw new AssertionError("UPSU test failed", e);
         }
     }
 

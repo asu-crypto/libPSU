@@ -3,6 +3,7 @@ package edu.alibaba.mpc4j.s2pc.pso.psu;
 import edu.alibaba.mpc4j.common.rpc.pto.AbstractTwoPartyMemoryRpcPto;
 import edu.alibaba.mpc4j.common.tool.CommonConstants;
 import edu.alibaba.mpc4j.psu.common.PsuBenchmarkUtils;
+import edu.alibaba.mpc4j.psu.test.TwoPartyTestJoin;
 import edu.alibaba.mpc4j.s2pc.pso.psu.css25.Css25PsuConfig;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -108,15 +109,14 @@ public class Css25PsuTest extends AbstractTwoPartyMemoryRpcPto {
         PsuClientThread clientThread = new PsuClientThread(client, clientSet, serverSet.size(), elementByteLength);
         serverThread.start();
         clientThread.start();
-        serverThread.join();
-        clientThread.join();
-        serverThread.rethrowIfFailed();
-        clientThread.rethrowIfFailed();
+        TwoPartyTestJoin.joinFailFast(
+            serverThread, serverThread::getFailure, server::destroy,
+            clientThread, clientThread::getFailure, client::destroy,
+            "ASIACCS_CSSW25"
+        );
 
         assertUnionAndPsiCa(serverSet, clientSet, clientThread.getClientOutput());
         printAndResetRpc(0);
-        new Thread(server::destroy).start();
-        new Thread(client::destroy).start();
     }
 
     private static void assumeNativeToolAvailable() {

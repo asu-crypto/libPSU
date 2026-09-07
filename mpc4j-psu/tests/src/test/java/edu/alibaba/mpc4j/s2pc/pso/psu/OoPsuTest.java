@@ -3,6 +3,7 @@ package edu.alibaba.mpc4j.s2pc.pso.psu;
 import edu.alibaba.mpc4j.common.rpc.pto.AbstractTwoPartyMemoryRpcPto;
 import edu.alibaba.mpc4j.common.tool.CommonConstants;
 import edu.alibaba.mpc4j.psu.common.PsuBenchmarkUtils;
+import edu.alibaba.mpc4j.psu.test.TwoPartyTestJoin;
 import edu.alibaba.mpc4j.s2pc.pso.psu.PsuType;
 import edu.alibaba.mpc4j.s2pc.pso.psu.gmr21.Gmr21PsuConfig;
 import edu.alibaba.mpc4j.s2pc.pso.psu.jsz22.Jsz22SfcPsuConfig;
@@ -151,31 +152,34 @@ public class OoPsuTest extends AbstractTwoPartyMemoryRpcPto {
             OoPsuServerThread serverThread = new OoPsuServerThread(server, serverSet, clientSet.size(), elementByteLength);
             OoPsuClientThread clientThread = new OoPsuClientThread(client, clientSet, serverSet.size(), elementByteLength);
             StopWatch stopWatch = new StopWatch();
-            // start
             stopWatch.start();
             serverThread.start();
             clientThread.start();
-            // stop
-            serverThread.join();
-            clientThread.join();
-            serverThread.rethrowIfFailed();
-            clientThread.rethrowIfFailed();
+            long timeoutMs = Math.max(serverSize, clientSize) >= LARGE_SIZE
+                ? TimeUnit.MINUTES.toMillis(45)
+                : TwoPartyTestJoin.DEFAULT_TIMEOUT_MS;
+            TwoPartyTestJoin.joinFailFast(
+                serverThread, serverThread::getFailure, server::destroy,
+                clientThread, clientThread::getFailure, client::destroy,
+                timeoutMs,
+                server.getPtoDesc().getPtoName()
+            );
             stopWatch.stop();
             long time = stopWatch.getTime(TimeUnit.MILLISECONDS);
             stopWatch.reset();
-            // verify
+            Assert.assertEquals("server preCompute must run once", 1, serverThread.getPreComputeCalls());
+            Assert.assertEquals("client preCompute must run once", 1, clientThread.getPreComputeCalls());
             assertOutput(serverSet, clientSet, clientThread.getClientOutput());
             printAndResetRpc(time);
-            // destroy
-            new Thread(server::destroy).start();
-            new Thread(client::destroy).start();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        } catch (RuntimeException | Error e) {
+            throw e;
+        } catch (Exception e) {
+            throw new AssertionError("OoPSU test failed", e);
         }
     }
 
     private void assertOutput(Set<ByteBuffer> serverSet, Set<ByteBuffer> clientSet, PsuClientOutput clientOutput) {
-        // compute intersection and union
+        Assert.assertNotNull(clientOutput);
         Set<ByteBuffer> expectIntersectionSet = new HashSet<>(serverSet);
         expectIntersectionSet.retainAll(clientSet);
         int expectPsiCa = expectIntersectionSet.size();
@@ -183,6 +187,7 @@ public class OoPsuTest extends AbstractTwoPartyMemoryRpcPto {
         expectUnionSet.addAll(clientSet);
         Assert.assertEquals(expectPsiCa, clientOutput.getPsiCa());
         Set<ByteBuffer> actualUnionSet = clientOutput.getUnion();
+        Assert.assertEquals(expectUnionSet.size(), actualUnionSet.size());
         Assert.assertTrue(actualUnionSet.containsAll(expectUnionSet));
         Assert.assertTrue(expectUnionSet.containsAll(actualUnionSet));
     }

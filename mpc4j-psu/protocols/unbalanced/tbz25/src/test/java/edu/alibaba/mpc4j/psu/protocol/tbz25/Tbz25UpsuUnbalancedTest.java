@@ -2,6 +2,7 @@ package edu.alibaba.mpc4j.psu.protocol.tbz25;
 
 import edu.alibaba.mpc4j.common.rpc.pto.AbstractTwoPartyMemoryRpcPto;
 import edu.alibaba.mpc4j.psu.common.PsuBenchmarkUtils;
+import edu.alibaba.mpc4j.psu.test.TwoPartyTestJoin;
 import edu.alibaba.mpc4j.s2pc.upso.upsu.UpsuReceiverOutput;
 import edu.alibaba.mpc4j.s2pc.upso.upsu.tbz25.Tbz25UpsuConfig;
 import edu.alibaba.mpc4j.s2pc.upso.upsu.tbz25.Tbz25UpsuReceiver;
@@ -64,15 +65,11 @@ public class Tbz25UpsuUnbalancedTest extends AbstractTwoPartyMemoryRpcPto {
         });
         senderThread.start();
         receiverThread.start();
-        senderThread.join();
-        receiverThread.join();
-
-        if (senderErr.get() != null) {
-            throw new AssertionError("sender failed", senderErr.get());
-        }
-        if (receiverErr.get() != null) {
-            throw new AssertionError("receiver failed", receiverErr.get());
-        }
+        TwoPartyTestJoin.joinFailFast(
+            senderThread, senderErr::get, sender::destroy,
+            receiverThread, receiverErr::get, receiver::destroy,
+            "TBZ25-UPSU"
+        );
 
         Set<ByteBuffer> expectUnion = new HashSet<>(senderSet);
         expectUnion.addAll(receiverSet);
@@ -141,19 +138,14 @@ public class Tbz25UpsuUnbalancedTest extends AbstractTwoPartyMemoryRpcPto {
         });
         senderThread.start();
         receiverThread.start();
-        senderThread.join();
-        receiverThread.join();
-        if (senderErr.get() != null) {
-            throw new AssertionError("sender failed", senderErr.get());
-        }
-        if (receiverErr.get() != null) {
-            throw new AssertionError("receiver failed", receiverErr.get());
-        }
+        TwoPartyTestJoin.joinFailFast(
+            senderThread, senderErr::get, sender::destroy,
+            receiverThread, receiverErr::get, receiver::destroy,
+            "TBZ25-UPSU-exact"
+        );
         Set<ByteBuffer> expectUnion = new HashSet<>(senderSet);
         expectUnion.addAll(receiverSet);
         Assert.assertEquals(expectUnion, receiverOut.get().getUnion());
         Assert.assertEquals(intersectionSize, receiverOut.get().getPsica());
-        sender.destroy();
-        receiver.destroy();
     }
 }

@@ -4,6 +4,7 @@ import edu.alibaba.mpc4j.common.rpc.desc.SecurityModel;
 import edu.alibaba.mpc4j.common.rpc.pto.AbstractTwoPartyMemoryRpcPto;
 import edu.alibaba.mpc4j.common.tool.CommonConstants;
 import edu.alibaba.mpc4j.psu.common.PsuBenchmarkUtils;
+import edu.alibaba.mpc4j.psu.test.TwoPartyTestJoin;
 import edu.alibaba.mpc4j.s2pc.pso.psu.PsuType;
 import edu.alibaba.mpc4j.s2pc.pso.psu.czz24.Czz24CwOprfPsuConfig;
 import edu.alibaba.mpc4j.s2pc.pso.psu.gmr21.Gmr21PsuConfig;
@@ -199,26 +200,27 @@ public class PsuTest extends AbstractTwoPartyMemoryRpcPto {
             PsuServerThread serverThread = new PsuServerThread(server, serverSet, clientSet.size(), elementByteLength);
             PsuClientThread clientThread = new PsuClientThread(client, clientSet, serverSet.size(), elementByteLength);
             StopWatch stopWatch = new StopWatch();
-            // start
             stopWatch.start();
             serverThread.start();
             clientThread.start();
-            // stop
-            serverThread.join();
-            clientThread.join();
-            serverThread.rethrowIfFailed();
-            clientThread.rethrowIfFailed();
+            long timeoutMs = Math.max(serverSize, clientSize) >= LARGE_SIZE
+                ? TimeUnit.MINUTES.toMillis(45)
+                : TwoPartyTestJoin.DEFAULT_TIMEOUT_MS;
+            TwoPartyTestJoin.joinFailFast(
+                serverThread, serverThread::getFailure, server::destroy,
+                clientThread, clientThread::getFailure, client::destroy,
+                timeoutMs,
+                server.getPtoDesc().getPtoName()
+            );
             stopWatch.stop();
             long time = stopWatch.getTime(TimeUnit.MILLISECONDS);
             stopWatch.reset();
-            // verify
             assertOutput(serverSet, clientSet, clientThread.getClientOutput());
             printAndResetRpc(time);
-            // destroy
-            new Thread(server::destroy).start();
-            new Thread(client::destroy).start();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        } catch (RuntimeException | Error e) {
+            throw e;
+        } catch (Exception e) {
+            throw new AssertionError("PSU test failed", e);
         }
     }
 
