@@ -9,11 +9,23 @@ Pan–Tian 2026 IBLT peel + MP-OPRF + dual Core COT.
 | **Protocol ID** | `EUROCRYPT:PisTri26` |
 | **Functionality** | Balanced PSU |
 | **Security** | Semi-honest |
-| **Output** | One-sided (client union) |
-| **Factory** | `PsuFactory` |
-| **Driver** | `PsuMain` |
+| **Output** | Two-sided (both parties learn `X0 ∪ X1`) |
+| **Factory** | `PsuFactory.createTwoSidedServer` / `createTwoSidedClient` (one-sided factory rejects PT26) |
+| **Driver** | `PsuMain` (two-sided routing) |
 | **Config key** | `psu_pto_name = EUROCRYPT:PisTri26` |
 | **OT / cost** | INCLUDED_INIT (OT12 + OT3 + MP-OPRF init) |
+
+## Parameters
+
+* IBLT hash count `k = 5`
+* Ring `M = 2^(8·(elementByteLength+1))` (power-of-two wraparound; tagged BOT on OT/peel wire)
+* Expansion from total threshold `τ = n0 + n1`:
+  * `τ < 2^16` → `e = 4.5`
+  * `2^16 ≤ τ < 2^18` → `e = 3.5`
+  * `2^18 ≤ τ < 2^20` → `e = 2.0`
+  * `τ ≥ 2^20` → `e = 1.5`
+* These are empirical/extrapolated listing-failure parameters targeting roughly `2^-40` for evaluated balanced profiles; ordinary PSU tests do not prove that bound.
+* After peel termination every local bin must have `cnt == 0` and `sum == 0` or both parties abort.
 
 ## Implementation
 
@@ -21,7 +33,7 @@ Pan–Tian 2026 IBLT peel + MP-OPRF + dual Core COT.
 |--|--|
 | Path | `mpc4j-psu/protocols/balanced/pt26/` |
 | Maven artifact | `mpc4j-psu-protocol-pt26` |
-| Classes | `Pt26PsuConfig, Pt26PsuServer, Pt26PsuClient, Pt26UnionPeel` |
+| Classes | `Pt26PsuConfig, Pt26PsuServer, Pt26PsuClient, Pt26UnionPeel` (two-sided bases) |
 
 ### Init
 

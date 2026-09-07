@@ -13,6 +13,8 @@ import edu.alibaba.mpc4j.s2pc.pso.psu.PsuClient;
 import edu.alibaba.mpc4j.s2pc.pso.psu.PsuConfig;
 import edu.alibaba.mpc4j.s2pc.pso.psu.PsuFactory;
 import edu.alibaba.mpc4j.s2pc.pso.psu.PsuServer;
+import edu.alibaba.mpc4j.s2pc.pso.psu.PsuTwoSidedClient;
+import edu.alibaba.mpc4j.s2pc.pso.psu.PsuTwoSidedServer;
 import edu.alibaba.mpc4j.s2pc.pso.psu.PsuType;
 import edu.alibaba.mpc4j.s2pc.pso.psu.tbz25.Tbz25PsuConfig;
 import edu.alibaba.mpc4j.s2pc.pso.psu.czz24.Czz24CwOprfPsuConfig;
@@ -228,6 +230,33 @@ public class OtBaseCostAuditTest extends AbstractTwoPartyMemoryRpcPto {
         Rpc clientRpc = secondRpc;
         Party serverParty = serverRpc.ownParty();
         Party clientParty = clientRpc.ownParty();
+        if (type == PsuType.EUROCRYPT_PisTri26) {
+            PsuTwoSidedServer server = PsuFactory.createTwoSidedServer(serverRpc, clientParty, config);
+            PsuTwoSidedClient client = PsuFactory.createTwoSidedClient(clientRpc, serverParty, config);
+            server.setTaskId(0);
+            client.setTaskId(0);
+            server.getRpc().reset();
+            client.getRpc().reset();
+            Thread serverThread = new Thread(() -> {
+                try {
+                    server.init(MAX_CLIENT, MAX_SERVER);
+                } catch (MpcAbortException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+            Thread clientThread = new Thread(() -> {
+                try {
+                    client.init(MAX_CLIENT, MAX_SERVER);
+                } catch (MpcAbortException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+            serverThread.start();
+            clientThread.start();
+            joinUnchecked(serverThread);
+            joinUnchecked(clientThread);
+            return server.getRpc().getSendByteLength();
+        }
         PsuServer server = PsuFactory.createServer(serverRpc, clientParty, config);
         PsuClient client = PsuFactory.createClient(clientRpc, serverParty, config);
         server.setTaskId(0);

@@ -125,7 +125,8 @@ public class PsuMain extends AbstractMainTwoPartyPto {
     }
 
     private static boolean isTwoSidedPsu(PsuConfig config) {
-        return config.getPtoType() == PsuType.EUROCRYPT_PuGaoTri26;
+        PsuType type = config.getPtoType();
+        return type == PsuType.EUROCRYPT_PuGaoTri26 || type == PsuType.EUROCRYPT_PisTri26;
     }
 
     /**

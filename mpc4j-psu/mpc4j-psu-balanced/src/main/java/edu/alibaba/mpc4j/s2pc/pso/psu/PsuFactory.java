@@ -75,7 +75,11 @@ public class PsuFactory implements PtoFactory {
             case ASIACCS_CSSW25:
                 return new Css25PsuServer(serverRpc, clientParty, (Css25PsuConfig) config);
             case EUROCRYPT_PisTri26:
-                return new Pt26PsuServer(serverRpc, clientParty, (Pt26PsuConfig) config);
+                throw new IllegalArgumentException(
+                    "EUROCRYPT_PisTri26 is two-sided (both parties learn the union); "
+                        + "use PsuFactory.createTwoSidedServer. The peel transcript reveals "
+                        + "recovered elements to the server — do not claim one-sided security."
+                );
             case ACISP_DavCid17:
                 return new Dc17PsuServer(serverRpc, clientParty, (Dc17PsuConfig) config);
             case ACNS_Frikken07:
@@ -141,7 +145,11 @@ public class PsuFactory implements PtoFactory {
             case ASIACCS_CSSW25:
                 return new Css25PsuClient(clientRpc, serverParty, (Css25PsuConfig) config);
             case EUROCRYPT_PisTri26:
-                return new Pt26PsuClient(clientRpc, serverParty, (Pt26PsuConfig) config);
+                throw new IllegalArgumentException(
+                    "EUROCRYPT_PisTri26 is two-sided (both parties learn the union); "
+                        + "use PsuFactory.createTwoSidedClient. The peel transcript reveals "
+                        + "recovered elements to the server — do not claim one-sided security."
+                );
             case ACISP_DavCid17:
                 return new Dc17PsuClient(clientRpc, serverParty, (Dc17PsuConfig) config);
             case ACNS_Frikken07:
@@ -164,17 +172,29 @@ public class PsuFactory implements PtoFactory {
     }
 
     public static PsuTwoSidedClient createTwoSidedClient(Rpc clientRpc, Party serverParty, PsuConfig config) {
-        if (config.getPtoType() != PsuType.EUROCRYPT_PuGaoTri26) {
-            throw new IllegalArgumentException("two-sided factory only supports EUROCRYPT:PuGaoTri26");
+        switch (config.getPtoType()) {
+            case EUROCRYPT_PuGaoTri26:
+                return new Pgt26_2mPsuClient(clientRpc, serverParty, (Pgt26_2mPsuConfig) config);
+            case EUROCRYPT_PisTri26:
+                return new Pt26PsuClient(clientRpc, serverParty, (Pt26PsuConfig) config);
+            default:
+                throw new IllegalArgumentException(
+                    "two-sided factory does not support " + config.getPtoType().protocolId()
+                );
         }
-        return new Pgt26_2mPsuClient(clientRpc, serverParty, (Pgt26_2mPsuConfig) config);
     }
 
     public static PsuTwoSidedServer createTwoSidedServer(Rpc serverRpc, Party clientParty, PsuConfig config) {
-        if (config.getPtoType() != PsuType.EUROCRYPT_PuGaoTri26) {
-            throw new IllegalArgumentException("two-sided factory only supports EUROCRYPT:PuGaoTri26");
+        switch (config.getPtoType()) {
+            case EUROCRYPT_PuGaoTri26:
+                return new Pgt26_2mPsuServer(serverRpc, clientParty, (Pgt26_2mPsuConfig) config);
+            case EUROCRYPT_PisTri26:
+                return new Pt26PsuServer(serverRpc, clientParty, (Pt26PsuConfig) config);
+            default:
+                throw new IllegalArgumentException(
+                    "two-sided factory does not support " + config.getPtoType().protocolId()
+                );
         }
-        return new Pgt26_2mPsuServer(serverRpc, clientParty, (Pgt26_2mPsuConfig) config);
     }
 
     public static OoPsuClient createOoPsuClient(Rpc clientRpc, Party serverParty, OoPsuConfig config) {

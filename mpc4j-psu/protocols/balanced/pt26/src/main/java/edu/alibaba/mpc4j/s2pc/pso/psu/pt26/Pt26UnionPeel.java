@@ -23,26 +23,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Secure UnionPeel batch on bins {@code Q} (§5, Fig. 4), optimized per §6.
  *
- * <p>The per-round OPRF (the old {@code oprfSender.oprf(n)} / {@code oprfReceiver.oprf(perBinSums)})
- * has been removed: the protocol now runs <em>one</em> multi-point OPRF during the online setup on
- * the client's input set {@code X1}; the server holds the PRF key (via
- * {@link MpOprfSenderOutput}) and the client holds a precomputed map
- * {@code encoded sum_{1,i,j} -> F_k(sum_{1,i,j})}. Each round then computes the equality material
- * via {@code H(F_k(z), round, i, j)} with the bin index and round index as domain separation
- * (paper Eq. for {@code u_{i,j}} in §6 Optimization, with {@code H} a random oracle).
+ * <p>Paper Figure 4 Step 1: P0 chooses {@code c = [cnt0 == 0]}; P1 sends {@code m0 = ⊥} and
+ * {@code m1 = sum1} iff {@code cnt1 == 1} else ⊥. {@link Pt26OtUtils#receiverDecrypt} returns
+ * {@code m1} when the choice bit is {@code true}.
  *
- * <p>The equality tag is computed at length {@code messageByteLength = zmByteLength} (e.g., 9 bytes
- * for 8-byte set elements) so it fits the OT slot 1 of the 1-of-3 OT without padding. This is the
- * <em>de facto</em> tag length used by the pre-#1 implementation (which silently truncated the
- * OPRF output to {@code messageByteLength} via {@code BytesUtils.xori} with disabled assertions);
- * the only difference here is that the tag is now an explicit {@code SHA-256 / messageByteLength}
- * digest rather than an arbitrary 9-byte prefix of an OPRF codeword, so the equality check
- * actually returns {@code true} when {@code sum_{0,i,j} = sum_{1,i,j}}. The paper's λ=40 tag
- * truncation is <em>not</em> applied here — see the user-facing change log.
+ * <p>OT / peel payloads use tagged {@link Pt26Zm} wire values ({@code BOT} vs canonical {@code Z_M}).
  */
 public class Pt26UnionPeel {
     private final boolean serverSide;
@@ -55,6 +45,7 @@ public class Pt26UnionPeel {
     private final EnvType envType;
     private final SecureRandom secureRandom;
     private final Pt26IbltParams params;
+    private final int zmByteLength;
     private final int messageByteLength;
     private final CoreCotSender ot12Sender;
     private final CoreCotReceiver ot12Receiver;
@@ -62,20 +53,8 @@ public class Pt26UnionPeel {
     private final CoreCotReceiver ot3Receiver;
     private final byte[] botMessage;
     private final Hash equalityHash;
-    /**
-     * Server-only: cached MP-OPRF sender output (single PRF key over the client's input set).
-     */
     private final MpOprfSenderOutput mpOprfSenderOutput;
-    /**
-     * Client-only: cached map from a Z_M-encoded element {@code enc(x)} (which is also the value
-     * that lands in {@code sum_{1,i,j}} when only {@code x} occupies bin {@code (i,j)}) to its PRF
-     * evaluation {@code F_k(enc(x))} as obtained from the online-setup MP-OPRF.
-     */
     private final Map<ByteBuffer, byte[]> clientPrfCache;
-    /**
-     * Per-channel send-byte counters, owned by the caller and updated in place. {@code null} means
-     * "do not meter". Index constants are below.
-     */
     private final long[] commCounters;
     public static final int CH_OT12 = 0;
     public static final int CH_OT3 = 1;
@@ -88,7 +67,8 @@ public class Pt26UnionPeel {
         EnvType envType, SecureRandom secureRandom, Pt26IbltParams params,
         CoreCotSender ot12Sender, CoreCotReceiver ot12Receiver, CoreCotSender ot3Sender, CoreCotReceiver ot3Receiver,
         MpOprfSenderOutput mpOprfSenderOutput, Map<ByteBuffer, byte[]> clientPrfCache,
-        long[] commCounters) {
+        long[] commCounters
+    ) {
         this.serverSide = serverSide;
         this.rpc = rpc;
         this.ptoId = ptoId;
@@ -99,23 +79,21 @@ public class Pt26UnionPeel {
         this.envType = envType;
         this.secureRandom = secureRandom;
         this.params = params;
-        this.messageByteLength = params.getZmByteLength();
+        this.zmByteLength = params.getZmByteLength();
+        this.messageByteLength = Pt26Zm.wireByteLength(params);
         this.ot12Sender = ot12Sender;
         this.ot12Receiver = ot12Receiver;
         this.ot3Sender = ot3Sender;
         this.ot3Receiver = ot3Receiver;
         this.mpOprfSenderOutput = mpOprfSenderOutput;
         this.clientPrfCache = clientPrfCache;
-        this.equalityHash = HashFactory.createInstance(HashType.JDK_SHA256, this.messageByteLength);
-        botMessage = new byte[messageByteLength];
-        java.util.Arrays.fill(botMessage, (byte) 0xFF);
+        this.equalityHash = HashFactory.createInstance(HashType.JDK_SHA256, zmByteLength);
+        this.botMessage = Pt26Zm.encodeWireBot(params);
         this.commCounters = commCounters;
     }
 
     /**
      * Runs one UnionPeel round; returns peeled Z_M values keyed by bin ({@code null} = ⊥).
-     * @param round 0-based round index {@code t} used for the {@code (F_k(·), t, i, j)} domain
-     *              separation in the equality hash.
      */
     public Map<Pt26BinIndex, byte[]> run(Pt26Iblt localIblt, List<Pt26BinIndex> bins, int round)
         throws MpcAbortException {
@@ -132,7 +110,6 @@ public class Pt26UnionPeel {
     private Map<Pt26BinIndex, byte[]> runServer(Pt26Iblt iblt0, List<Pt26BinIndex> bins, int round)
         throws MpcAbortException {
         int n = bins.size();
-        // ---- Step 1: 1-of-2 OT receiver (P0 gets f_{i,j} = sum_{1,i,j} iff cnt_{0,i,j}=0 ∧ cnt_{1,i,j}=1) ----
         long ot12Baseline = rpcSentBytes();
         boolean[] choices = new boolean[n];
         for (int t = 0; t < n; t++) {
@@ -143,12 +120,9 @@ public class Pt26UnionPeel {
         CotReceiverOutput ot12CotOut = ot12Receiver.receive(choices);
         List<byte[]> ot12Payload = rpc.receive(ot12Header).getPayload();
         MpcAbortPreconditions.checkArgument(ot12Payload.size() == n);
-        List<byte[]> fValues = Pt26OtUtils.receiverDecrypt(ot12CotOut, ot12Payload, messageByteLength, envType);
+        List<byte[]> fWire = Pt26OtUtils.receiverDecrypt(ot12CotOut, ot12Payload, messageByteLength, envType);
         accumulate(CH_OT12, rpcSentBytes() - ot12Baseline);
 
-        // ---- Step 2: REMOVED (no per-round OPRF). PRF eval is local via cached mpOprfSenderOutput. ----
-
-        // ---- Step 3: Local computation of (w_{i,j,0}, w_{i,j,1}, w_{i,j,2}) per bin. ----
         List<byte[]> w0 = new ArrayList<>(n);
         List<byte[]> w1 = new ArrayList<>(n);
         List<byte[]> w2 = new ArrayList<>(n);
@@ -158,21 +132,19 @@ public class Pt26UnionPeel {
             int j = bin.getJ();
             int c0 = iblt0.getCnt(i, j);
             byte[] sum0 = iblt0.getSum(i, j);
-            byte[] f = fValues.get(t);
+            Optional<byte[]> fOpt = Pt26Zm.decodeWire(fWire.get(t), params);
             byte[] u;
             if (c0 == 1) {
-                // Paper Eq. for u_{i,j}: H(F_k(sum_{0,i,j}), t, i, j)
                 u = equalityTag(mpOprfSenderOutput.getPrf(sum0), round, i, j);
-            } else if (!isBot(f)) {
-                // c0=0 ∧ f = sum_{1,i,j} known: H(F_k(sum_{1,i,j}), t, i, j)
-                u = equalityTag(mpOprfSenderOutput.getPrf(f), round, i, j);
+            } else if (fOpt.isPresent()) {
+                u = equalityTag(mpOprfSenderOutput.getPrf(fOpt.get()), round, i, j);
             } else {
-                // c0>1 ∨ f=⊥: random tag (paper's "r")
-                u = new byte[messageByteLength];
-                secureRandom.nextBytes(u);
+                byte[] randomTag = new byte[zmByteLength];
+                secureRandom.nextBytes(randomTag);
+                u = encodeTagWire(randomTag);
             }
             if (c0 == 1) {
-                w0.add(sum0);
+                w0.add(Pt26Zm.encodeWireValue(sum0, params));
             } else {
                 w0.add(botBytes());
             }
@@ -180,15 +152,14 @@ public class Pt26UnionPeel {
             w2.add(botBytes());
         }
 
-        // ---- Step 4: 1-of-3 OT sender (emulated by 3× 1-of-2 OT in Pt26OtUtils) ----
         long ot3Baseline = rpcSentBytes();
         List<byte[]> ot3Payload = Pt26OtUtils.runSenderOneOfThree(
-            ot3Sender, w0, w1, w2, messageByteLength, envType);
+            ot3Sender, w0, w1, w2, messageByteLength, envType, secureRandom
+        );
         DataPacketHeader ot3Header = otHeader(PtoStep.SERVER_SEND_OT3_PAYLOAD, ownPartyId, otherPartyId);
         rpc.send(DataPacket.fromByteArrayList(ot3Header, ot3Payload));
         accumulate(CH_OT3, rpcSentBytes() - ot3Baseline);
 
-        // ---- Step 5: receive peel values from P1 ----
         long peelBaseline = rpcSentBytes();
         DataPacketHeader peelHeader = otHeader(PtoStep.CLIENT_SEND_PEEL_VALUES, otherPartyId, ownPartyId);
         List<byte[]> peelPayload = rpc.receive(peelHeader).getPayload();
@@ -201,7 +172,7 @@ public class Pt26UnionPeel {
         throws MpcAbortException {
         int n = bins.size();
 
-        // ---- Step 1: 1-of-2 OT sender (P1 sends m_{i,j}; P0 chooses by [cnt_{0,i,j}=0]) ----
+        // Fig. 4 Step 1: m0 = BOT; m1 = sum1 if cnt1 == 1 else BOT.
         long ot12Baseline = rpcSentBytes();
         List<byte[]> m0 = new ArrayList<>(n);
         List<byte[]> m1 = new ArrayList<>(n);
@@ -210,22 +181,14 @@ public class Pt26UnionPeel {
             int i = bin.getI();
             int j = bin.getJ();
             int c1 = iblt1.getCnt(i, j);
-            if (c1 == 1) {
-                m0.add(iblt1.getSum(i, j));
-            } else {
-                m0.add(botBytes());
-            }
-            m1.add(botBytes());
+            m0.add(botBytes());
+            m1.add(c1 == 1 ? Pt26Zm.encodeWireValue(iblt1.getSum(i, j), params) : botBytes());
         }
         List<byte[]> ot12Payload = Pt26OtUtils.runSenderOneOfTwo(ot12Sender, m0, m1, messageByteLength, envType);
         DataPacketHeader ot12Header = otHeader(PtoStep.CLIENT_SEND_OT12_PAYLOAD, ownPartyId, otherPartyId);
         rpc.send(DataPacket.fromByteArrayList(ot12Header, ot12Payload));
         accumulate(CH_OT12, rpcSentBytes() - ot12Baseline);
 
-        // ---- Step 2: REMOVED (no per-round OPRF). y_{i,j} is computed locally from cache. ----
-        // P1 derives y_{i,j} = H(F_k(sum_{1,i,j}), t, i, j) for c1=1 bins (the only ones where it
-        // needs to compare against g_{i,j}). For c1 ∈ {0,>1} bins, no equality is performed so
-        // y is unused; we leave the slot as null.
         byte[][] yValues = new byte[n][];
         int[] dChoices = new int[n];
         for (int t = 0; t < n; t++) {
@@ -237,7 +200,6 @@ public class Pt26UnionPeel {
                 dChoices[t] = 1;
                 byte[] sum1 = iblt1.getSum(bin.getI(), bin.getJ());
                 byte[] fk = clientPrfCache.get(ByteBuffer.wrap(sum1));
-                // Singleton bin ⇒ sum_{1,i,j} is an element of X_1, which was OPRF'd in setup.
                 MpcAbortPreconditions.checkArgument(fk != null,
                     "Missing cached PRF evaluation for singleton bin (round=" + round + ")");
                 yValues[t] = equalityTag(fk, round, bin.getI(), bin.getJ());
@@ -246,12 +208,10 @@ public class Pt26UnionPeel {
             }
         }
 
-        // ---- Step 4: 1-of-3 OT receiver ----
         long ot3Baseline = rpcSentBytes();
         List<byte[]> gValues = runReceiverOneOfThree(ot3Receiver, dChoices, messageByteLength);
         accumulate(CH_OT3, rpcSentBytes() - ot3Baseline);
 
-        // ---- Step 5: local v_{i,j} + return peel set V to P0 ----
         long peelBaseline = rpcSentBytes();
         List<byte[]> peelPayload = new ArrayList<>(n);
         for (int t = 0; t < n; t++) {
@@ -261,7 +221,9 @@ public class Pt26UnionPeel {
             byte[] g = gValues.get(t);
             byte[] v;
             if (dChoices[t] == 1) {
-                v = BytesUtils.equals(g, yValues[t]) ? iblt1.getSum(i, j) : botBytes();
+                v = BytesUtils.equals(g, yValues[t])
+                    ? Pt26Zm.encodeWireValue(iblt1.getSum(i, j), params)
+                    : botBytes();
             } else if (dChoices[t] == 0) {
                 v = isBot(g) ? botBytes() : g;
             } else {
@@ -275,32 +237,25 @@ public class Pt26UnionPeel {
         return decodePeelMap(bins, peelPayload);
     }
 
-    private Map<Pt26BinIndex, byte[]> decodePeelMap(List<Pt26BinIndex> bins, List<byte[]> peelPayload) {
+    private Map<Pt26BinIndex, byte[]> decodePeelMap(List<Pt26BinIndex> bins, List<byte[]> peelPayload)
+        throws MpcAbortException {
         Map<Pt26BinIndex, byte[]> map = new HashMap<>();
         for (int t = 0; t < bins.size(); t++) {
-            byte[] v = peelPayload.get(t);
-            map.put(bins.get(t), isBot(v) ? null : v);
+            try {
+                Optional<byte[]> decoded = Pt26Zm.decodeWire(peelPayload.get(t), params);
+                map.put(bins.get(t), decoded.orElse(null));
+            } catch (IllegalArgumentException e) {
+                throw new MpcAbortException("malformed peel wire value: " + e.getMessage());
+            }
         }
         return map;
     }
 
-    /**
-     * 1-of-3 OT receiver step. The 1-of-3 OT is still emulated by three parallel 1-of-2 OT
-     * instances (consistent with the previous implementation; this commit does <em>not</em>
-     * change the OT arity per the user's instructions). The OT extension and masked-message bytes
-     * both flow through the parent {@link Rpc}, so the surrounding {@code rpc.getSendByteLength()}
-     * delta in the caller correctly accounts for this channel's bandwidth.
-     */
     private List<byte[]> runReceiverOneOfThree(CoreCotReceiver receiver, int[] choices, int messageByteLength)
         throws MpcAbortException {
         int n = choices.length;
         int pairLen = messageByteLength * 2;
         DataPacketHeader ot3Header = otHeader(PtoStep.SERVER_SEND_OT3_PAYLOAD, otherPartyId, ownPartyId);
-        // The 1-of-3 OT is built by stacking three 1-of-2 OTs, each carrying (slot0 = w_j,
-        // slot1 = random). To learn w_j the inner OT's choice bit must be `false` (slot 0); to
-        // discard the j-th instance the choice bit can be `true` (slot 1, random decoy). This
-        // direction was inverted in the original Pt26OtUtils emulation (a pre-#1 correctness bug
-        // hidden by benchmarks that don't validate output); fixed here.
         boolean[] c0 = new boolean[n];
         boolean[] c1 = new boolean[n];
         boolean[] c2 = new boolean[n];
@@ -340,12 +295,6 @@ public class Pt26UnionPeel {
         return out;
     }
 
-    /**
-     * {@code H(F_k(z), round, binI, binJ)} — random-oracle equality tag with explicit bin- and
-     * round-index domain separation (paper §6 Optimization). Output length is
-     * {@code messageByteLength} (the OT slot 1 byte length); this matches the de facto tag length
-     * of the pre-#1 implementation and is well above the {@code λ = 40} statistical floor.
-     */
     private byte[] equalityTag(byte[] fk, int round, int binI, int binJ) {
         byte[] message = new byte[fk.length + Integer.BYTES * 3];
         System.arraycopy(fk, 0, message, 0, fk.length);
@@ -354,15 +303,23 @@ public class Pt26UnionPeel {
             .putInt(round)
             .putInt(binI)
             .putInt(binJ);
-        return equalityHash.digestToBytes(message);
+        return encodeTagWire(equalityHash.digestToBytes(message));
+    }
+
+    private byte[] encodeTagWire(byte[] tagZm) {
+        return Pt26Zm.encodeWireValue(tagZm, params);
     }
 
     private byte[] botBytes() {
-        return botMessage;
+        return botMessage.clone();
     }
 
     private boolean isBot(byte[] value) {
-        return BytesUtils.equals(value, botBytes());
+        try {
+            return Pt26Zm.isWireBot(value, params);
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
 
     private DataPacketHeader otHeader(PtoStep step, int from, int to) {

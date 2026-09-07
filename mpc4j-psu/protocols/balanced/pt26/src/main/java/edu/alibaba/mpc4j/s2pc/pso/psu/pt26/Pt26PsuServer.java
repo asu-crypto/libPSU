@@ -10,7 +10,8 @@ import edu.alibaba.mpc4j.s2pc.opf.oprf.OprfFactory;
 import edu.alibaba.mpc4j.s2pc.pcg.ot.cot.core.CoreCotFactory;
 import edu.alibaba.mpc4j.s2pc.pcg.ot.cot.core.CoreCotReceiver;
 import edu.alibaba.mpc4j.s2pc.pcg.ot.cot.core.CoreCotSender;
-import edu.alibaba.mpc4j.s2pc.pso.psu.AbstractPsuServer;
+import edu.alibaba.mpc4j.s2pc.pso.psu.AbstractPsuTwoSidedServer;
+import edu.alibaba.mpc4j.s2pc.pso.psu.PsuTwoSidedOutput;
 import edu.alibaba.mpc4j.s2pc.pso.psu.pt26.Pt26PsuPtoDesc.PtoStep;
 
 import java.nio.ByteBuffer;
@@ -18,13 +19,15 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
- * EUROCRYPT_PisTri26 PSU server (paper P0).
+ * EUROCRYPT_PisTri26 PSU server (paper P0). Both parties learn {@code X0 ∪ X1}.
  *
- * <p>Per §6 the OPRF is now run <em>once</em> at the start of {@link #psu} on the client's input
- * set, after which all per-round PRF evaluations are local (via {@link MpOprfSenderOutput#getPrf}).
- * The per-round OPRF call has been removed.
+ * <p>Per §6 the OPRF runs once at the start of {@link #psu} on the client's input set; peel rounds
+ * evaluate equality tags locally via {@link MpOprfSenderOutput#getPrf}.
  */
-public class Pt26PsuServer extends AbstractPsuServer {
+public class Pt26PsuServer extends AbstractPsuTwoSidedServer {
+    private static final byte STATUS_OK = 1;
+    private static final byte STATUS_FAIL = 0;
+
     private final CoreCotReceiver ot12Receiver;
     private final CoreCotSender ot3Sender;
     private final MpOprfSender mpOprfSender;
@@ -42,8 +45,8 @@ public class Pt26PsuServer extends AbstractPsuServer {
     }
 
     @Override
-    public void init(int maxServerElementSize, int maxClientElementSize) throws MpcAbortException {
-        setInitInput(maxServerElementSize, maxClientElementSize);
+    public void init(int maxClientElementSize, int maxServerElementSize) throws MpcAbortException {
+        setInitInput(maxClientElementSize, maxServerElementSize);
         logPhaseInfo(PtoState.INIT_BEGIN);
 
         stopWatch.start();
@@ -52,7 +55,6 @@ public class Pt26PsuServer extends AbstractPsuServer {
         for (int i = 0; i < k; i++) {
             hashKeys[i] = BlockUtils.randomBlock(secureRandom);
         }
-        // Send hash keys before sub-PTO init so the client can unblock its receive.
         DataPacketHeader header = new DataPacketHeader(
             encodeTaskId, getPtoDesc().getPtoId(), PtoStep.SERVER_SEND_HASH_KEYS.ordinal(), extraInfo,
             ownParty().getPartyId(), otherParty().getPartyId()
@@ -63,8 +65,6 @@ public class Pt26PsuServer extends AbstractPsuServer {
         ot12Receiver.init();
         byte[] delta = BlockUtils.randomBlock(secureRandom);
         ot3Sender.init(delta);
-        // The §6 optimization needs MP-OPRF capacity sized to the client's input set (one query
-        // per X_1 element); per-round bin counts are no longer relevant.
         mpOprfSender.init(maxClientElementSize);
         stopWatch.stop();
         logStepInfo(PtoState.INIT_STEP, 1, 1, stopWatch.getTime(TimeUnit.MILLISECONDS));
@@ -74,25 +74,22 @@ public class Pt26PsuServer extends AbstractPsuServer {
     }
 
     @Override
-    public void psu(Set<ByteBuffer> serverElementSet, int clientElementSize, int elementByteLength)
+    public PsuTwoSidedOutput psu(Set<ByteBuffer> serverElementSet, int clientElementSize, int elementByteLength)
         throws MpcAbortException {
         setPtoInput(serverElementSet, clientElementSize, elementByteLength);
         ibltParams = Pt26IbltParams.createDefault(maxServerElementSize, maxClientElementSize, elementByteLength, hashKeys);
         logPhaseInfo(PtoState.PTO_BEGIN);
 
         stopWatch.start();
-        Pt26Iblt iblt0 = Pt26Iblt.encode(serverElementSet, ibltParams);
+        Pt26Iblt iblt0 = Pt26Iblt.encode(serverElementArrayList, ibltParams);
 
-        // ---- Online-setup MP-OPRF: P0 holds the PRF key for all of X_1's evaluations. ----
         long pretotalBytes = rpc.getSendByteLength();
         long setupOprfBytesBaseline = pretotalBytes;
         MpOprfSenderOutput mpOprfSenderOutput = mpOprfSender.oprf(clientElementSize);
         long setupOprfBytes = rpc.getSendByteLength() - setupOprfBytesBaseline;
 
-        // The first secure peel round probes the full IBLT table. Exchanging only local singleton
-        // bins is tempting, but it leaks data-dependent local table structure and can drop bins when
-        // the queue is larger than one OT batch.
         Set<Pt26BinIndex> queue = Pt26Iblt.allBins(ibltParams);
+        Set<ByteBuffer> recovered = new HashSet<>();
         int maxRounds = serverElementSize + clientElementSize + 2;
         long[] counters = new long[Pt26UnionPeel.CH_COUNT];
         Pt26UnionPeel unionPeel = new Pt26UnionPeel(
@@ -125,51 +122,60 @@ public class Pt26PsuServer extends AbstractPsuServer {
             if (vRound.isEmpty()) {
                 break;
             }
-            // Paper Π_PSU: each party deletes only V ∩ X_b from their own IBLT (the pre-#1 impl
-            // deleted V unconditionally, corrupting iblt_b's count/sum bins for elements the
-            // party never owned). The corruption was harmless when equality was broken (no
-            // client-only peels reached either side), but with the §6 fix it propagates into
-            // round 2+ as bins with cnt=1 whose sum is no longer an X_b element.
-            //
-            // The bin-queue for the next round is still derived from the *full* V, so both
-            // parties revisit the same set of bins (a mismatched queue would desynchronize the
-            // round-2 OT/peel batch sizes).
+            recovered.addAll(vRound);
             Set<ByteBuffer> myOwned = new HashSet<>(vRound);
             myOwned.retainAll(serverElementSet);
             iblt0.deleteSet(myOwned);
             queue = Pt26Iblt.nextQueue(ibltParams, vRound, iblt0);
         }
+
+        boolean localOk = iblt0.isFullyPeeled();
+        exchangePeelStatus(localOk);
+
         long total = rpc.getSendByteLength() - pretotalBytes;
         logBandwidthBreakdown(setupOprfBytes, counters, total, roundsRun);
         stopWatch.stop();
         logStepInfo(PtoState.PTO_STEP, 1, 1, stopWatch.getTime(TimeUnit.MILLISECONDS));
         stopWatch.reset();
         logPhaseInfo(PtoState.PTO_END);
+
+        Set<ByteBuffer> union = new HashSet<>(serverElementSet);
+        union.addAll(recovered);
+        union.remove(botElementByteBuffer);
+        return new PsuTwoSidedOutput(union);
     }
 
-    /**
-     * Emits the six EUROCRYPT_PisTri26 communication counters per the post-#1 contract:
-     * <ol>
-     *     <li>setup MP-OPRF bytes sent by this party,</li>
-     *     <li>per-round OPRF bytes (expected zero after #1),</li>
-     *     <li>1-of-2 OT bytes,</li>
-     *     <li>1-of-3 (emulated) OT bytes,</li>
-     *     <li>peel-value return bytes (this side: 0 — server only receives peel values),</li>
-     *     <li>total bytes sent by this party in {@code psu()}.</li>
-     * </ol>
-     * Bytes are accounted via {@link Rpc#getSendByteLength()} deltas at the boundary of each
-     * channel; sub-PTO traffic (CoreCOT, MP-OPRF) is included in the surrounding channel.
-     */
+    private void exchangePeelStatus(boolean localOk) throws MpcAbortException {
+        DataPacketHeader clientHeader = new DataPacketHeader(
+            encodeTaskId, getPtoDesc().getPtoId(), PtoStep.CLIENT_SEND_PEEL_STATUS.ordinal(), extraInfo,
+            otherParty().getPartyId(), ownParty().getPartyId()
+        );
+        List<byte[]> clientPayload = rpc.receive(clientHeader).getPayload();
+        MpcAbortPreconditions.checkArgument(clientPayload.size() == 1 && clientPayload.get(0).length == 1);
+        boolean peerOk = clientPayload.get(0)[0] == STATUS_OK;
+
+        DataPacketHeader serverHeader = new DataPacketHeader(
+            encodeTaskId, getPtoDesc().getPtoId(), PtoStep.SERVER_SEND_PEEL_STATUS.ordinal(), extraInfo,
+            ownParty().getPartyId(), otherParty().getPartyId()
+        );
+        rpc.send(DataPacket.fromByteArrayList(
+            serverHeader, Collections.singletonList(new byte[]{localOk ? STATUS_OK : STATUS_FAIL})
+        ));
+
+        if (!localOk || !peerOk) {
+            throw new MpcAbortException("PT26 IBLT residual non-empty or peer peel failure");
+        }
+    }
+
     private void logBandwidthBreakdown(long setupOprfBytes, long[] counters, long totalBytes, int rounds) {
         long ot12 = counters[Pt26UnionPeel.CH_OT12];
         long ot3 = counters[Pt26UnionPeel.CH_OT3];
         long peel = counters[Pt26UnionPeel.CH_PEEL];
         long perRoundOprf = counters[Pt26UnionPeel.CH_OPRF_PER_ROUND];
         long unaccounted = totalBytes - setupOprfBytes - ot12 - ot3 - peel - perRoundOprf;
-        long bins = (long) ibltParams.totalBins();
-        // Inherited from AbstractMultiPartyPto; renders the slf4j format with the supplied args.
+        long bins = ibltParams.totalBins();
         info("EUROCRYPT_PisTri26-BW[server] rounds={} bins0={} totalSend={}B  setupOprf={}B  perRoundOprf={}B"
-            + "  ot12={}B  ot3={}B  peelReturn={}B  unaccounted(headers+hashKeys+initIO)={}B",
+                + "  ot12={}B  ot3={}B  peelReturn={}B  unaccounted(headers+hashKeys+initIO)={}B",
             rounds, bins, totalBytes, setupOprfBytes, perRoundOprf, ot12, ot3, peel, unaccounted);
     }
 }

@@ -7,62 +7,62 @@ import java.math.BigInteger;
 
 /**
  * Public IBLT parameters {@code prm = (M, k, ℓ)} for EUROCRYPT_PisTri26 (§3).
+ * <p>
+ * Automatic expansion uses the total peel threshold {@code τ = n0 + n1} (not the larger party alone).
+ * Between paper Table-1 thresholds the schedule retains the larger (more conservative) factor from
+ * the previous validated threshold until the next threshold is reached. These factors are empirical
+ * / extrapolated listing-failure parameters targeting roughly {@code 2^-40} failure for the
+ * evaluated balanced profiles; ordinary PSU tests do not prove that bound.
  */
 public class Pt26IbltParams implements Serializable {
     private static final long serialVersionUID = -4829103746510293847L;
-    /**
-     * Default number of IBLT subtables / hash functions ({@code k}) used by {@link #createDefault}.
-     * Single source of truth for callers that need to size their {@code hashKeys[]} array; do not
-     * hard-code a literal in {@code Pt26PsuServer}/{@code Pt26PsuClient}, or the constructor's
-     * {@code hashKeys.length == k} check will throw.
-     */
+
+    /** Default number of IBLT hash functions / subtables ({@code k}). */
     public static final int DEFAULT_K = 5;
+
     /**
-     * Conservative IBLT expansion factor (subtableSize ≈ expansion*(|X|+|Y|)/k) used for tiny sets
-     * smaller than 2^14, and as a safety upper bound. Most callers should not read this directly;
-     * use {@link #chooseExpansion(int)} which mirrors Table 1 in the EUROCRYPT_PisTri26 paper and the
-     * {@code IBLT_MULT_FAC} schedule in the reference impl
-     * (asu-crypto/IBLT-based-PSU, {@code src/benchmarks/psu.bench.cpp}).
+     * Conservative expansion used for {@code τ < 2^16}. Prefer {@link #chooseExpansionForTau(int)}.
      */
     public static final double DEFAULT_EXPANSION = 4.5;
 
     /**
-     * Picks the IBLT expansion factor {@code e} the way EUROCRYPT_PisTri26 Table 1 / ref impl does, indexed by the
-     * larger party's set size (each row of Table 1 is the largest set size for which {@code e} keeps
-     * {@code List} failure ≤ 2^-40). For balanced 2^18 × 2^18 this returns {@code 2.0}, matching the
-     * paper's reported communication numbers (130.07/99.87 MB).
+     * Expansion schedule indexed by total threshold {@code τ = n0 + n1}.
+     * <pre>
+     *   τ &lt; 2^16         ⇒ e = 4.5
+     *   2^16 ≤ τ &lt; 2^18  ⇒ e = 3.5
+     *   2^18 ≤ τ &lt; 2^20  ⇒ e = 2.0
+     *   τ ≥ 2^20         ⇒ e = 1.5
+     * </pre>
      */
-    public static double chooseExpansion(int perPartySize) {
-        if (perPartySize <= (1 << 14)) {
+    public static double chooseExpansionForTau(int tau) {
+        MathPreconditions.checkGreater("tau", tau, 0);
+        if (tau < (1 << 16)) {
             return 4.5;
         }
-        if (perPartySize <= (1 << 16)) {
+        if (tau < (1 << 18)) {
             return 3.5;
         }
-        if (perPartySize <= (1 << 18)) {
+        if (tau < (1 << 20)) {
             return 2.0;
         }
         return 1.5;
     }
+
     /**
-     * number of subtables / hash functions
+     * @deprecated Use {@link #chooseExpansionForTau(int)} with {@code τ = n0 + n1}.
+     *             This legacy entry point treated the argument as a per-party size.
      */
+    @Deprecated
+    public static double chooseExpansion(int perPartySize) {
+        // Preserve old call sites used in unit tests that still pass a single party size by
+        // interpreting it as a balanced-profile proxy: τ ≈ 2·perPartySize.
+        return chooseExpansionForTau(Math.max(1, perPartySize) * 2);
+    }
+
     private final int k;
-    /**
-     * subtable size ℓ
-     */
     private final int subtableSize;
-    /**
-     * modulus M (prime)
-     */
     private final BigInteger modulus;
-    /**
-     * fixed-length encoding of elements in Z_M
-     */
     private final int zmByteLength;
-    /**
-     * per-subtable hash keys
-     */
     private final byte[][] hashKeys;
 
     public Pt26IbltParams(int k, int subtableSize, BigInteger modulus, int zmByteLength, byte[][] hashKeys) {
@@ -75,21 +75,23 @@ public class Pt26IbltParams implements Serializable {
         this.zmByteLength = zmByteLength;
         this.hashKeys = hashKeys;
         MathPreconditions.checkEqual("hashKeys.length", "k", hashKeys.length, k);
+        MathPreconditions.checkEqual("modulus", "2^(8·zmByteLength)",
+            modulus, Pt26Zm.modulusFor(zmByteLength));
     }
 
     /**
-     * Default parameters for semi-honest PSU tests (Theorem 1 style sizing).
-     * Reads {@link #DEFAULT_K} (single source of truth for {@code hashKeys.length}
-     * so {@code Pt26PsuServer} / {@code Pt26PsuClient} cannot drift out of sync)
-     * and {@link #chooseExpansion(int)} (matches paper Table 1 by per-party size).
+     * Default parameters: {@code k = 5}, {@code M = 2^(8·(elementByteLength+1))}, expansion from
+     * {@code τ = maxServerSize + maxClientSize}.
      */
-    public static Pt26IbltParams createDefault(int maxServerSize, int maxClientSize, int elementByteLength, byte[][] hashKeys) {
+    public static Pt26IbltParams createDefault(
+        int maxServerSize, int maxClientSize, int elementByteLength, byte[][] hashKeys
+    ) {
         int k = DEFAULT_K;
-        int threshold = maxServerSize + maxClientSize;
-        double expansion = chooseExpansion(Math.max(maxServerSize, maxClientSize));
-        int subtableSize = Math.max(8, (int) Math.ceil(threshold * expansion / k));
+        int tau = maxServerSize + maxClientSize;
+        double expansion = chooseExpansionForTau(tau);
+        int subtableSize = Math.max(8, (int) Math.ceil(tau * expansion / k));
         int zmByteLength = elementByteLength + 1;
-        BigInteger modulus = BigInteger.ONE.shiftLeft(zmByteLength * 8).nextProbablePrime();
+        BigInteger modulus = Pt26Zm.modulusFor(zmByteLength);
         return new Pt26IbltParams(k, subtableSize, modulus, zmByteLength, hashKeys);
     }
 
