@@ -46,6 +46,7 @@ public class Pgt26_2mRound4CoverageAdversarialTest extends AbstractTwoPartyMemor
         Direction.SERVER_TO_CLIENT,
         disjointSets(2),
         Round4Mutations::emptyIndices,
+        "coverage",
         "empty Round4 server→client"
     );
   }
@@ -56,6 +57,7 @@ public class Pgt26_2mRound4CoverageAdversarialTest extends AbstractTwoPartyMemor
         Direction.CLIENT_TO_SERVER,
         disjointSets(2),
         Round4Mutations::emptyIndices,
+        "coverage",
         "empty Round4 client→server"
     );
   }
@@ -66,6 +68,7 @@ public class Pgt26_2mRound4CoverageAdversarialTest extends AbstractTwoPartyMemor
         Direction.SERVER_TO_CLIENT,
         disjointSets(2),
         Round4Mutations::deleteOneRequired,
+        "coverage",
         "delete-one server→client"
     );
   }
@@ -76,6 +79,7 @@ public class Pgt26_2mRound4CoverageAdversarialTest extends AbstractTwoPartyMemor
         Direction.CLIENT_TO_SERVER,
         disjointSets(2),
         Round4Mutations::deleteOneRequired,
+        "coverage",
         "delete-one client→server"
     );
   }
@@ -86,6 +90,7 @@ public class Pgt26_2mRound4CoverageAdversarialTest extends AbstractTwoPartyMemor
         Direction.SERVER_TO_CLIENT,
         partialIntersectionSets(3, 1),
         p -> Round4Mutations.sameCardinalityWrongIndex(p, 3),
+        "coverage",
         "wrong-index server→client"
     );
   }
@@ -96,6 +101,7 @@ public class Pgt26_2mRound4CoverageAdversarialTest extends AbstractTwoPartyMemor
         Direction.CLIENT_TO_SERVER,
         partialIntersectionSets(3, 1),
         p -> Round4Mutations.sameCardinalityWrongIndex(p, 3),
+        "coverage",
         "wrong-index client→server"
     );
   }
@@ -106,6 +112,7 @@ public class Pgt26_2mRound4CoverageAdversarialTest extends AbstractTwoPartyMemor
         Direction.SERVER_TO_CLIENT,
         disjointSets(2),
         Round4Mutations::duplicateIndices,
+        "duplicate index",
         "duplicate indices server→client"
     );
   }
@@ -116,6 +123,7 @@ public class Pgt26_2mRound4CoverageAdversarialTest extends AbstractTwoPartyMemor
         Direction.CLIENT_TO_SERVER,
         disjointSets(2),
         Round4Mutations::duplicateIndices,
+        "duplicate index",
         "duplicate indices client→server"
     );
   }
@@ -126,6 +134,7 @@ public class Pgt26_2mRound4CoverageAdversarialTest extends AbstractTwoPartyMemor
         Direction.SERVER_TO_CLIENT,
         disjointSets(2),
         Round4Mutations::negativeIndex,
+        "index out of range",
         "negative index server→client"
     );
   }
@@ -136,6 +145,7 @@ public class Pgt26_2mRound4CoverageAdversarialTest extends AbstractTwoPartyMemor
         Direction.CLIENT_TO_SERVER,
         disjointSets(2),
         Round4Mutations::negativeIndex,
+        "index out of range",
         "negative index client→server"
     );
   }
@@ -146,6 +156,7 @@ public class Pgt26_2mRound4CoverageAdversarialTest extends AbstractTwoPartyMemor
         Direction.SERVER_TO_CLIENT,
         disjointSets(2),
         p -> Round4Mutations.indexAtOrAboveUpperBound(p, 2, false),
+        "index out of range",
         "index==upperBound server→client"
     );
   }
@@ -156,6 +167,7 @@ public class Pgt26_2mRound4CoverageAdversarialTest extends AbstractTwoPartyMemor
         Direction.CLIENT_TO_SERVER,
         disjointSets(2),
         p -> Round4Mutations.indexAtOrAboveUpperBound(p, 2, false),
+        "index out of range",
         "index==upperBound client→server"
     );
   }
@@ -166,6 +178,7 @@ public class Pgt26_2mRound4CoverageAdversarialTest extends AbstractTwoPartyMemor
         Direction.SERVER_TO_CLIENT,
         disjointSets(2),
         p -> Round4Mutations.indexAtOrAboveUpperBound(p, 2, true),
+        "index out of range",
         "index>upperBound server→client"
     );
   }
@@ -176,6 +189,7 @@ public class Pgt26_2mRound4CoverageAdversarialTest extends AbstractTwoPartyMemor
         Direction.CLIENT_TO_SERVER,
         disjointSets(2),
         p -> Round4Mutations.indexAtOrAboveUpperBound(p, 2, true),
+        "index out of range",
         "index>upperBound client→server"
     );
   }
@@ -186,6 +200,7 @@ public class Pgt26_2mRound4CoverageAdversarialTest extends AbstractTwoPartyMemor
         Direction.SERVER_TO_CLIENT,
         disjointSets(2),
         Round4Mutations::pointIndexCountMismatch,
+        "point/index",
         "point/index mismatch server→client"
     );
   }
@@ -196,27 +211,42 @@ public class Pgt26_2mRound4CoverageAdversarialTest extends AbstractTwoPartyMemor
         Direction.CLIENT_TO_SERVER,
         disjointSets(2),
         Round4Mutations::pointIndexCountMismatch,
+        "point/index",
         "point/index mismatch client→server"
     );
   }
 
   @Test
-  public void validProofIncompleteCoverageAborts_serverToClient() throws Exception {
+  public void coverageFailurePrecedesCorruptRddh_serverToClient() throws Exception {
+    Assert.assertFalse(
+        "torsion representative must fail prime-subgroup validation",
+        edu.alibaba.mpc4j.s2pc.pso.psu.pgt26.Pgt26EdwardsMath.isValidPrimeSubgroupPoint(
+            edu.alibaba.mpc4j.s2pc.pso.psu.pgt26.Pgt26EdwardsMath.EIGHT_TORSION[1]
+        )
+    );
     assertVictimAborts(
         Direction.SERVER_TO_CLIENT,
-        disjointSets(2),
-        Round4Mutations::incompleteCoverageKeepProof,
-        "incomplete coverage server→client"
+        partialIntersectionSets(3, 1),
+        p -> Round4Mutations.wrongCoverageWithInvalidRddh(p, 3),
+        "coverage",
+        "coverage-before-RDDH server→client"
     );
   }
 
   @Test
-  public void validProofIncompleteCoverageAborts_clientToServer() throws Exception {
+  public void coverageFailurePrecedesCorruptRddh_clientToServer() throws Exception {
+    Assert.assertFalse(
+        "torsion representative must fail prime-subgroup validation",
+        edu.alibaba.mpc4j.s2pc.pso.psu.pgt26.Pgt26EdwardsMath.isValidPrimeSubgroupPoint(
+            edu.alibaba.mpc4j.s2pc.pso.psu.pgt26.Pgt26EdwardsMath.EIGHT_TORSION[1]
+        )
+    );
     assertVictimAborts(
         Direction.CLIENT_TO_SERVER,
-        disjointSets(2),
-        Round4Mutations::incompleteCoverageKeepProof,
-        "incomplete coverage client→server"
+        partialIntersectionSets(3, 1),
+        p -> Round4Mutations.wrongCoverageWithInvalidRddh(p, 3),
+        "coverage",
+        "coverage-before-RDDH client→server"
     );
   }
 
@@ -224,6 +254,7 @@ public class Pgt26_2mRound4CoverageAdversarialTest extends AbstractTwoPartyMemor
       Direction direction,
       PartySets sets,
       Function<List<byte[]>, List<byte[]>> mutator,
+      String requiredDiagnostic,
       String label
   ) throws Exception {
     Rpc serverRpc = firstRpc;
@@ -284,20 +315,11 @@ public class Pgt26_2mRound4CoverageAdversarialTest extends AbstractTwoPartyMemor
           victimErr instanceof MpcAbortException || victimErr.getCause() instanceof MpcAbortException
       );
       String msg = messageOf(victimErr).toLowerCase();
-      // Bare MpcAbortPreconditions.checkArgument() may carry an empty message.
-      if (!msg.isBlank()) {
-        Assert.assertTrue(
-            "diagnostic should identify coverage/malformed Round-4, was: " + msg,
-            msg.contains("coverage")
-                || msg.contains("index")
-                || msg.contains("round-4")
-                || msg.contains("round4")
-                || msg.contains("argument")
-                || msg.contains("malformed")
-                || msg.contains("io error")
-                || msg.contains("payload")
-        );
-      }
+      Assert.assertFalse("abort diagnostic must be non-empty (" + label + ")", msg.isBlank());
+      Assert.assertTrue(
+          "diagnostic must contain '" + requiredDiagnostic + "', was: " + msg,
+          msg.contains(requiredDiagnostic.toLowerCase())
+      );
     }
   }
 
@@ -379,6 +401,8 @@ public class Pgt26_2mRound4CoverageAdversarialTest extends AbstractTwoPartyMemor
     }
 
     static List<byte[]> deleteOneRequired(List<byte[]> payload) {
+      // The proof bytes are left unchanged, but are not claimed valid for the
+      // shortened point set. Coverage must reject before RDDH verification.
       ParsedRound4 parsed = ParsedRound4.parse(payload);
       Assert.assertTrue("need at least one index to delete", parsed.indices.length >= 1);
       int keep = parsed.indices.length - 1;
@@ -442,9 +466,20 @@ public class Pgt26_2mRound4CoverageAdversarialTest extends AbstractTwoPartyMemor
       return ParsedRound4.repack(parsed.proof, points, parsed.indices);
     }
 
-    /** Valid proof blob + subset of required (index,point) pairs → coverage cardinality fail. */
-    static List<byte[]> incompleteCoverageKeepProof(List<byte[]> payload) {
-      return deleteOneRequired(payload);
+    /**
+     * Same-cardinality wrong coverage index plus an invalid RDDH commitment (torsion coset).
+     * Coverage must reject before RDDH verification.
+     */
+    static List<byte[]> wrongCoverageWithInvalidRddh(List<byte[]> payload, int upperBound) {
+      List<byte[]> out = sameCardinalityWrongIndex(payload, upperBound);
+      byte[] proof = Arrays.copyOf(out.get(0), out.get(0).length);
+      byte[] torsion = edu.alibaba.mpc4j.s2pc.pso.psu.pgt26.Pgt26EdwardsMath.EIGHT_TORSION[1];
+      Assert.assertFalse(
+          edu.alibaba.mpc4j.s2pc.pso.psu.pgt26.Pgt26EdwardsMath.isValidPrimeSubgroupPoint(torsion)
+      );
+      System.arraycopy(torsion, 0, proof, 0, torsion.length);
+      out.set(0, proof);
+      return out;
     }
   }
 

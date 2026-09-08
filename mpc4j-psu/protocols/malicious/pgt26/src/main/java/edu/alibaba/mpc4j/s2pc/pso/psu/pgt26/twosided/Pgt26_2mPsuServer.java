@@ -114,10 +114,13 @@ public class Pgt26_2mPsuServer extends AbstractPsuTwoSidedServer {
     r4.add(Pgt26_2mWire.packIndices(unblind.indices));
     sendList(PtoStep.ROUND4_UNBLIND, r4);
     List<byte[]> peerR4 = receiveList(PtoStep.ROUND4_UNBLIND);
-    MpcAbortPreconditions.checkArgument(peerR4.size() >= 2);
+    MpcAbortPreconditions.checkArgument(peerR4.size() >= 2, "malformed Round-4: payload too short");
     Pgt26BatchedRddhProof peerDdh = Pgt26_2mWire.unpackBatched(peerR4.get(0));
     int[] peerInd = Pgt26_2mWire.unpackIndices(peerR4.get(peerR4.size() - 1));
-    MpcAbortPreconditions.checkArgument(peerR4.size() == peerInd.length + 2);
+    MpcAbortPreconditions.checkArgument(
+        peerR4.size() == peerInd.length + 2,
+        "malformed Round-4 point/index count mismatch"
+    );
     byte[][] peerUnblinded = peerR4.subList(1, 1 + peerInd.length).toArray(new byte[0][]);
     java.util.BitSet expected = Pgt26_2mCoverageCheck.expectedResponseIndices(
         shuffle.shuffled, peerShuffled, party.permutation.perm, peerPoints.length
