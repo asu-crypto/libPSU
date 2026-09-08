@@ -99,6 +99,25 @@ public class F32Wprf {
     }
 
     /**
+     * Creates a WPRF from explicit public matrices (e.g. secure-join AltMod parameters).
+     *
+     * @param z3Field Z3-field.
+     * @param matrixA A ∈ F_3 storage layout ({@link F32WprfMatrix#ROWS}×{@link F32WprfMatrix#COLUMNS}).
+     * @param matrixB B ∈ F_2 with {@link #M} rows and {@link #T} columns.
+     */
+    public F32Wprf(Z3ByteField z3Field, F32WprfMatrix matrixA, DenseBitMatrix matrixB) {
+        this.z3Field = Preconditions.checkNotNull(z3Field);
+        Preconditions.checkNotNull(matrixA);
+        Preconditions.checkNotNull(matrixB);
+        MathPreconditions.checkEqual("matrixA.rows", "N", matrixA.getRows(), N);
+        MathPreconditions.checkEqual("matrixA.columns", "M", matrixA.getColumns(), M);
+        MathPreconditions.checkEqual("matrixB.rows", "M", matrixB.getRows(), M);
+        MathPreconditions.checkEqual("matrixB.columns", "T", matrixB.getColumns(), T);
+        this.matrixA = matrixA;
+        this.matrixB = matrixB;
+    }
+
+    /**
      * Gets matrix A.
      *
      * @return matrix A.

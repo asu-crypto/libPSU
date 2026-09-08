@@ -97,8 +97,21 @@ public class HaoWan2026Psu2p5Test extends AbstractTwoPartyMemoryRpcPto {
         });
         serverThread.start();
         clientThread.start();
-        serverThread.join();
-        clientThread.join();
+        serverThread.join(60_000);
+        clientThread.join(5_000);
+        if (serverThread.isAlive() || clientThread.isAlive()) {
+            server.destroy();
+            client.destroy();
+            Throwable se = serverErr.get();
+            Throwable ce = clientErr.get();
+            throw new AssertionError(
+                "PSU hang: serverAlive=" + serverThread.isAlive()
+                    + " clientAlive=" + clientThread.isAlive()
+                    + " serverErr=" + se
+                    + " clientErr=" + ce,
+                ce != null ? ce : se
+            );
+        }
 
         if (serverErr.get() != null) {
             throw new AssertionError("server failed", serverErr.get());

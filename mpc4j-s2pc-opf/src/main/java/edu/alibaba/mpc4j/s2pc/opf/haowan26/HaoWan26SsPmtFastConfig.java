@@ -6,7 +6,8 @@ import edu.alibaba.mpc4j.common.structure.okve.dokvs.gf2e.Gf2eDokvsFactory.Gf2eD
 import edu.alibaba.mpc4j.s2pc.aby.operator.row.peqt.PeqtConfig;
 import edu.alibaba.mpc4j.s2pc.aby.operator.row.peqt.cgs22.Cgs22PeqtConfig;
 import edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.F32SowOprfConfig;
-import edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.F32SowOprfFactory;
+import edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.F32WprfPublicParamsType;
+import edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.aprr24.Aprr24F32SowOprfConfig;
 import edu.alibaba.mpc4j.s2pc.opf.haowan26.HaoWan26AltModExpand.ExpandProfile;
 import edu.alibaba.mpc4j.s2pc.pcg.ot.conv32.Conv32Factory.Conv32Type;
 
@@ -53,9 +54,13 @@ public class HaoWan26SsPmtFastConfig extends AbstractMultiPartyPtoConfig {
     }
 
     public static HaoWan26SsPmtFastConfig createDefault(SecurityModel securityModel, boolean silent) {
-        F32SowOprfConfig f32 = F32SowOprfFactory.createDefaultConfig(Conv32Type.CCOT);
+        F32SowOprfConfig f32 = new Aprr24F32SowOprfConfig.Builder(Conv32Type.CCOT)
+            .setPublicParamsType(F32WprfPublicParamsType.HAO_WAN_SECURE_JOIN)
+            .build();
         PeqtConfig peqt = new Cgs22PeqtConfig.Builder(securityModel, silent).build();
-        return new Builder(f32, peqt).build();
+        return new Builder(f32, peqt)
+            .setExpandProfile(ExpandProfile.HAO_WAN_SECURE_JOIN)
+            .build();
     }
 
     public static class Builder implements org.apache.commons.lang3.builder.Builder<HaoWan26SsPmtFastConfig> {
@@ -69,7 +74,7 @@ public class HaoWan26SsPmtFastConfig extends AbstractMultiPartyPtoConfig {
             this.f32SowOprfConfig = f32SowOprfConfig;
             this.peqtConfig = peqtConfig;
             this.gf2eDokvsType = Gf2eDokvsType.H3_SPARSE_CLUSTER_BLAZE_GCT;
-            this.expandProfile = ExpandProfile.SECURE_JOIN_COMPAT;
+            this.expandProfile = ExpandProfile.HAO_WAN_SECURE_JOIN;
             this.fullOutputLength = false;
         }
 

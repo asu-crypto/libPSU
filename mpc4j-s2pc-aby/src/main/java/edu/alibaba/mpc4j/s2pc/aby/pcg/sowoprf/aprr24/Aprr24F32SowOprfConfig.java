@@ -5,6 +5,7 @@ import edu.alibaba.mpc4j.common.rpc.pto.AbstractMultiPartyPtoConfig;
 import edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.F32SowOprfConfig;
 import edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.F32SowOprfFactory.F32SowOprfType;
 import edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.F32WprfMatrixFactory.F32WprfMatrixType;
+import edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.F32WprfPublicParamsType;
 import edu.alibaba.mpc4j.s2pc.pcg.ot.conv32.Conv32Config;
 import edu.alibaba.mpc4j.s2pc.pcg.ot.conv32.Conv32Factory;
 import edu.alibaba.mpc4j.s2pc.pcg.ot.conv32.Conv32Factory.Conv32Type;
@@ -30,12 +31,17 @@ public class Aprr24F32SowOprfConfig extends AbstractMultiPartyPtoConfig implemen
      * matrix type
      */
     private final F32WprfMatrixType f32WprfMatrixType;
+    /**
+     * public A/B parameter profile
+     */
+    private final F32WprfPublicParamsType publicParamsType;
 
     private Aprr24F32SowOprfConfig(Builder builder) {
         super(SecurityModel.SEMI_HONEST, builder.coreCotConfig, builder.conv32Config);
         coreCotConfig = builder.coreCotConfig;
         conv32Config = builder.conv32Config;
         f32WprfMatrixType = builder.f32WprfMatrixType;
+        publicParamsType = builder.publicParamsType;
     }
 
     public CoreCotConfig getCoreCotConfig() {
@@ -56,6 +62,11 @@ public class Aprr24F32SowOprfConfig extends AbstractMultiPartyPtoConfig implemen
         return f32WprfMatrixType;
     }
 
+    @Override
+    public F32WprfPublicParamsType getPublicParamsType() {
+        return publicParamsType;
+    }
+
     public static class Builder implements org.apache.commons.lang3.builder.Builder<Aprr24F32SowOprfConfig> {
         /**
          * core COT config
@@ -69,15 +80,25 @@ public class Aprr24F32SowOprfConfig extends AbstractMultiPartyPtoConfig implemen
          * matrix type
          */
         private F32WprfMatrixType f32WprfMatrixType;
+        /**
+         * public A/B parameter profile
+         */
+        private F32WprfPublicParamsType publicParamsType;
 
         public Builder(Conv32Type conv32Type) {
             coreCotConfig = CoreCotFactory.createDefaultConfig(SecurityModel.SEMI_HONEST);
             conv32Config = Conv32Factory.createDefaultConfig(SecurityModel.SEMI_HONEST, conv32Type);
             f32WprfMatrixType = F32WprfMatrixType.LONG;
+            publicParamsType = F32WprfPublicParamsType.MPC4J_NATIVE;
         }
 
         public Builder setMatrixType(F32WprfMatrixType f32WprfMatrixType) {
             this.f32WprfMatrixType = f32WprfMatrixType;
+            return this;
+        }
+
+        public Builder setPublicParamsType(F32WprfPublicParamsType publicParamsType) {
+            this.publicParamsType = publicParamsType;
             return this;
         }
 

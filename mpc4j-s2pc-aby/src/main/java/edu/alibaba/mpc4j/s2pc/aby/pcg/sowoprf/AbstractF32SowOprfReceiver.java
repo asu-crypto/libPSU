@@ -10,6 +10,7 @@ import edu.alibaba.mpc4j.common.tool.MathPreconditions;
 import edu.alibaba.mpc4j.common.tool.bitmatrix.dense.DenseBitMatrix;
 import edu.alibaba.mpc4j.common.tool.galoisfield.Z3ByteField;
 import edu.alibaba.mpc4j.common.tool.utils.BlockUtils;
+import edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.securejoin.HaoWan26SecureJoinParams;
 
 import java.util.Arrays;
 
@@ -52,12 +53,19 @@ public abstract class AbstractF32SowOprfReceiver extends AbstractTwoPartyPto imp
     protected AbstractF32SowOprfReceiver(PtoDesc ptoDesc, Rpc receiverRpc, Party senderParty, F32SowOprfConfig config) {
         super(ptoDesc, receiverRpc, senderParty, config);
         z3Field = new Z3ByteField();
+        f32Wprf = createF32Wprf(z3Field, config);
+        matrixA = f32Wprf.getMatrixA();
+        matrixB = f32Wprf.getMatrixB();
+    }
+
+    private static F32Wprf createF32Wprf(Z3ByteField z3Field, F32SowOprfConfig config) {
+        if (config.getPublicParamsType() == F32WprfPublicParamsType.HAO_WAN_SECURE_JOIN) {
+            return HaoWan26SecureJoinParams.createF32Wprf(z3Field, config.getMatrixType());
+        }
         byte[] seedA = BlockUtils.zeroBlock();
         byte[] seedB = BlockUtils.zeroBlock();
         Arrays.fill(seedB, (byte) 0xFF);
-        f32Wprf = new F32Wprf(z3Field, seedA, seedB, config.getMatrixType());
-        matrixA = f32Wprf.getMatrixA();
-        matrixB = f32Wprf.getMatrixB();
+        return new F32Wprf(z3Field, seedA, seedB, config.getMatrixType());
     }
 
     protected void setInitInput(int expectBatchSize) {
