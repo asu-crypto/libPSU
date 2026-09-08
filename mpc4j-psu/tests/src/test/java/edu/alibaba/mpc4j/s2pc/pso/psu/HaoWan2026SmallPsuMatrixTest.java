@@ -9,6 +9,9 @@ import edu.alibaba.mpc4j.s2pc.pso.psu.haowan2026.HaoWan2026PsuServer;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.nio.ByteBuffer;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -77,55 +80,44 @@ public class HaoWan2026SmallPsuMatrixTest extends AbstractTwoPartyMemoryRpcPto {
     public void twoExecutionsAfterOneInit() throws Exception {
         DeterministicPsuSets.SetsOf first = DeterministicPsuSets.build(4, 4, 2, ELEMENT_LEN);
         DeterministicPsuSets.SetsOf second = DeterministicPsuSets.build(2, 2, 0, ELEMENT_LEN);
-        int maxServer = Math.max(first.serverSet.size(), second.serverSet.size());
-        int maxClient = Math.max(first.clientSet.size(), second.clientSet.size());
+        runTwoExecutionsAfterOneInit(first, second, false, false, "HaoWan2026-two-exec");
+    }
 
-        HaoWan2026PsuConfig config = new HaoWan2026PsuConfig.Builder(false).build();
-        PsuServer server = PsuFactory.createServer(firstRpc, secondRpc.ownParty(), config);
-        PsuClient client = PsuFactory.createClient(secondRpc, firstRpc.ownParty(), config);
-        int taskId = Math.abs(SECURE_RANDOM.nextInt());
-        server.setTaskId(taskId);
-        client.setTaskId(taskId);
+    @Test
+    public void sharedZero_directCot() throws Exception {
+        runCustomOnce(sharedZeroSets(), false, false, false);
+    }
 
-        AtomicReference<PsuClientOutput> clientOut1 = new AtomicReference<>();
-        AtomicReference<PsuClientOutput> clientOut2 = new AtomicReference<>();
-        AtomicReference<Throwable> serverErr = new AtomicReference<>();
-        AtomicReference<Throwable> clientErr = new AtomicReference<>();
+    @Test
+    public void sharedZero_silentCot() throws Exception {
+        runCustomOnce(sharedZeroSets(), true, false, false);
+    }
 
-        Thread st = new Thread(() -> {
-            try {
-                server.init(maxServer, maxClient);
-                server.getRpc().synchronize();
-                server.psu(first.serverSet, first.clientSet.size(), ELEMENT_LEN);
-                server.getRpc().synchronize();
-                server.psu(second.serverSet, second.clientSet.size(), ELEMENT_LEN);
-            } catch (Throwable t) {
-                serverErr.set(t);
-            }
-        });
-        Thread ct = new Thread(() -> {
-            try {
-                client.init(maxClient, maxServer);
-                client.getRpc().synchronize();
-                clientOut1.set(client.psu(first.clientSet, first.serverSet.size(), ELEMENT_LEN));
-                client.getRpc().synchronize();
-                clientOut2.set(client.psu(second.clientSet, second.serverSet.size(), ELEMENT_LEN));
-            } catch (Throwable t) {
-                clientErr.set(t);
-            }
-        });
-        st.start();
-        ct.start();
-        TwoPartyTestJoin.joinFailFast(
-            st, serverErr::get, server::destroy,
-            ct, clientErr::get, client::destroy,
-            TIMEOUT_MS,
-            "HaoWan2026-two-exec"
+    @Test
+    public void sharedZero_parallel() throws Exception {
+        runCustomOnce(sharedZeroSets(), false, true, false);
+    }
+
+    @Test
+    public void sharedZero_twoExecutionsAfterOneInit() throws Exception {
+        runTwoExecutionsAfterOneInit(
+            sharedZeroSets(), sharedZeroSets(), false, false, "HaoWan2026-shared-zero-two-exec"
         );
+    }
 
-        assertClientOutput(first, clientOut1.get());
-        assertClientOutput(second, clientOut2.get());
-        printAndResetRpc(0);
+    @Test
+    public void serverOnlyZero_directCot() throws Exception {
+        runCustomOnce(serverOnlyZeroSets(), false, false, false);
+    }
+
+    @Test
+    public void clientOnlyZero_directCot() throws Exception {
+        runCustomOnce(clientOnlyZeroSets(), false, false, false);
+    }
+
+    @Test
+    public void equalWithZero_directCot() throws Exception {
+        runCustomOnce(equalWithZeroSets(), false, false, false);
     }
 
     private void runOnce(
@@ -134,6 +126,13 @@ public class HaoWan2026SmallPsuMatrixTest extends AbstractTwoPartyMemoryRpcPto {
     ) throws Exception {
         DeterministicPsuSets.SetsOf sets =
             DeterministicPsuSets.build(serverSize, clientSize, intersectionSize, ELEMENT_LEN);
+        runCustomOnce(sets, silent, parallel, viaFactory);
+    }
+
+    private void runCustomOnce(
+        DeterministicPsuSets.SetsOf sets,
+        boolean silent, boolean parallel, boolean viaFactory
+    ) throws Exception {
         HaoWan2026PsuConfig config = new HaoWan2026PsuConfig.Builder(silent).build();
 
         PsuServer server;
@@ -182,6 +181,119 @@ public class HaoWan2026SmallPsuMatrixTest extends AbstractTwoPartyMemoryRpcPto {
 
         assertClientOutput(sets, clientOut.get());
         printAndResetRpc(0);
+    }
+
+    private void runTwoExecutionsAfterOneInit(
+        DeterministicPsuSets.SetsOf first,
+        DeterministicPsuSets.SetsOf second,
+        boolean silent,
+        boolean parallel,
+        String label
+    ) throws Exception {
+        int maxServer = Math.max(first.serverSet.size(), second.serverSet.size());
+        int maxClient = Math.max(first.clientSet.size(), second.clientSet.size());
+
+        HaoWan2026PsuConfig config = new HaoWan2026PsuConfig.Builder(silent).build();
+        PsuServer server = PsuFactory.createServer(firstRpc, secondRpc.ownParty(), config);
+        PsuClient client = PsuFactory.createClient(secondRpc, firstRpc.ownParty(), config);
+        server.setParallel(parallel);
+        client.setParallel(parallel);
+        int taskId = Math.abs(SECURE_RANDOM.nextInt());
+        server.setTaskId(taskId);
+        client.setTaskId(taskId);
+
+        AtomicReference<PsuClientOutput> clientOut1 = new AtomicReference<>();
+        AtomicReference<PsuClientOutput> clientOut2 = new AtomicReference<>();
+        AtomicReference<Throwable> serverErr = new AtomicReference<>();
+        AtomicReference<Throwable> clientErr = new AtomicReference<>();
+
+        Thread st = new Thread(() -> {
+            try {
+                server.init(maxServer, maxClient);
+                server.getRpc().synchronize();
+                server.psu(first.serverSet, first.clientSet.size(), ELEMENT_LEN);
+                server.getRpc().synchronize();
+                server.psu(second.serverSet, second.clientSet.size(), ELEMENT_LEN);
+            } catch (Throwable t) {
+                serverErr.set(t);
+            }
+        });
+        Thread ct = new Thread(() -> {
+            try {
+                client.init(maxClient, maxServer);
+                client.getRpc().synchronize();
+                clientOut1.set(client.psu(first.clientSet, first.serverSet.size(), ELEMENT_LEN));
+                client.getRpc().synchronize();
+                clientOut2.set(client.psu(second.clientSet, second.serverSet.size(), ELEMENT_LEN));
+            } catch (Throwable t) {
+                clientErr.set(t);
+            }
+        });
+        st.start();
+        ct.start();
+        TwoPartyTestJoin.joinFailFast(
+            st, serverErr::get, server::destroy,
+            ct, clientErr::get, client::destroy,
+            TIMEOUT_MS,
+            label
+        );
+
+        assertClientOutput(first, clientOut1.get());
+        assertClientOutput(second, clientOut2.get());
+        printAndResetRpc(0);
+    }
+
+    /** server {0,a,b}, client {0,c} → union {0,a,b,c}, psiCa=1 */
+    private static DeterministicPsuSets.SetsOf sharedZeroSets() {
+        ByteBuffer zero = DeterministicPsuSets.zeroBlock();
+        ByteBuffer a = DeterministicPsuSets.encode(DeterministicPsuSets.DOMAIN_SERVER_ONLY, 0, ELEMENT_LEN);
+        ByteBuffer b = DeterministicPsuSets.encode(DeterministicPsuSets.DOMAIN_SERVER_ONLY, 1, ELEMENT_LEN);
+        ByteBuffer c = DeterministicPsuSets.encode(DeterministicPsuSets.DOMAIN_CLIENT_ONLY, 0, ELEMENT_LEN);
+        Set<ByteBuffer> server = setOf(zero, a, b);
+        Set<ByteBuffer> client = setOf(zero, c);
+        Set<ByteBuffer> union = setOf(zero, a, b, c);
+        return new DeterministicPsuSets.SetsOf(server, client, union, 1, ELEMENT_LEN);
+    }
+
+    /** server {0,a}, client {b,c} → union {0,a,b,c}, psiCa=0 */
+    private static DeterministicPsuSets.SetsOf serverOnlyZeroSets() {
+        ByteBuffer zero = DeterministicPsuSets.zeroBlock();
+        ByteBuffer a = DeterministicPsuSets.encode(DeterministicPsuSets.DOMAIN_SERVER_ONLY, 0, ELEMENT_LEN);
+        ByteBuffer b = DeterministicPsuSets.encode(DeterministicPsuSets.DOMAIN_CLIENT_ONLY, 0, ELEMENT_LEN);
+        ByteBuffer c = DeterministicPsuSets.encode(DeterministicPsuSets.DOMAIN_CLIENT_ONLY, 1, ELEMENT_LEN);
+        Set<ByteBuffer> server = setOf(zero, a);
+        Set<ByteBuffer> client = setOf(b, c);
+        Set<ByteBuffer> union = setOf(zero, a, b, c);
+        return new DeterministicPsuSets.SetsOf(server, client, union, 0, ELEMENT_LEN);
+    }
+
+    /** server {a,b}, client {0,c} → union {0,a,b,c}, psiCa=0 */
+    private static DeterministicPsuSets.SetsOf clientOnlyZeroSets() {
+        ByteBuffer zero = DeterministicPsuSets.zeroBlock();
+        ByteBuffer a = DeterministicPsuSets.encode(DeterministicPsuSets.DOMAIN_SERVER_ONLY, 0, ELEMENT_LEN);
+        ByteBuffer b = DeterministicPsuSets.encode(DeterministicPsuSets.DOMAIN_SERVER_ONLY, 1, ELEMENT_LEN);
+        ByteBuffer c = DeterministicPsuSets.encode(DeterministicPsuSets.DOMAIN_CLIENT_ONLY, 0, ELEMENT_LEN);
+        Set<ByteBuffer> server = setOf(a, b);
+        Set<ByteBuffer> client = setOf(zero, c);
+        Set<ByteBuffer> union = setOf(zero, a, b, c);
+        return new DeterministicPsuSets.SetsOf(server, client, union, 0, ELEMENT_LEN);
+    }
+
+    /** both {0,a,b} → same union, psiCa=3 */
+    private static DeterministicPsuSets.SetsOf equalWithZeroSets() {
+        ByteBuffer zero = DeterministicPsuSets.zeroBlock();
+        ByteBuffer a = DeterministicPsuSets.encode(DeterministicPsuSets.DOMAIN_SHARED, 0, ELEMENT_LEN);
+        ByteBuffer b = DeterministicPsuSets.encode(DeterministicPsuSets.DOMAIN_SHARED, 1, ELEMENT_LEN);
+        Set<ByteBuffer> both = setOf(zero, a, b);
+        return new DeterministicPsuSets.SetsOf(both, new HashSet<>(both), new HashSet<>(both), 3, ELEMENT_LEN);
+    }
+
+    private static Set<ByteBuffer> setOf(ByteBuffer... elements) {
+        Set<ByteBuffer> set = new HashSet<>(elements.length);
+        for (ByteBuffer e : elements) {
+            set.add(ByteBuffer.wrap(DeterministicPsuSets.toBytes(e).clone()));
+        }
+        return set;
     }
 
     private static void assertClientOutput(DeterministicPsuSets.SetsOf sets, PsuClientOutput out) {
