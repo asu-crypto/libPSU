@@ -19,7 +19,7 @@ CZZ24 cwOPRF mqRPMT + Core COT union.
 
 | | |
 |--|--|
-| Path | `mpc4j-psu/protocols/balanced/czz24-cw-oprf/` |
+| Path | `mpc4j-psu/protocols/balanced/czz24/` |
 | Maven artifact | `mpc4j-psu-protocol-czz24` |
 | Classes | `Czz24CwOprfPsuConfig, Czz24CwOprfPsuServer, Czz24CwOprfPsuClient` |
 

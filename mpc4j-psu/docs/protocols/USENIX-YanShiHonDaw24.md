@@ -19,7 +19,7 @@ JSZG24 Fig.17 bECRG + batch OPPRF + PEQT + LNOT + DOSN.
 
 | | |
 |--|--|
-| Path | `mpc4j-psu/protocols/malicious/jszg24-becrg-psu/` |
+| Path | `mpc4j-psu/protocols/malicious/jszg24/` |
 | Maven artifact | `mpc4j-psu-protocol-jszg24` |
 | Classes | `Jszg24BecrgPsuConfig, Jszg24BecrgPsuServer/Client` |
 

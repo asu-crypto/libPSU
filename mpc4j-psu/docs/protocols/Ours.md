@@ -19,7 +19,7 @@ Small-set EC/Elligator HashDH.
 
 | | |
 |--|--|
-| Path | `mpc4j-psu/protocols/balanced/small-ec-elligator-psu/` |
+| Path | `mpc4j-psu/protocols/balanced/ours/` |
 | Maven artifact | `mpc4j-psu-protocol-small-ec-elligator-psu` |
 | Classes | `SmallEcElligatorPsuConfig, SmallEcElligatorPsuServer/Client` |
 

@@ -46,7 +46,7 @@ Honest union tests do **not** certify malicious security. HaoWan26 is implemente
 
 | | |
 |--|--|
-| Path | `mpc4j-psu/protocols/balanced/haowan2026/` + `mpc4j-s2pc-opf/.../haowan26/` |
+| Path | `mpc4j-psu/protocols/balanced/hwy26/` + `mpc4j-s2pc-opf/.../haowan26/` |
 | Maven artifact | `mpc4j-psu-protocol-haowan2026` |
 | Classes | `HaoWan2026PsuConfig, HaoWan2026PsuServer, HaoWan2026PsuClient` |
 

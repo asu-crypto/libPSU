@@ -14,8 +14,8 @@ Global PSU wiring: [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md). Fair benc
 
 | | |
 |--|--|
-| **Current physical module path** | `mpc4j-psu/protocols/balanced/small-ec-elligator-psu/` |
-| **Target libPSU Stage-2 path** | `protocols/balanced/small-ec-elligator-psu/` (already under `protocols/`) |
+| **Current physical module path** | `mpc4j-psu/protocols/balanced/ours/` |
+| **Target libPSU Stage-2 path** | `protocols/balanced/ours/` (already under `protocols/`) |
 | **Artifact ID** | `mpc4j-psu-protocol-small-ec-elligator-psu` |
 | **Status** | Migrated under `protocols/`; factory in `mpc4j-psu-balanced` |
 

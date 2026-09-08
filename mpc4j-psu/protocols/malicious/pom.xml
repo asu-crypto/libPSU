@@ -13,7 +13,7 @@
     <packaging>pom</packaging>
     <name>libPSU malicious / leakage-aware PSU protocols</name>
     <modules>
-        <module>jszg24-becrg-psu</module>
+        <module>jszg24</module>
         <module>pgt26</module>
     </modules>
 
