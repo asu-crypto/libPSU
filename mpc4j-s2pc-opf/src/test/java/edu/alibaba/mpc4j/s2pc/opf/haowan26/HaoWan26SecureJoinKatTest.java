@@ -21,7 +21,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Known-answer tests against vendored ladnir/secure-join @ 1e1dddf AltMod dumps.
+ * Known-answer tests against AltMod dumps from the original {@code ePSU_fast/ePSU} link path
+ * ({@code haowan26/secure-join-4a23526-epsu-fast/}).
  */
 public class HaoWan26SecureJoinKatTest {
     private static final String ROOT = HaoWan26SecureJoinParams.RESOURCE_ROOT;
@@ -50,12 +51,17 @@ public class HaoWan26SecureJoinKatTest {
     public void testAAllBasis() throws IOException {
         Map<Integer, byte[]> expected = loadIndexedBlocks("a_basis_images.txt", 256);
         Assert.assertEquals(F32Wprf.N, expected.size());
-        Z3ByteField field = new Z3ByteField();
-        F32WprfMatrix a = HaoWan26SecureJoinParams.matrixA(field, F32WprfMatrixType.NAIVE);
         for (int i = 0; i < F32Wprf.N; i++) {
-            byte[] in = new byte[F32Wprf.N];
-            in[i] = 1;
-            Assert.assertArrayEquals("A(e_" + i + ")", expected.get(i), a.leftMul(in));
+            Assert.assertTrue("missing A basis " + i, expected.containsKey(i));
+        }
+        Z3ByteField field = new Z3ByteField();
+        for (F32WprfMatrixType type : F32WprfMatrixType.values()) {
+            F32WprfMatrix a = HaoWan26SecureJoinParams.matrixA(field, type);
+            for (int i = 0; i < F32Wprf.N; i++) {
+                byte[] in = new byte[F32Wprf.N];
+                in[i] = 1;
+                Assert.assertArrayEquals("A(" + type + ",e_" + i + ")", expected.get(i), a.leftMul(in));
+            }
         }
     }
 

@@ -1,0 +1,16 @@
+# tools
+99afef3117280cd3039f55d59777cfff8f575969efdf1bb824c3df27a52023a4  tools/secure-join-altmod-kat/dump_altmod_kat.inc
+b1db980bf4d69c6c1c0127bef6246581aaff75e7d8349e0319593879ee29009c  tools/secure-join-altmod-kat/reference/epsu-fast-kat.patch
+88e22ec1ae2f46c6ff7315e6cf3bf528ed6444d12ef180b048a98313516c840f  tools/secure-join-altmod-kat/regenerate.sh
+f66888d8dc78283f67470dabfe886b0a7b60ca2be8df34670ba99bfba8cc3d7b  tools/secure-join-altmod-kat/verify.sh
+57e134e8e514f9b56070836773a8e089d6bfde2a006332b74e05ccfc3ba15ac2  tools/secure-join-altmod-kat/dump_altmod_basis.cpp
+# vectors (aby main copy)
+f73d0d2afb43d545e005f424da480352a756e048ab1e36ba9ff399139d7e63fb  mpc4j-s2pc-aby/src/main/resources/haowan26/secure-join-4a23526-epsu-fast/a_basis_images.txt
+22ebef840cbcf8bfe008c5b8d006dbd2fd069eba71bd9b11b720b7592f3e8eb3  mpc4j-s2pc-aby/src/main/resources/haowan26/secure-join-4a23526-epsu-fast/A_SEED_CLASS.txt
+0b653445cc53a6bc25361c560aed3f72986b781fdc3bc4661dd514eb19ff4253  mpc4j-s2pc-aby/src/main/resources/haowan26/secure-join-4a23526-epsu-fast/b_basis_images.txt
+fb49b2e5670ce9a9407c84ac4efb74db0e8b39ae1bf4c4ae20ed1c5a48281caf  mpc4j-s2pc-aby/src/main/resources/haowan26/secure-join-4a23526-epsu-fast/b_parity_rows.txt
+cba98ecd3474b8fa4e2bbebe9544ae2d838ee0867d55e6d40b2424bc7781f806  mpc4j-s2pc-aby/src/main/resources/haowan26/secure-join-4a23526-epsu-fast/f_fixed_key.txt
+b2353c85012a7828b24f193ccc4e03e1ce13607b514d453c5773753fc3d0b327  mpc4j-s2pc-aby/src/main/resources/haowan26/secure-join-4a23526-epsu-fast/g_basis_images.txt
+3ab586b7d6b10c94da33a5dd1eaac0a4a678d03097457d9f2fe6316142b28622  mpc4j-s2pc-aby/src/main/resources/haowan26/secure-join-4a23526-epsu-fast/g_representative.txt
+240ec5f210823f8d86c2da43b6428a94ef944086522f5722f674a68165513582  mpc4j-s2pc-aby/src/main/resources/haowan26/secure-join-4a23526-epsu-fast/PROVENANCE.txt
+1aeed3aca892d1a6ea240d111ebff5b3ae588eaf0d6c78c60d63b186045e9374  mpc4j-s2pc-aby/src/main/resources/haowan26/secure-join-4a23526-epsu-fast/MANIFEST.md

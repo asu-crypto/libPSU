@@ -17,9 +17,9 @@ import java.security.NoSuchAlgorithmException;
 /**
  * Public 128-bit → 512-{@code F_3} expansion for Hao–Wan ssPMT-fast (Figure 17 / AltMod domain).
  * <p>
- * {@link ExpandProfile#HAO_WAN_SECURE_JOIN} uses the exact secure-join G basis images
- * (HaoWan {@code setup.sh} pins {@code Th0masAndy/secure-join} @ {@code 4a23526}; the later
- * {@code ladnir/secure-join} @ {@code 1e1dddf} has an identical {@code Prf} subtree).
+ * {@link ExpandProfile#HAO_WAN_SECURE_JOIN} uses G basis images dumped from the original
+ * {@code ePSU-from-ssPMT} {@code ePSU_fast/ePSU} link path ({@code secure-join@4a23526};
+ * {@code ladnir/secure-join@1e1dddf} is only a secondary identical-{@code Prf} observation).
  * All-zero inputs expand to the all-zero codeword ({@code G(0)=0}); that result is returned
  * unchanged and is a valid F32 domain element.
  * </p>

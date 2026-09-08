@@ -1,0 +1,37 @@
+--- a/src/SoOPPRF.cpp
++++ b/src/SoOPPRF.cpp
+@@ -160,3 +160,6 @@ void SoOPPRFRecver::OPPRF(std::vector<oc::block> &keys, std::vector<oc::block> &
+     }
+ 
+ }
++
++// Reference-only AltMod KAT dump (libPSU tools/secure-join-altmod-kat).
++#include "dump_altmod_kat.inc"
+--- a/test/test_ePSU.cpp
++++ b/test/test_ePSU.cpp
+@@ -15,7 +15,10 @@
+ #include <thread>
+ #include <unistd.h>
+ #include <vector>
++#include <cstdlib>
+ #include "ePSU.h"
+ 
++int dumpAltModKat(const char* outDir);
++
+ 
+@@ -49,6 +52,11 @@ void test(u32 nn, u32 idx){
+ 
+ int main(int argc, char **argv)
+ {
++    const char* katOut = std::getenv("HAOWAN_ALT_MOD_KAT_OUT");
++    if (katOut != nullptr) {
++        return dumpAltModKat(katOut);
++    }
++
+     CLP cmd;
+     cmd.parse(argc, argv);
+     u32 nn = cmd.getOr("nn", 14);
+     u32 idx = cmd.getOr("r", 0);
+     test(nn, idx);
+     return 0;
+ }

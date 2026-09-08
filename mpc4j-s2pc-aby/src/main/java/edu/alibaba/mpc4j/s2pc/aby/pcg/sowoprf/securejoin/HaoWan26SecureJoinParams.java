@@ -23,9 +23,12 @@ import java.nio.charset.StandardCharsets;
  * Loads Hao–Wan / secure-join AltMod public parameters.
  * <p>
  * HaoWan {@code ePSU-from-ssPMT} {@code setup.sh} pins {@code Th0masAndy/secure-join} at
- * {@code 4a23526f4b3a8432f7fb12d54b9865e95faedcf4}. The later {@code ladnir/secure-join}
- * commit {@code 1e1dddf250a0bd23dd9fc15e88480a58da2cb2a0} has an identical {@code Prf} subtree;
- * vectors under {@code classpath:haowan26/secure-join-1e1dddf/} were dumped from that tree.
+ * {@code 4a23526f4b3a8432f7fb12d54b9865e95faedcf4}. Vectors under
+ * {@code classpath:haowan26/secure-join-4a23526-epsu-fast/} were dumped from the original
+ * {@code ePSU_fast/ePSU} executable at {@code CryptMatrix/ePSU-from-ssPMT@255bf1e}, linked with
+ * that secure-join revision (see resource {@code MANIFEST.md} / {@code PROVENANCE.txt}).
+ * {@code ladnir/secure-join@1e1dddf} has an identical {@code Prf} subtree and is only a
+ * secondary diagnostic mirror—not the authoritative dump path.
  * </p>
  * <p>
  * Bit strings in the resource files use cryptoTools little-endian bit packing within each byte.
@@ -34,7 +37,7 @@ import java.nio.charset.StandardCharsets;
  * </p>
  */
 public final class HaoWan26SecureJoinParams {
-    public static final String RESOURCE_ROOT = "haowan26/secure-join-1e1dddf/";
+    public static final String RESOURCE_ROOT = "haowan26/secure-join-4a23526-epsu-fast/";
     private static final String G_BASIS = RESOURCE_ROOT + "g_basis_images.txt";
     private static final String A_BASIS = RESOURCE_ROOT + "a_basis_images.txt";
     private static final String B_BASIS = RESOURCE_ROOT + "b_basis_images.txt";

@@ -9,7 +9,8 @@ public enum F32WprfPublicParamsType {
      */
     MPC4J_NATIVE,
     /**
-     * Fixed AltMod matrices from ladnir/secure-join @ 1e1dddf (Hao–Wan fidelity).
+     * Fixed AltMod matrices from the original HaoWan {@code ePSU_fast} link path
+     * ({@code Th0masAndy/secure-join@4a23526} via {@code ePSU-from-ssPMT@255bf1e}).
      */
     HAO_WAN_SECURE_JOIN,
 }

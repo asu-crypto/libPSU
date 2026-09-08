@@ -1,9 +1,12 @@
 # name=B_parity
-# reference=https://github.com/ladnir/secure-join
-# commit=1e1dddf250a0bd23dd9fc15e88480a58da2cb2a0
-# generator=tools/secure-join-altmod-kat/dump_altmod_basis.cpp
+# primary_reference=https://github.com/CryptMatrix/ePSU-from-ssPMT
+# epsu_commit=255bf1e4055128dc3eeeae43d934b4d068cabe67
+# secure_join=Th0masAndy/secure-join@4a23526f4b3a8432f7fb12d54b9865e95faedcf4
+# dump_path=ePSU_fast/ePSU (original ePSU_LINK_LIBS)
+# a_source=AltModPrf::mACode
+# generator=tools/secure-join-altmod-kat/dump_altmod_kat.inc
 # byte_order=little-endian block bytes as cryptoTools::block::data()
-# 128 rows x 128 bits: mB[i] (parity half)
+# 128 rows x 128 bits: AltModPrf::mB[i]
 0 3409c155bdd005a5e4615af53e554d4d
 1 e2be5fa5e58dc6288fa2bc05104109f2
 2 73196e57414e4a0d8306d8d19debd93c

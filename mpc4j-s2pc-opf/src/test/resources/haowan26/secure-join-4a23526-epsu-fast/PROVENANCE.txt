@@ -1,0 +1,16 @@
+epsu_repo=https://github.com/CryptMatrix/ePSU-from-ssPMT.git
+epsu_commit=255bf1e4055128dc3eeeae43d934b4d068cabe67
+secure_join_commit=4a23526f4b3a8432f7fb12d54b9865e95faedcf4
+libOTe_commit=d0e499206d1d4d16c6b4ca6c0e712490e0632f80
+cryptoTools_commit=0cf6986873e2b83966d5110398dca99172d63c20
+volepsi_observed=52ae9e8264e444a4cf3e8a2b128520be9dbc1233
+volepsi_pin_status=UNPINNED_BY_UPSTREAM_SETUP_SH
+compiler=g++ (Ubuntu 11.4.0-2ubuntu1~20.04) 11.4.0
+cmake=cmake version 3.22.2
+os=Linux 5.4.0-200-generic x86_64 GNU/Linux
+A_SEED_CLASS=CC
+generator_inc_sha256=99afef3117280cd3039f55d59777cfff8f575969efdf1bb824c3df27a52023a4
+patch_sha256=b1db980bf4d69c6c1c0127bef6246581aaff75e7d8349e0319593879ee29009c
+two_clean_builds=byte_identical
+--- link ---
+/usr/bin/c++  -Wall -Wfatal-errors -march=native -O3  -DNDEBUG -pthread CMakeFiles/ePSU.dir/test/test_ePSU.cpp.o CMakeFiles/ePSU.dir/src/RPMT.cpp.o CMakeFiles/ePSU.dir/src/SoOPPRF.cpp.o CMakeFiles/ePSU.dir/src/ePSU.cpp.o CMakeFiles/ePSU.dir/src/ssOTd.cpp.o CMakeFiles/ePSU.dir/src/ssPEQT.cpp.o CMakeFiles/ePSU.dir/src/ssPMT.cpp.o -o ePSU  ../thirdparty/out/install/lib/libvolePSI.a ../thirdparty/out/install/lib/liblibOTe.a ../thirdparty/out/install/lib/libcryptoTools.a ../thirdparty/out/install/lib/libsecureJoin.a -lpthread /usr/local/lib/libsodium.a ../thirdparty/out/install/lib/libcoproto.a ../thirdparty/out/install/lib/libboost_system.a ../thirdparty/out/install/lib/libboost_thread.a ../thirdparty/out/install/lib/libmacoro.a -lpthread /usr/lib/gcc/x86_64-linux-gnu/11/libgomp.so /usr/lib/x86_64-linux-gnu/libpthread.so 

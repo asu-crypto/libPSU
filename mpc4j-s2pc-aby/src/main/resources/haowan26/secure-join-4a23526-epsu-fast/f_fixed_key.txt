@@ -1,0 +1,14 @@
+# name=F_kat
+# primary_reference=https://github.com/CryptMatrix/ePSU-from-ssPMT
+# epsu_commit=255bf1e4055128dc3eeeae43d934b4d068cabe67
+# secure_join=Th0masAndy/secure-join@4a23526f4b3a8432f7fb12d54b9865e95faedcf4
+# dump_path=ePSU_fast/ePSU (original ePSU_LINK_LIBS)
+# a_source=AltModPrf::mACode
+# generator=tools/secure-join-altmod-kat/dump_altmod_kat.inc
+# byte_order=little-endian block bytes as cryptoTools::block::data()
+# A_SEED_CLASS=CC
+zero x=00000000000000000000000000000000 y=00000000000000000000000000000000
+one x=01000000000000000000000000000000 y=b00fb2e6f96bcddb418635a1c9e49bbb
+x10 x=00000000000000000100000000000000 y=20b8010b9482bb781cf2f5664444b22f
+all_ones x=ffffffffffffffffffffffffffffffff y=c9862a7c61b2e7672ea8a82fe7f94733
+pattern x=1032547698badcfeefcdab8967452301 y=e9589976145e1275d1bab4217b8e4551

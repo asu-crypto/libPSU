@@ -134,6 +134,10 @@ public class HaoWan2026SmallPsuMatrixTest extends AbstractTwoPartyMemoryRpcPto {
         boolean silent, boolean parallel, boolean viaFactory
     ) throws Exception {
         HaoWan2026PsuConfig config = new HaoWan2026PsuConfig.Builder(silent).build();
+        Assert.assertEquals(
+            edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.F32WprfPublicParamsType.HAO_WAN_SECURE_JOIN,
+            config.getSsPmtFastConfig().getPublicParamsType()
+        );
 
         PsuServer server;
         PsuClient client;
@@ -194,6 +198,10 @@ public class HaoWan2026SmallPsuMatrixTest extends AbstractTwoPartyMemoryRpcPto {
         int maxClient = Math.max(first.clientSet.size(), second.clientSet.size());
 
         HaoWan2026PsuConfig config = new HaoWan2026PsuConfig.Builder(silent).build();
+        Assert.assertEquals(
+            edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.F32WprfPublicParamsType.HAO_WAN_SECURE_JOIN,
+            config.getSsPmtFastConfig().getPublicParamsType()
+        );
         PsuServer server = PsuFactory.createServer(firstRpc, secondRpc.ownParty(), config);
         PsuClient client = PsuFactory.createClient(secondRpc, firstRpc.ownParty(), config);
         server.setParallel(parallel);
