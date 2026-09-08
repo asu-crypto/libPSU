@@ -4,6 +4,7 @@ import edu.alibaba.mpc4j.common.tool.EnvType;
 import edu.alibaba.mpc4j.common.tool.utils.BlockUtils;
 import edu.alibaba.mpc4j.s2pc.pcg.ot.cot.CotReceiverOutput;
 import edu.alibaba.mpc4j.s2pc.pcg.ot.cot.CotSenderOutput;
+import edu.alibaba.mpc4j.s2pc.pso.psu.pt26.Pt26UnionPeel.Step1Messages;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -15,8 +16,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Truth-table for Figure 4 Step 1 using real {@link Pt26OtUtils} encrypt/decrypt direction
- * (not a plaintext reimplementation of uPeel).
+ * Truth-table for Figure 4 Step 1 bound to {@link Pt26UnionPeel#buildStep1Messages}
+ * and the real {@link Pt26OtUtils} encrypt/decrypt path.
  */
 public class Pt26OtDirectionTruthTableTest {
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -24,28 +25,33 @@ public class Pt26OtDirectionTruthTableTest {
     private static final int ELEMENT_LEN = 8;
 
     @Test
-    public void step1OtSelectsM1WhenCnt0IsZero() throws Exception {
+    public void step1MessagesThroughOtForAllCntCombinations() throws Exception {
         Pt26IbltParams params = params();
         byte[] sum1 = Pt26Zm.encodeElement(ByteBuffer.wrap(bytes(0x11)), params);
-        // Paper: m0 = BOT, m1 = sum1 when cnt1 == 1. Server choice c = [cnt0 == 0] = true.
-        byte[] m0 = Pt26Zm.encodeWireBot(params);
-        byte[] m1 = Pt26Zm.encodeWireValue(sum1, params);
-        byte[] got = encryptDecrypt(true, m0, m1, Pt26Zm.wireByteLength(params));
-        Optional<byte[]> decoded = Pt26Zm.decodeWire(got, params);
-        Assert.assertTrue(decoded.isPresent());
-        Assert.assertArrayEquals(sum1, decoded.get());
-    }
-
-    @Test
-    public void step1OtSelectsM0BotWhenCnt0Nonzero() throws Exception {
-        Pt26IbltParams params = params();
-        byte[] sum1 = Pt26Zm.encodeElement(ByteBuffer.wrap(bytes(0x22)), params);
-        byte[] m0 = Pt26Zm.encodeWireBot(params);
-        byte[] m1 = Pt26Zm.encodeWireValue(sum1, params);
-        // Reversed-bug assignment put sum1 in m0; with correct choice=false (cnt0!=0) that would
-        // incorrectly reveal sum1. Correct messages keep m0=BOT so choice=false yields BOT.
-        byte[] got = encryptDecrypt(false, m0, m1, Pt26Zm.wireByteLength(params));
-        Assert.assertTrue(Pt26Zm.decodeWire(got, params).isEmpty());
+        int wireLen = Pt26Zm.wireByteLength(params);
+        for (int cnt0 : new int[]{0, 1}) {
+            for (int cnt1 : new int[]{0, 1, 2}) {
+                boolean choice = (cnt0 == 0);
+                Step1Messages step1 = Pt26UnionPeel.buildStep1Messages(cnt1, sum1, params);
+                Assert.assertTrue(Pt26Zm.isWireBot(step1.m0(), params));
+                if (cnt1 == 1) {
+                    Optional<byte[]> m1 = Pt26Zm.decodeWire(step1.m1(), params);
+                    Assert.assertTrue(m1.isPresent());
+                    Assert.assertArrayEquals(sum1, m1.get());
+                } else {
+                    Assert.assertTrue(Pt26Zm.isWireBot(step1.m1(), params));
+                }
+                byte[] got = encryptDecrypt(choice, step1.m0(), step1.m1(), wireLen);
+                Optional<byte[]> decoded = Pt26Zm.decodeWire(got, params);
+                boolean expectSum1 = cnt0 == 0 && cnt1 == 1;
+                if (expectSum1) {
+                    Assert.assertTrue("cnt0=" + cnt0 + " cnt1=" + cnt1, decoded.isPresent());
+                    Assert.assertArrayEquals(sum1, decoded.get());
+                } else {
+                    Assert.assertTrue("cnt0=" + cnt0 + " cnt1=" + cnt1, decoded.isEmpty());
+                }
+            }
+        }
     }
 
     @Test
@@ -56,9 +62,7 @@ public class Pt26OtDirectionTruthTableTest {
         byte[] buggyM0 = Pt26Zm.encodeWireValue(sum1, params);
         byte[] buggyM1 = Pt26Zm.encodeWireBot(params);
         int wireLen = Pt26Zm.wireByteLength(params);
-        // cnt0==0 ⇒ choice true ⇒ decrypts buggyM1 = BOT (misses sum1 — cascade failure).
         Assert.assertTrue(Pt26Zm.decodeWire(encryptDecrypt(true, buggyM0, buggyM1, wireLen), params).isEmpty());
-        // cnt0!=0 ⇒ choice false ⇒ decrypts buggyM0 = sum1 (should have been BOT).
         Optional<byte[]> leak = Pt26Zm.decodeWire(encryptDecrypt(false, buggyM0, buggyM1, wireLen), params);
         Assert.assertTrue(leak.isPresent());
         Assert.assertArrayEquals(sum1, leak.get());
@@ -79,12 +83,15 @@ public class Pt26OtDirectionTruthTableTest {
         Assert.assertNull(peel(3, 0, a, b));
     }
 
-    private static byte[] peel(int c0, int c1, byte[] s0, byte[] s1) {
+    @Test
+    public void modulusIsPowerOfTwo() {
         Pt26IbltParams params = params();
-        Pt26Iblt iblt0 = new Pt26Iblt(params);
-        Pt26Iblt iblt1 = new Pt26Iblt(params);
-        // Directly set via insert/delete is hard for arbitrary counts; use reflection-free
-        // approach: build from elements when counts are 0/1, else mutate through package fields.
+        Assert.assertEquals(BigInteger.ONE.shiftLeft(params.getZmByteLength() * 8), params.modulus());
+    }
+
+    private static byte[] peel(int c0, int c1, byte[] s0, byte[] s1) {
+        Pt26Iblt iblt0 = new Pt26Iblt(params());
+        Pt26Iblt iblt1 = new Pt26Iblt(params());
         setBin(iblt0, 0, 0, c0, s0);
         setBin(iblt1, 0, 0, c1, s1);
         return Pt26Iblt.uPeel(iblt0, iblt1, 0, 0);
@@ -110,7 +117,6 @@ public class Pt26OtDirectionTruthTableTest {
         byte[] delta = BlockUtils.randomBlock(RANDOM);
         CotSenderOutput senderOut = CotSenderOutput.createRandom(1, delta, RANDOM);
         CotReceiverOutput receiverOut = CotReceiverOutput.createRandom(senderOut, RANDOM);
-        // Force the desired choice bit by rebuilding receiver output if needed.
         if (receiverOut.getChoice(0) != choice) {
             boolean[] choices = new boolean[]{choice};
             byte[][] rb = new byte[][]{choice ? senderOut.getR1(0) : senderOut.getR0(0)};
@@ -134,11 +140,5 @@ public class Pt26OtDirectionTruthTableTest {
         byte[] out = new byte[ELEMENT_LEN];
         out[ELEMENT_LEN - 1] = (byte) marker;
         return out;
-    }
-
-    @Test
-    public void modulusIsPowerOfTwo() {
-        Pt26IbltParams params = params();
-        Assert.assertEquals(BigInteger.ONE.shiftLeft(params.getZmByteLength() * 8), params.modulus());
     }
 }

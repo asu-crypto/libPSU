@@ -154,7 +154,7 @@ public final class Pgt26EdwardsMath {
     return scalarLe(le).compareTo(SUBGROUP_ORDER) < 0;
   }
 
-  public static boolean isValidNonIdentityPoint(byte[] point) {
+  public static boolean isValidPrimeSubgroupPoint(byte[] point) {
     if (point == null || point.length != Ed25519ByteEccUtils.POINT_BYTES) {
       return false;
     }
@@ -166,10 +166,20 @@ public final class Pgt26EdwardsMath {
       if (!Arrays.equals(point, recompressed)) {
         return false;
       }
-      if (pt.isIdentity()) {
-        return false;
-      }
       return pt.isTorsionFree();
+    } catch (RuntimeException e) {
+      return false;
+    }
+  }
+
+  public static boolean isValidNonIdentityPoint(byte[] point) {
+    if (!isValidPrimeSubgroupPoint(point)) {
+      return false;
+    }
+    try {
+      edu.alibaba.mpc4j.common.tool.crypto.ecc.cafe.CafeEdwardsCompressedPoint compressed =
+          new edu.alibaba.mpc4j.common.tool.crypto.ecc.cafe.CafeEdwardsCompressedPoint(BytesUtils.clone(point));
+      return !compressed.decompress().isIdentity();
     } catch (RuntimeException e) {
       return false;
     }

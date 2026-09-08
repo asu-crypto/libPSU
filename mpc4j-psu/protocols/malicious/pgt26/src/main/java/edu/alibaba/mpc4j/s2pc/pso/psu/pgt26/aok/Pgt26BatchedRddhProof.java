@@ -134,7 +134,7 @@ public final class Pgt26BatchedRddhProof {
         || g == null || h == null || gCompressed == null || hCompressed == null
         || g.length != h.length || g.length != gCompressed.length || h.length != hCompressed.length
         || proof == null
-        || !Pgt26EdwardsMath.isValidPoint(proof.commitment)
+        || !Pgt26EdwardsMath.isValidPrimeSubgroupPoint(proof.commitment)
         || !Pgt26EdwardsMath.isCanonicalScalar(proof.z)) {
       return false;
     }

@@ -74,7 +74,7 @@ public class Pgt26_2mMappingShuffleTest {
     Pgt26_2mParty.ShuffleOutput serverShuffle = server.blindShuffle(pp, clientDecompressed, clientGen.points);
     Pgt26_2mParty.UnblindOutput clientUnblind = client.finalResponse(
         pp, server.publicKey, clientDecompressed, Pgt26EdwardsMath.decompressPoints(serverShuffle.shuffled),
-        clientGen.points, serverShuffle.shuffled, serverGen.points, serverShuffle.proof, false, random
+        clientGen.points, serverShuffle.shuffled, serverGen.points, serverShuffle.proof, random
     );
     Assert.assertNotNull(clientUnblind);
     Assert.assertEquals(0, clientUnblind.unblinded.length);

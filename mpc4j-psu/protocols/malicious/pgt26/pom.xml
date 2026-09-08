@@ -38,6 +38,12 @@
         </dependency>
         <dependency>
             <groupId>edu.alibaba</groupId>
+            <artifactId>libpsu-test-fixtures</artifactId>
+            <version>1.1.5</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>edu.alibaba</groupId>
             <artifactId>mpc4j-s2pc-pcg</artifactId>
             <version>1.1.5</version>
         </dependency>

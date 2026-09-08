@@ -180,9 +180,9 @@ public class Pt26UnionPeel {
             Pt26BinIndex bin = bins.get(t);
             int i = bin.getI();
             int j = bin.getJ();
-            int c1 = iblt1.getCnt(i, j);
-            m0.add(botBytes());
-            m1.add(c1 == 1 ? Pt26Zm.encodeWireValue(iblt1.getSum(i, j), params) : botBytes());
+            Step1Messages step1 = buildStep1Messages(iblt1.getCnt(i, j), iblt1.getSum(i, j), params);
+            m0.add(step1.m0());
+            m1.add(step1.m1());
         }
         List<byte[]> ot12Payload = Pt26OtUtils.runSenderOneOfTwo(ot12Sender, m0, m1, messageByteLength, envType);
         DataPacketHeader ot12Header = otHeader(PtoStep.CLIENT_SEND_OT12_PAYLOAD, ownPartyId, otherPartyId);
@@ -334,5 +334,23 @@ public class Pt26UnionPeel {
         if (commCounters != null && bytes > 0) {
             commCounters[channel] += bytes;
         }
+    }
+
+    /**
+     * Figure 4 Step 1 OT messages from the client's (P1) bin view.
+     * Always {@code m0 = ⊥}; {@code m1 = sum1} iff {@code cnt1 == 1}, else ⊥.
+     */
+    static Step1Messages buildStep1Messages(int cnt1, byte[] sum1, Pt26IbltParams params) {
+        byte[] m0 = Pt26Zm.encodeWireBot(params);
+        byte[] m1 = cnt1 == 1
+            ? Pt26Zm.encodeWireValue(sum1, params)
+            : Pt26Zm.encodeWireBot(params);
+        return new Step1Messages(m0, m1);
+    }
+
+    /**
+     * OT payload pair for Figure 4 Step 1.
+     */
+    record Step1Messages(byte[] m0, byte[] m1) {
     }
 }

@@ -113,7 +113,7 @@ public class Pgt26_2mPsuClient extends AbstractPsuTwoSidedClient {
     byte[][] peerShuffledDecompressed = Pgt26EdwardsMath.decompressPoints(peerShuffled);
     Pgt26_2mParty.UnblindOutput unblind = party.finalResponse(
         publicParams, peerPk, ownDecompressed, peerShuffledDecompressed, gen.points, peerShuffled, peerPoints,
-        peerProof, false, secureRandom
+        peerProof, secureRandom
     );
     if (unblind == null) {
       String stage = party.lastShuffleVerifyFailure;
@@ -144,7 +144,7 @@ public class Pgt26_2mPsuClient extends AbstractPsuTwoSidedClient {
     for (int i = 0; i < peerInd.length; i++) {
       peerShrinked[i] = shuffle.shuffled[peerInd[i]];
     }
-    byte[][] peerItems = party.revealPeerItems(peerPk, peerUnblinded, peerShrinked, peerDdh, false);
+    byte[][] peerItems = party.revealPeerItems(peerPk, peerUnblinded, peerShrinked, peerDdh);
     if (peerItems == null) {
       String stage = party.lastRevealFailure;
       throw new MpcAbortException(stage == null ? "bad RDDH or decode" : "bad RDDH or decode: " + stage);
