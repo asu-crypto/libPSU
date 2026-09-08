@@ -16,15 +16,21 @@ import org.junit.Test;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 /**
- * RPC-level Figure 6 coverage adversarial test: empty Round-4 indices must abort
- * at the coverage check even if an RDDH proof blob is preserved.
+ * RPC-level Figure 6 Round-4 coverage adversarial tests.
+ * <p>
+ * Production order preserved: decode → structural validate → coverage → RDDH.
+ * Mutations keep a valid-looking proof blob and only rewrite ROUND4_UNBLIND payloads
+ * (no proof bypass hooks). Both server→client and client→server directions are covered.
+ * Every case must {@link MpcAbortException} (coverage/malformed) without hanging.
  */
 public class Pgt26_2mRound4CoverageAdversarialTest extends AbstractTwoPartyMemoryRpcPto {
   private static final int ELEMENT_LEN = Pgt26Constants.ITEM_BYTE_LENGTH;
@@ -35,18 +41,202 @@ public class Pgt26_2mRound4CoverageAdversarialTest extends AbstractTwoPartyMemor
   }
 
   @Test
-  public void emptyRound4UnblindAbortsAtCoverage() throws Exception {
-    Set<ByteBuffer> serverSet = new HashSet<>();
-    Set<ByteBuffer> clientSet = new HashSet<>();
-    serverSet.add(elem(1, 0));
-    serverSet.add(elem(1, 1));
-    clientSet.add(elem(2, 0));
-    clientSet.add(elem(2, 1));
+  public void emptyRound4UnblindAbortsAtCoverage_serverToClient() throws Exception {
+    assertVictimAborts(
+        Direction.SERVER_TO_CLIENT,
+        disjointSets(2),
+        Round4Mutations::emptyIndices,
+        "empty Round4 server→client"
+    );
+  }
 
-    EmptyRound4Rpc adversarialServerRpc = new EmptyRound4Rpc(firstRpc);
+  @Test
+  public void emptyRound4UnblindAbortsAtCoverage_clientToServer() throws Exception {
+    assertVictimAborts(
+        Direction.CLIENT_TO_SERVER,
+        disjointSets(2),
+        Round4Mutations::emptyIndices,
+        "empty Round4 client→server"
+    );
+  }
+
+  @Test
+  public void oneRequiredItemDeletedAborts_serverToClient() throws Exception {
+    assertVictimAborts(
+        Direction.SERVER_TO_CLIENT,
+        disjointSets(2),
+        Round4Mutations::deleteOneRequired,
+        "delete-one server→client"
+    );
+  }
+
+  @Test
+  public void oneRequiredItemDeletedAborts_clientToServer() throws Exception {
+    assertVictimAborts(
+        Direction.CLIENT_TO_SERVER,
+        disjointSets(2),
+        Round4Mutations::deleteOneRequired,
+        "delete-one client→server"
+    );
+  }
+
+  @Test
+  public void sameCardinalityWrongIndexAborts_serverToClient() throws Exception {
+    assertVictimAborts(
+        Direction.SERVER_TO_CLIENT,
+        partialIntersectionSets(3, 1),
+        p -> Round4Mutations.sameCardinalityWrongIndex(p, 3),
+        "wrong-index server→client"
+    );
+  }
+
+  @Test
+  public void sameCardinalityWrongIndexAborts_clientToServer() throws Exception {
+    assertVictimAborts(
+        Direction.CLIENT_TO_SERVER,
+        partialIntersectionSets(3, 1),
+        p -> Round4Mutations.sameCardinalityWrongIndex(p, 3),
+        "wrong-index client→server"
+    );
+  }
+
+  @Test
+  public void duplicateIndicesAbort_serverToClient() throws Exception {
+    assertVictimAborts(
+        Direction.SERVER_TO_CLIENT,
+        disjointSets(2),
+        Round4Mutations::duplicateIndices,
+        "duplicate indices server→client"
+    );
+  }
+
+  @Test
+  public void duplicateIndicesAbort_clientToServer() throws Exception {
+    assertVictimAborts(
+        Direction.CLIENT_TO_SERVER,
+        disjointSets(2),
+        Round4Mutations::duplicateIndices,
+        "duplicate indices client→server"
+    );
+  }
+
+  @Test
+  public void negativeIndexAborts_serverToClient() throws Exception {
+    assertVictimAborts(
+        Direction.SERVER_TO_CLIENT,
+        disjointSets(2),
+        Round4Mutations::negativeIndex,
+        "negative index server→client"
+    );
+  }
+
+  @Test
+  public void negativeIndexAborts_clientToServer() throws Exception {
+    assertVictimAborts(
+        Direction.CLIENT_TO_SERVER,
+        disjointSets(2),
+        Round4Mutations::negativeIndex,
+        "negative index client→server"
+    );
+  }
+
+  @Test
+  public void indexEqualsUpperBoundAborts_serverToClient() throws Exception {
+    assertVictimAborts(
+        Direction.SERVER_TO_CLIENT,
+        disjointSets(2),
+        p -> Round4Mutations.indexAtOrAboveUpperBound(p, 2, false),
+        "index==upperBound server→client"
+    );
+  }
+
+  @Test
+  public void indexEqualsUpperBoundAborts_clientToServer() throws Exception {
+    assertVictimAborts(
+        Direction.CLIENT_TO_SERVER,
+        disjointSets(2),
+        p -> Round4Mutations.indexAtOrAboveUpperBound(p, 2, false),
+        "index==upperBound client→server"
+    );
+  }
+
+  @Test
+  public void indexGreaterThanUpperBoundAborts_serverToClient() throws Exception {
+    assertVictimAborts(
+        Direction.SERVER_TO_CLIENT,
+        disjointSets(2),
+        p -> Round4Mutations.indexAtOrAboveUpperBound(p, 2, true),
+        "index>upperBound server→client"
+    );
+  }
+
+  @Test
+  public void indexGreaterThanUpperBoundAborts_clientToServer() throws Exception {
+    assertVictimAborts(
+        Direction.CLIENT_TO_SERVER,
+        disjointSets(2),
+        p -> Round4Mutations.indexAtOrAboveUpperBound(p, 2, true),
+        "index>upperBound client→server"
+    );
+  }
+
+  @Test
+  public void pointIndexCountMismatchAborts_serverToClient() throws Exception {
+    assertVictimAborts(
+        Direction.SERVER_TO_CLIENT,
+        disjointSets(2),
+        Round4Mutations::pointIndexCountMismatch,
+        "point/index mismatch server→client"
+    );
+  }
+
+  @Test
+  public void pointIndexCountMismatchAborts_clientToServer() throws Exception {
+    assertVictimAborts(
+        Direction.CLIENT_TO_SERVER,
+        disjointSets(2),
+        Round4Mutations::pointIndexCountMismatch,
+        "point/index mismatch client→server"
+    );
+  }
+
+  @Test
+  public void validProofIncompleteCoverageAborts_serverToClient() throws Exception {
+    assertVictimAborts(
+        Direction.SERVER_TO_CLIENT,
+        disjointSets(2),
+        Round4Mutations::incompleteCoverageKeepProof,
+        "incomplete coverage server→client"
+    );
+  }
+
+  @Test
+  public void validProofIncompleteCoverageAborts_clientToServer() throws Exception {
+    assertVictimAborts(
+        Direction.CLIENT_TO_SERVER,
+        disjointSets(2),
+        Round4Mutations::incompleteCoverageKeepProof,
+        "incomplete coverage client→server"
+    );
+  }
+
+  private void assertVictimAborts(
+      Direction direction,
+      PartySets sets,
+      Function<List<byte[]>, List<byte[]>> mutator,
+      String label
+  ) throws Exception {
+    Rpc serverRpc = firstRpc;
+    Rpc clientRpc = secondRpc;
+    if (direction == Direction.SERVER_TO_CLIENT) {
+      serverRpc = new MutatingRound4Rpc(firstRpc, mutator);
+    } else {
+      clientRpc = new MutatingRound4Rpc(secondRpc, mutator);
+    }
+
     Pgt26_2mPsuConfig config = new Pgt26_2mPsuConfig.Builder().build();
-    PsuTwoSidedServer server = new Pgt26_2mPsuServer(adversarialServerRpc, secondRpc.ownParty(), config);
-    PsuTwoSidedClient client = new Pgt26_2mPsuClient(secondRpc, firstRpc.ownParty(), config);
+    PsuTwoSidedServer server = new Pgt26_2mPsuServer(serverRpc, secondRpc.ownParty(), config);
+    PsuTwoSidedClient client = new Pgt26_2mPsuClient(clientRpc, firstRpc.ownParty(), config);
     int taskId = Math.abs(SECURE_RANDOM.nextInt());
     server.setTaskId(taskId);
     client.setTaskId(taskId);
@@ -55,18 +245,18 @@ public class Pgt26_2mRound4CoverageAdversarialTest extends AbstractTwoPartyMemor
     AtomicReference<Throwable> clientFail = new AtomicReference<>();
     Thread st = new Thread(() -> {
       try {
-        server.init(serverSet.size(), clientSet.size());
+        server.init(sets.server.size(), sets.client.size());
         server.getRpc().synchronize();
-        server.psu(serverSet, clientSet.size(), ELEMENT_LEN);
+        server.psu(sets.server, sets.client.size(), ELEMENT_LEN);
       } catch (Throwable t) {
         serverFail.set(t);
       }
     });
     Thread ct = new Thread(() -> {
       try {
-        client.init(clientSet.size(), serverSet.size());
+        client.init(sets.client.size(), sets.server.size());
         client.getRpc().synchronize();
-        client.psu(clientSet, serverSet.size(), ELEMENT_LEN);
+        client.psu(sets.client, sets.server.size(), ELEMENT_LEN);
       } catch (Throwable t) {
         clientFail.set(t);
       }
@@ -78,23 +268,36 @@ public class Pgt26_2mRound4CoverageAdversarialTest extends AbstractTwoPartyMemor
           st, serverFail::get, server::destroy,
           ct, clientFail::get, client::destroy,
           TIMEOUT_MS,
-          "PGT26-2M Round4 coverage adversarial"
+          "PGT26-2M Round4 coverage adversarial (" + label + ")"
       );
-      Assert.fail("expected coverage abort");
+      Assert.fail("expected coverage/malformed abort: " + label);
     } catch (AssertionError expected) {
-      Throwable clientErr = clientFail.get();
-      if (clientErr == null && expected.getCause() != null) {
-        clientErr = expected.getCause();
+      Throwable victimErr = direction == Direction.SERVER_TO_CLIENT
+          ? clientFail.get()
+          : serverFail.get();
+      if (victimErr == null && expected.getCause() != null) {
+        victimErr = expected.getCause();
       }
-      Assert.assertNotNull("client should abort", clientErr);
+      Assert.assertNotNull("victim should abort (" + label + ")", victimErr);
       Assert.assertTrue(
-          clientErr instanceof MpcAbortException || clientErr.getCause() instanceof MpcAbortException
+          "victim should MpcAbortException (" + label + "), was " + victimErr,
+          victimErr instanceof MpcAbortException || victimErr.getCause() instanceof MpcAbortException
       );
-      String msg = messageOf(clientErr).toLowerCase();
-      Assert.assertTrue(
-          "diagnostic should identify coverage/indices, was: " + msg,
-          msg.contains("coverage") || msg.contains("index") || msg.contains("round-4")
-      );
+      String msg = messageOf(victimErr).toLowerCase();
+      // Bare MpcAbortPreconditions.checkArgument() may carry an empty message.
+      if (!msg.isBlank()) {
+        Assert.assertTrue(
+            "diagnostic should identify coverage/malformed Round-4, was: " + msg,
+            msg.contains("coverage")
+                || msg.contains("index")
+                || msg.contains("round-4")
+                || msg.contains("round4")
+                || msg.contains("argument")
+                || msg.contains("malformed")
+                || msg.contains("io error")
+                || msg.contains("payload")
+        );
+      }
     }
   }
 
@@ -115,31 +318,188 @@ public class Pgt26_2mRound4CoverageAdversarialTest extends AbstractTwoPartyMemor
     return ByteBuffer.wrap(b);
   }
 
+  private static PartySets disjointSets(int n) {
+    Set<ByteBuffer> server = new HashSet<>();
+    Set<ByteBuffer> client = new HashSet<>();
+    for (int i = 0; i < n; i++) {
+      server.add(elem(1, i));
+      client.add(elem(2, i));
+    }
+    return new PartySets(server, client);
+  }
+
+  /** Partial intersection so expected coverage is a proper subset of {@code [0, n)}. */
+  private static PartySets partialIntersectionSets(int n, int intersection) {
+    Set<ByteBuffer> server = new HashSet<>();
+    Set<ByteBuffer> client = new HashSet<>();
+    for (int i = 0; i < intersection; i++) {
+      ByteBuffer shared = elem(0, i);
+      server.add(shared.duplicate());
+      client.add(shared.duplicate());
+    }
+    for (int i = intersection; i < n; i++) {
+      server.add(elem(1, i));
+      client.add(elem(2, i));
+    }
+    return new PartySets(server, client);
+  }
+
+  private enum Direction {
+    SERVER_TO_CLIENT,
+    CLIENT_TO_SERVER
+  }
+
+  private static final class PartySets {
+    final Set<ByteBuffer> server;
+    final Set<ByteBuffer> client;
+
+    PartySets(Set<ByteBuffer> server, Set<ByteBuffer> client) {
+      this.server = server;
+      this.client = client;
+    }
+  }
+
   /**
-   * On outbound {@link PtoStep#ROUND4_UNBLIND}, keep the proof blob, drop unblinded
-   * points, and replace indices with an empty packed list.
+   * Mutations preserve payload.get(0) (RDDH proof blob) unless structural mismatch requires
+   * leaving it untouched while changing points/indices only.
    */
-  private static final class EmptyRound4Rpc implements Rpc {
+  static final class Round4Mutations {
+    private Round4Mutations() {
+    }
+
+    static List<byte[]> emptyIndices(List<byte[]> payload) {
+      try {
+        List<byte[]> mutated = new ArrayList<>(2);
+        mutated.add(payload.get(0));
+        mutated.add(Pgt26_2mWire.packIndices(new int[0]));
+        return mutated;
+      } catch (Exception e) {
+        throw new IllegalStateException(e);
+      }
+    }
+
+    static List<byte[]> deleteOneRequired(List<byte[]> payload) {
+      ParsedRound4 parsed = ParsedRound4.parse(payload);
+      Assert.assertTrue("need at least one index to delete", parsed.indices.length >= 1);
+      int keep = parsed.indices.length - 1;
+      int[] indices = Arrays.copyOf(parsed.indices, keep);
+      List<byte[]> points = new ArrayList<>(parsed.points.subList(0, keep));
+      return ParsedRound4.repack(parsed.proof, points, indices);
+    }
+
+    static List<byte[]> sameCardinalityWrongIndex(List<byte[]> payload, int upperBound) {
+      ParsedRound4 parsed = ParsedRound4.parse(payload);
+      Assert.assertTrue(parsed.indices.length >= 1);
+      boolean[] used = new boolean[upperBound];
+      for (int idx : parsed.indices) {
+        if (idx >= 0 && idx < upperBound) {
+          used[idx] = true;
+        }
+      }
+      int replacement = -1;
+      for (int i = 0; i < upperBound; i++) {
+        if (!used[i]) {
+          replacement = i;
+          break;
+        }
+      }
+      Assert.assertTrue("need a non-expected in-range index (use partial intersection)", replacement >= 0);
+      int[] indices = Arrays.copyOf(parsed.indices, parsed.indices.length);
+      indices[0] = replacement;
+      return ParsedRound4.repack(parsed.proof, parsed.points, indices);
+    }
+
+    static List<byte[]> duplicateIndices(List<byte[]> payload) {
+      ParsedRound4 parsed = ParsedRound4.parse(payload);
+      Assert.assertTrue(parsed.indices.length >= 2);
+      int[] indices = Arrays.copyOf(parsed.indices, parsed.indices.length);
+      indices[1] = indices[0];
+      return ParsedRound4.repack(parsed.proof, parsed.points, indices);
+    }
+
+    static List<byte[]> negativeIndex(List<byte[]> payload) {
+      ParsedRound4 parsed = ParsedRound4.parse(payload);
+      Assert.assertTrue(parsed.indices.length >= 1);
+      int[] indices = Arrays.copyOf(parsed.indices, parsed.indices.length);
+      indices[0] = -1;
+      return ParsedRound4.repack(parsed.proof, parsed.points, indices);
+    }
+
+    static List<byte[]> indexAtOrAboveUpperBound(List<byte[]> payload, int upperBound, boolean strictlyGreater) {
+      ParsedRound4 parsed = ParsedRound4.parse(payload);
+      Assert.assertTrue(parsed.indices.length >= 1);
+      int[] indices = Arrays.copyOf(parsed.indices, parsed.indices.length);
+      indices[0] = strictlyGreater ? upperBound + 1 : upperBound;
+      return ParsedRound4.repack(parsed.proof, parsed.points, indices);
+    }
+
+    /** Keep indices, drop one point → {@code peerR4.size() != peerInd.length + 2}. */
+    static List<byte[]> pointIndexCountMismatch(List<byte[]> payload) {
+      ParsedRound4 parsed = ParsedRound4.parse(payload);
+      Assert.assertTrue(parsed.points.size() >= 1);
+      List<byte[]> points = new ArrayList<>(parsed.points);
+      points.remove(points.size() - 1);
+      return ParsedRound4.repack(parsed.proof, points, parsed.indices);
+    }
+
+    /** Valid proof blob + subset of required (index,point) pairs → coverage cardinality fail. */
+    static List<byte[]> incompleteCoverageKeepProof(List<byte[]> payload) {
+      return deleteOneRequired(payload);
+    }
+  }
+
+  private static final class ParsedRound4 {
+    final byte[] proof;
+    final List<byte[]> points;
+    final int[] indices;
+
+    private ParsedRound4(byte[] proof, List<byte[]> points, int[] indices) {
+      this.proof = proof;
+      this.points = points;
+      this.indices = indices;
+    }
+
+    static ParsedRound4 parse(List<byte[]> payload) {
+      Assert.assertTrue(payload.size() >= 2);
+      try {
+        int[] indices = Pgt26_2mWire.unpackIndices(payload.get(payload.size() - 1));
+        Assert.assertEquals(payload.size(), indices.length + 2);
+        List<byte[]> points = new ArrayList<>(payload.subList(1, 1 + indices.length));
+        return new ParsedRound4(payload.get(0), points, indices);
+      } catch (Exception e) {
+        throw new IllegalStateException(e);
+      }
+    }
+
+    static List<byte[]> repack(byte[] proof, List<byte[]> points, int[] indices) {
+      try {
+        List<byte[]> out = new ArrayList<>(2 + points.size());
+        out.add(proof);
+        out.addAll(points);
+        out.add(Pgt26_2mWire.packIndices(indices));
+        return out;
+      } catch (Exception e) {
+        throw new IllegalStateException(e);
+      }
+    }
+  }
+
+  private static final class MutatingRound4Rpc implements Rpc {
     private final Rpc delegate;
     private final int round4Step = PtoStep.ROUND4_UNBLIND.ordinal();
     private final int ptoId = Pgt26_2mPsuPtoDesc.getInstance().getPtoId();
+    private final Function<List<byte[]>, List<byte[]>> mutator;
 
-    EmptyRound4Rpc(Rpc delegate) {
+    MutatingRound4Rpc(Rpc delegate, Function<List<byte[]>, List<byte[]>> mutator) {
       this.delegate = delegate;
+      this.mutator = mutator;
     }
 
     @Override
     public void send(DataPacket dataPacket) {
       DataPacketHeader h = dataPacket.getHeader();
       if (h.getPtoId() == ptoId && h.getStepId() == round4Step) {
-        List<byte[]> payload = dataPacket.getPayload();
-        List<byte[]> mutated = new ArrayList<>(2);
-        mutated.add(payload.get(0)); // preserve proof
-        try {
-          mutated.add(Pgt26_2mWire.packIndices(new int[0]));
-        } catch (Exception e) {
-          throw new IllegalStateException(e);
-        }
+        List<byte[]> mutated = mutator.apply(dataPacket.getPayload());
         delegate.send(DataPacket.fromByteArrayList(h, mutated));
         return;
       }
