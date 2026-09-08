@@ -142,7 +142,7 @@ public class Pt26PsuTest extends AbstractTwoPartyMemoryRpcPto {
         public void run() {
             try {
                 if (serverSide) {
-                    server.init(clientSet.size(), serverSet.size());
+                    server.init(serverSet.size(), clientSet.size());
                     server.getRpc().synchronize();
                     output = server.psu(serverSet, clientSet.size(), elementByteLength);
                 } else {

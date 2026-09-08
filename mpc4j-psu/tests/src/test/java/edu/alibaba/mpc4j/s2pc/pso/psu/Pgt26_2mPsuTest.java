@@ -64,7 +64,7 @@ public class Pgt26_2mPsuTest extends AbstractTwoPartyMemoryRpcPto {
     ArrayList<Set<ByteBuffer>> sets = PsuBenchmarkUtils.generateBytesSets(SIZE_2P5, SIZE_2P5, ELEMENT_LEN);
     Set<ByteBuffer> expect = new HashSet<>(sets.get(0));
     expect.addAll(sets.get(1));
-    ParallelOut out = runParallel(sets.get(0), SIZE_2P5, sets.get(1), SIZE_2P5);
+    ParallelOut out = runParallel(sets.get(0), sets.get(1));
     assertUnionEqual(expect, out.clientOut.getUnion());
     assertUnionEqual(expect, out.serverOut.getUnion());
   }
@@ -73,22 +73,21 @@ public class Pgt26_2mPsuTest extends AbstractTwoPartyMemoryRpcPto {
     ArrayList<Set<ByteBuffer>> sets = generateSets(serverSize, clientSize, intersectionSize);
     Set<ByteBuffer> expect = new HashSet<>(sets.get(0));
     expect.addAll(sets.get(1));
-    ParallelOut out = runParallel(sets.get(0), clientSize, sets.get(1), serverSize);
+    ParallelOut out = runParallel(sets.get(0), sets.get(1));
     assertUnionEqual(expect, out.clientOut.getUnion());
     assertUnionEqual(expect, out.serverOut.getUnion());
   }
 
-  private ParallelOut runParallel(
-      Set<ByteBuffer> serverSet, int clientSize, Set<ByteBuffer> clientSet, int serverSize
-  ) throws Exception {
+  /** Sizes are taken from the sets to avoid same-type argument swaps. */
+  private ParallelOut runParallel(Set<ByteBuffer> serverSet, Set<ByteBuffer> clientSet) throws Exception {
     Pgt26_2mPsuConfig config = new Pgt26_2mPsuConfig.Builder().build();
     PsuTwoSidedServer server = PsuFactory.createTwoSidedServer(firstRpc, secondRpc.ownParty(), config);
     PsuTwoSidedClient client = PsuFactory.createTwoSidedClient(secondRpc, firstRpc.ownParty(), config);
     int taskId = Math.abs(SECURE_RANDOM.nextInt());
     server.setTaskId(taskId);
     client.setTaskId(taskId);
-    PsuTwoSidedServerThread st = new PsuTwoSidedServerThread(server, serverSet, clientSize, ELEMENT_LEN);
-    PsuTwoSidedClientThread ct = new PsuTwoSidedClientThread(client, clientSet, serverSize, ELEMENT_LEN);
+    PsuTwoSidedServerThread st = new PsuTwoSidedServerThread(server, serverSet, clientSet.size(), ELEMENT_LEN);
+    PsuTwoSidedClientThread ct = new PsuTwoSidedClientThread(client, clientSet, serverSet.size(), ELEMENT_LEN);
     st.start();
     ct.start();
     TwoPartyTestJoin.joinFailFast(
@@ -231,7 +230,7 @@ public class Pgt26_2mPsuTest extends AbstractTwoPartyMemoryRpcPto {
     @Override
     public void run() {
       try {
-        server.init(otherSize, set.size());
+        server.init(set.size(), otherSize);
         server.getRpc().synchronize();
         output = server.psu(set, otherSize, elementLen);
       } catch (Throwable e) {

@@ -39,11 +39,11 @@ public class Pgt26_2mPsuServer extends AbstractPsuTwoSidedServer {
   }
 
   @Override
-  public void init(int maxClientElementSize, int maxServerElementSize) throws MpcAbortException {
-    setInitInput(maxClientElementSize, maxServerElementSize);
+  public void init(int maxServerElementSize, int maxClientElementSize) throws MpcAbortException {
+    setInitInput(maxServerElementSize, maxClientElementSize);
     logPhaseInfo(PtoState.INIT_BEGIN);
     stopWatch.start();
-    int maxN = Math.max(maxClientElementSize, maxServerElementSize);
+    int maxN = Math.max(maxServerElementSize, maxClientElementSize);
     publicParams = Pgt26PublicParams.setup(maxN);
     stopWatch.stop();
     logStepInfo(PtoState.INIT_STEP, 1, 1, stopWatch.getTime(TimeUnit.MILLISECONDS));
@@ -100,7 +100,7 @@ public class Pgt26_2mPsuServer extends AbstractPsuTwoSidedServer {
     byte[][] peerShuffledDecompressed = Pgt26EdwardsMath.decompressPoints(peerShuffled);
     Pgt26_2mParty.UnblindOutput unblind = party.finalResponse(
         publicParams, peerPk, ownDecompressed, peerShuffledDecompressed, gen.points, peerShuffled, peerPoints,
-        peerProof, false, secureRandom
+        peerProof, secureRandom
     );
     if (unblind == null) {
       String stage = party.lastShuffleVerifyFailure;
@@ -127,7 +127,7 @@ public class Pgt26_2mPsuServer extends AbstractPsuTwoSidedServer {
     for (int i = 0; i < peerInd.length; i++) {
       peerShrinked[i] = shuffle.shuffled[peerInd[i]];
     }
-    byte[][] peerItems = party.revealPeerItems(peerPk, peerUnblinded, peerShrinked, peerDdh, false);
+    byte[][] peerItems = party.revealPeerItems(peerPk, peerUnblinded, peerShrinked, peerDdh);
     if (peerItems == null) {
       String stage = party.lastRevealFailure;
       throw new MpcAbortException(stage == null ? "bad RDDH or decode" : "bad RDDH or decode: " + stage);

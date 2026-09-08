@@ -239,7 +239,7 @@ public class OtBaseCostAuditTest extends AbstractTwoPartyMemoryRpcPto {
             client.getRpc().reset();
             Thread serverThread = new Thread(() -> {
                 try {
-                    server.init(MAX_CLIENT, MAX_SERVER);
+                    server.init(MAX_SERVER, MAX_CLIENT);
                 } catch (MpcAbortException e) {
                     throw new RuntimeException(e);
                 }

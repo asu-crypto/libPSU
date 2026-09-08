@@ -45,8 +45,8 @@ public class Pt26PsuServer extends AbstractPsuTwoSidedServer {
     }
 
     @Override
-    public void init(int maxClientElementSize, int maxServerElementSize) throws MpcAbortException {
-        setInitInput(maxClientElementSize, maxServerElementSize);
+    public void init(int maxServerElementSize, int maxClientElementSize) throws MpcAbortException {
+        setInitInput(maxServerElementSize, maxClientElementSize);
         logPhaseInfo(PtoState.INIT_BEGIN);
 
         stopWatch.start();
@@ -65,6 +65,7 @@ public class Pt26PsuServer extends AbstractPsuTwoSidedServer {
         ot12Receiver.init();
         byte[] delta = BlockUtils.randomBlock(secureRandom);
         ot3Sender.init(delta);
+        // OPRF sender processes the client's input set, so capacity is maxClientElementSize.
         mpOprfSender.init(maxClientElementSize);
         stopWatch.stop();
         logStepInfo(PtoState.INIT_STEP, 1, 1, stopWatch.getTime(TimeUnit.MILLISECONDS));

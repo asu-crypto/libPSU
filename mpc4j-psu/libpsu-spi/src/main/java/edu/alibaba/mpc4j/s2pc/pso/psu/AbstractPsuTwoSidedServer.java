@@ -27,11 +27,14 @@ public abstract class AbstractPsuTwoSidedServer extends AbstractTwoPartyPto impl
         super(ptoDesc, serverRpc, clientParty, config);
     }
 
-    protected void setInitInput(int maxClientElementSize, int maxServerElementSize) {
-        MathPreconditions.checkGreater("maxClientElementSize", maxClientElementSize, 1);
-        this.maxClientElementSize = maxClientElementSize;
+    /**
+     * Server-first init contract matching {@link PsuTwoSidedServer#init(int, int)} and {@code PsuMain}.
+     */
+    protected void setInitInput(int maxServerElementSize, int maxClientElementSize) {
         MathPreconditions.checkGreater("maxServerElementSize", maxServerElementSize, 1);
         this.maxServerElementSize = maxServerElementSize;
+        MathPreconditions.checkGreater("maxClientElementSize", maxClientElementSize, 1);
+        this.maxClientElementSize = maxClientElementSize;
         initState();
     }
 
