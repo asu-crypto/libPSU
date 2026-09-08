@@ -1,6 +1,7 @@
 package edu.alibaba.mpc4j.s2pc.pso.psu;
 
 import edu.alibaba.libpsu.core.set.SetElementUtils;
+import edu.alibaba.mpc4j.common.tool.CommonConstants;
 import org.junit.Assert;
 
 import java.nio.ByteBuffer;
@@ -13,7 +14,8 @@ import java.util.Set;
  * Deterministic fixed-length PSU element sets for small end-to-end matrix tests.
  * <p>
  * Domains: shared=0, server-only=1, client-only=2. Encoded as {@code byte[0] = domain + 1}
- * (never all-zero) plus a big-endian index; never equal to the all-{@code 0xFF} BOT sentinel.
+ * plus a big-endian index. All-zero is a valid protocol element for HaoWan and may be injected
+ * via {@link #zeroBlock()}; the all-{@code 0xFF} BOT sentinel remains excluded.
  * </p>
  */
 public final class DeterministicPsuSets {
@@ -79,10 +81,15 @@ public final class DeterministicPsuSets {
         Assert.assertEquals(serverSize + clientSize - intersectionSize, expectedUnion.size());
 
         for (ByteBuffer e : expectedUnion) {
-            assertNotBotOrZero(e, elementByteLength);
+            assertNotBot(e, elementByteLength);
         }
 
         return new SetsOf(serverSet, clientSet, expectedUnion, intersectionSize, elementByteLength);
+    }
+
+    /** Independent all-zero 128-bit block (valid HaoWan / AltMod input). */
+    public static ByteBuffer zeroBlock() {
+        return ByteBuffer.wrap(new byte[CommonConstants.BLOCK_BYTE_LENGTH]);
     }
 
     public static ByteBuffer encode(int domain, int index, int elementByteLength) {
@@ -92,7 +99,7 @@ public final class DeterministicPsuSets {
         bytes[0] = (byte) (domain + 1);
         ByteBuffer.wrap(bytes).putInt(1, index);
         ByteBuffer element = ByteBuffer.wrap(bytes);
-        assertNotBotOrZero(element, elementByteLength);
+        assertNotBot(element, elementByteLength);
         return element;
     }
 
@@ -103,7 +110,7 @@ public final class DeterministicPsuSets {
             Assert.assertTrue("missing expected element", unionContains(actual, e));
         }
         for (ByteBuffer a : actual) {
-            assertNotBotOrZero(a, elementByteLength);
+            assertNotBot(a, elementByteLength);
             Assert.assertTrue("unexpected element in union", unionContains(expected, a));
         }
     }
@@ -125,20 +132,10 @@ public final class DeterministicPsuSets {
         return item;
     }
 
-    public static void assertNotBotOrZero(ByteBuffer element, int elementByteLength) {
+    public static void assertNotBot(ByteBuffer element, int elementByteLength) {
         byte[] bytes = SetElementUtils.toFixedByteArray(element, elementByteLength);
         byte[] bot = SetElementUtils.createBotElement(elementByteLength).array();
-        Assert.assertFalse("element must not be all-zero", isAllZero(bytes));
         Assert.assertFalse("element must not equal BOT sentinel", Arrays.equals(bytes, bot));
-    }
-
-    private static boolean isAllZero(byte[] bytes) {
-        for (byte b : bytes) {
-            if (b != 0) {
-                return false;
-            }
-        }
-        return true;
     }
 
     private static ByteBuffer copyOf(ByteBuffer src) {

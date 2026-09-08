@@ -18,13 +18,15 @@ import java.security.NoSuchAlgorithmException;
  * Public 128-bit → 512-{@code F_3} expansion for Hao–Wan ssPMT-fast (Figure 17 / AltMod domain).
  * <p>
  * {@link ExpandProfile#HAO_WAN_SECURE_JOIN} uses the exact secure-join G basis images
- * (ladnir/secure-join @ 1e1dddf). Zero inputs expand to the all-zero codeword (matching the
- * reference); {@link F32Wprf#prf} still rejects all-zero F3 inputs, so callers must not query
- * the zero representative unless they handle that precondition at the protocol boundary.
+ * (HaoWan {@code setup.sh} pins {@code Th0masAndy/secure-join} @ {@code 4a23526}; the later
+ * {@code ladnir/secure-join} @ {@code 1e1dddf} has an identical {@code Prf} subtree).
+ * All-zero inputs expand to the all-zero codeword ({@code G(0)=0}); that result is returned
+ * unchanged and is a valid F32 domain element.
  * </p>
  * <p>
- * {@link ExpandProfile#MPC4J_NATIVE} retains the historical systematic stand-in used by
- * non–Hao-Wan MPC4J experiments (not byte-compatible with secure-join).
+ * {@link ExpandProfile#MPC4J_NATIVE} retains the historical systematic code used by
+ * non–Hao-Wan MPC4J experiments (not byte-compatible with secure-join). That profile still
+ * remaps the all-zero codeword via {@link #RESERVED_NONZERO_INDEX} for legacy SOW callers.
  * </p>
  */
 public final class HaoWan26AltModExpand {
@@ -69,15 +71,8 @@ public final class HaoWan26AltModExpand {
         MathPreconditions.checkPositive("item.length", item.length);
         byte[] bits128 = to128BitPublic(item);
         if (profile == ExpandProfile.HAO_WAN_SECURE_JOIN) {
-            byte[] expanded = HaoWan26SecureJoinParams.expandG(bits128);
-            // Match secure-join G(0)=0; do not silently remap. Reject at the protocol boundary.
-            if (Arrays.areAllZeroes(expanded, 0, expanded.length)) {
-                throw new IllegalArgumentException(
-                    "HaoWan secure-join AltMod rejects G(x)=0 (all-zero public representative / kernel); "
-                        + "callers must exclude the zero codeword at the public protocol boundary"
-                );
-            }
-            return expanded;
+            // Includes G(0)=0; do not remap or reject.
+            return HaoWan26SecureJoinParams.expandG(bits128);
         }
         if (profile != ExpandProfile.MPC4J_NATIVE) {
             throw new IllegalArgumentException("Unsupported expand profile: " + profile);

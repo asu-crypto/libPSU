@@ -10,7 +10,6 @@ import edu.alibaba.mpc4j.common.tool.galoisfield.Z3ByteField;
 import edu.alibaba.mpc4j.common.tool.utils.BinaryUtils;
 import edu.alibaba.mpc4j.common.tool.utils.BytesUtils;
 import edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.F32WprfMatrixFactory.F32WprfMatrixType;
-import org.bouncycastle.util.Arrays;
 
 import java.security.SecureRandom;
 
@@ -152,7 +151,7 @@ public class F32Wprf {
      */
     public void init(byte[] key) {
         MathPreconditions.checkEqual("n", "key.length", N_BYTE_LENGTH, key.length);
-        Preconditions.checkArgument(!Arrays.areAllZeroes(key, 0, key.length), "key must be random");
+        // All-zero keys are algebraically valid; keyGen may still avoid them operationally.
         binaryKey = new boolean[N];
         for (int i = 0; i < N; i++) {
             binaryKey[i] = BinaryUtils.getBoolean(key, i);
@@ -162,7 +161,7 @@ public class F32Wprf {
     /**
      * Computes PRF.
      *
-     * @param input input.
+     * @param input F3^n codeword (expanded public representative); all-zero is valid.
      * @return PRF.
      */
     public byte[] prf(byte[] input) {
@@ -170,9 +169,7 @@ public class F32Wprf {
         // F(k, x) = B_2 ·_2 (A_3 ·_3 [k ⊙_3 x])
         // here ·_3 is multiplication modulo 3, and ⊙_3 is component-wise multiplication modulo 3
         MathPreconditions.checkEqual("n", "input.length", N, input.length);
-        // input must not be all zero
-        Preconditions.checkArgument(!Arrays.areAllZeroes(input, 0, input.length), "input must be random");
-        // input must be in Z3
+        // input must be in Z3 (including the all-zero codeword)
         for (byte b : input) {
             Preconditions.checkArgument(z3Field.validateElement(b));
         }

@@ -136,9 +136,8 @@ public class PsuBenchmarkUtils {
         int minSize = Math.min(serverSize, clientSize);
         IntStream.range(0, minSize).forEach(index -> {
             if (index < minSize / SPLIT_NUM * FIRST_SPLIT_INDEX) {
-                // Shared element: domain tag + index (never all-zero; required by HaoWan secure-join G).
+                // 两个集合添加整数值[0, 0, 0, index]
                 ByteBuffer intersectionByteBuffer = ByteBuffer.allocate(elementByteLength);
-                intersectionByteBuffer.put(0, (byte) 0xA5);
                 intersectionByteBuffer.putInt(elementByteLength - Integer.BYTES, index);
                 byte[] intersectionBytes = intersectionByteBuffer.array();
                 serverSet.add(ByteBuffer.wrap(BytesUtils.clone(intersectionBytes)));
@@ -147,19 +146,16 @@ public class PsuBenchmarkUtils {
                 // 服务端集合添加整数值[0, 0, 1, index]
                 // 客户端集合添加整数值[0, 0, 2, index]
                 ByteBuffer serverByteBuffer = ByteBuffer.allocate(elementByteLength);
-                serverByteBuffer.put(0, (byte) 0xA5);
                 serverByteBuffer.putInt(elementByteLength - Integer.BYTES * 2, 1);
                 serverByteBuffer.putInt(elementByteLength - Integer.BYTES, index);
                 serverSet.add(serverByteBuffer);
                 ByteBuffer clientByteBuffer = ByteBuffer.allocate(elementByteLength);
-                clientByteBuffer.put(0, (byte) 0xA5);
                 clientByteBuffer.putInt(elementByteLength - Integer.BYTES * 2, 2);
                 clientByteBuffer.putInt(elementByteLength - Integer.BYTES, index);
                 clientSet.add(clientByteBuffer);
             } else {
-                // Shared element: domain tag + index
+                // 两个集合添加整数值[0, 0, 0, index]
                 ByteBuffer intersectionByteBuffer = ByteBuffer.allocate(elementByteLength);
-                intersectionByteBuffer.put(0, (byte) 0xA5);
                 intersectionByteBuffer.putInt(elementByteLength - Integer.BYTES, index);
                 byte[] intersectionBytes = intersectionByteBuffer.array();
                 serverSet.add(ByteBuffer.wrap(BytesUtils.clone(intersectionBytes)));
@@ -170,7 +166,6 @@ public class PsuBenchmarkUtils {
         if (serverSize > minSize) {
             IntStream.range(minSize, serverSize).forEach(index -> {
                 ByteBuffer serverByteBuffer = ByteBuffer.allocate(elementByteLength);
-                serverByteBuffer.put(0, (byte) 0xA5);
                 serverByteBuffer.putInt(elementByteLength - Integer.BYTES * 2, 1);
                 serverByteBuffer.putInt(elementByteLength - Integer.BYTES, index);
                 serverSet.add(serverByteBuffer);
@@ -179,7 +174,6 @@ public class PsuBenchmarkUtils {
         if (clientSize > minSize) {
             IntStream.range(minSize, clientSize).forEach(index -> {
                 ByteBuffer clientByteBuffer = ByteBuffer.allocate(elementByteLength);
-                clientByteBuffer.put(0, (byte) 0xA5);
                 clientByteBuffer.putInt(elementByteLength - Integer.BYTES * 2, 2);
                 clientByteBuffer.putInt(elementByteLength - Integer.BYTES, index);
                 clientSet.add(clientByteBuffer);

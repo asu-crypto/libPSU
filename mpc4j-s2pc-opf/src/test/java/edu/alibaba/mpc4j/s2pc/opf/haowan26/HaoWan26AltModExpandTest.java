@@ -31,19 +31,12 @@ public class HaoWan26AltModExpandTest {
     }
 
     @Test
-    public void testSecureJoinZeroRejectedAtBoundary() {
+    public void testSecureJoinZeroExpandsToZero() {
         byte[] zeros = new byte[CommonConstants.BLOCK_BYTE_LENGTH];
-        // Exact G(0)=0 remains available on the raw loader; public expand rejects it.
         Assert.assertArrayEquals(
             new byte[F32Wprf.N],
-            edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.securejoin.HaoWan26SecureJoinParams.expandG(zeros)
+            HaoWan26AltModExpand.expand(zeros, ExpandProfile.HAO_WAN_SECURE_JOIN)
         );
-        try {
-            HaoWan26AltModExpand.expand(zeros, ExpandProfile.HAO_WAN_SECURE_JOIN);
-            Assert.fail("expected rejection of G(0)=0");
-        } catch (IllegalArgumentException e) {
-            Assert.assertTrue(e.getMessage().contains("G(x)=0"));
-        }
     }
 
     @Test
