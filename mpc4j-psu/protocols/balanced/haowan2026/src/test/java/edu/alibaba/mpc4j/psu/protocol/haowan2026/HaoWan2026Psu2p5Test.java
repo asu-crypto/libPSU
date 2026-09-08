@@ -2,6 +2,7 @@ package edu.alibaba.mpc4j.psu.protocol.haowan2026;
 
 import edu.alibaba.mpc4j.common.rpc.pto.AbstractTwoPartyMemoryRpcPto;
 import edu.alibaba.mpc4j.psu.common.PsuBenchmarkUtils;
+import edu.alibaba.mpc4j.psu.test.TwoPartyTestJoin;
 import edu.alibaba.mpc4j.s2pc.pso.psu.PsuClientOutput;
 import edu.alibaba.mpc4j.s2pc.pso.psu.haowan2026.HaoWan2026PsuClient;
 import edu.alibaba.mpc4j.s2pc.pso.psu.haowan2026.HaoWan2026PsuConfig;
@@ -13,6 +14,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -21,6 +23,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class HaoWan2026Psu2p5Test extends AbstractTwoPartyMemoryRpcPto {
     private static final int SIZE = 32;
     private static final int ELEMENT_BYTE_LENGTH = 16;
+    private static final long TIMEOUT_MS = TimeUnit.MINUTES.toMillis(5);
 
     public HaoWan2026Psu2p5Test() {
         super("HAO_WAN2026_PSU");
@@ -97,28 +100,12 @@ public class HaoWan2026Psu2p5Test extends AbstractTwoPartyMemoryRpcPto {
         });
         serverThread.start();
         clientThread.start();
-        serverThread.join(60_000);
-        clientThread.join(5_000);
-        if (serverThread.isAlive() || clientThread.isAlive()) {
-            server.destroy();
-            client.destroy();
-            Throwable se = serverErr.get();
-            Throwable ce = clientErr.get();
-            throw new AssertionError(
-                "PSU hang: serverAlive=" + serverThread.isAlive()
-                    + " clientAlive=" + clientThread.isAlive()
-                    + " serverErr=" + se
-                    + " clientErr=" + ce,
-                ce != null ? ce : se
-            );
-        }
-
-        if (serverErr.get() != null) {
-            throw new AssertionError("server failed", serverErr.get());
-        }
-        if (clientErr.get() != null) {
-            throw new AssertionError("client failed", clientErr.get());
-        }
+        TwoPartyTestJoin.joinFailFast(
+            serverThread, serverErr::get, server::destroy,
+            clientThread, clientErr::get, client::destroy,
+            TIMEOUT_MS,
+            "HaoWan2026-2p5"
+        );
 
         Set<ByteBuffer> expectUnion = new HashSet<>(serverSet);
         expectUnion.addAll(clientSet);

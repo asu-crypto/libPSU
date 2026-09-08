@@ -73,21 +73,29 @@ public class Pgt26_2mRound4CoverageAdversarialTest extends AbstractTwoPartyMemor
     });
     st.start();
     ct.start();
-    TwoPartyTestJoin.joinFailFast(
-        st, serverFail::get, server::destroy,
-        ct, clientFail::get, client::destroy,
-        TIMEOUT_MS,
-        "PGT26-2M Round4 coverage adversarial"
-    );
-
-    Throwable clientErr = clientFail.get();
-    Assert.assertNotNull("client should abort", clientErr);
-    Assert.assertTrue(clientErr instanceof MpcAbortException || clientErr.getCause() instanceof MpcAbortException);
-    String msg = messageOf(clientErr).toLowerCase();
-    Assert.assertTrue(
-        "diagnostic should identify coverage/indices, was: " + msg,
-        msg.contains("coverage") || msg.contains("index") || msg.contains("round-4")
-    );
+    try {
+      TwoPartyTestJoin.joinFailFast(
+          st, serverFail::get, server::destroy,
+          ct, clientFail::get, client::destroy,
+          TIMEOUT_MS,
+          "PGT26-2M Round4 coverage adversarial"
+      );
+      Assert.fail("expected coverage abort");
+    } catch (AssertionError expected) {
+      Throwable clientErr = clientFail.get();
+      if (clientErr == null && expected.getCause() != null) {
+        clientErr = expected.getCause();
+      }
+      Assert.assertNotNull("client should abort", clientErr);
+      Assert.assertTrue(
+          clientErr instanceof MpcAbortException || clientErr.getCause() instanceof MpcAbortException
+      );
+      String msg = messageOf(clientErr).toLowerCase();
+      Assert.assertTrue(
+          "diagnostic should identify coverage/indices, was: " + msg,
+          msg.contains("coverage") || msg.contains("index") || msg.contains("round-4")
+      );
+    }
   }
 
   private static String messageOf(Throwable t) {
