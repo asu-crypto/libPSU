@@ -24,7 +24,20 @@ Hao–Wan ePSU-fast (Figure 17): F32 shared-output OPRF + OKVS + PEQT + ssOTd.
 4. ssOTd reveals a server item only when reconstructed membership is zero.
 5. Finish ACK/confirm barrier is mandatory.
 
-Public AltMod parameters default to **Hao–Wan secure-join** (`ladnir/secure-join` @ `1e1dddf`): exact G/A/B basis images under `haowan26/secure-join-1e1dddf/` (see MANIFEST digests). `MPC4J_NATIVE` remains available for unrelated F32 SOW callers and is **not** byte-compatible with secure-join.
+## Secure-join AltMod parameters
+
+HaoWan `ePSU-from-ssPMT` `setup.sh` pins `Th0masAndy/secure-join` @ `4a23526f4b3a8432f7fb12d54b9865e95faedcf4`.
+Vectors under `haowan26/secure-join-1e1dddf/` were dumped from `ladnir/secure-join` @ `1e1dddf` (identical `Prf` subtree). Matrix **A** is taken from `AltModPrf::mACode` (the static instance used by `eval`).
+
+**The secure-join profile matches the pinned reference for G, A, B, complete fixed-key `F(k,x)` evaluation, LE byte ordering, and truncation prefix (`memcpy` of the first `ceil(ell/8)` LE bytes) under the committed KAT suite.**
+
+Protocol OKVS/PEQT store those same `ell` bits after a GF(2)-linear LE→MPC4J fixed-reduce repack (last-byte mask as in HaoWan PEQT, then byte reverse) so DOKVS accepts `isFixedReduceByteArray`. That repack is not a second cryptographic truncation.
+
+Also:
+
+* all-zero 128-bit elements are valid and supported (`G(0)=0`, `F(k,0)=0`);
+* G expansion and SOW A/B must share one `F32WprfPublicParamsType` (mixed profiles rejected);
+* `MPC4J_NATIVE` remains a separate non-byte-compatible profile.
 
 Honest union tests do **not** certify malicious security.
 

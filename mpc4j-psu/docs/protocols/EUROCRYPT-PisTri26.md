@@ -1,6 +1,6 @@
 # EUROCRYPT:PisTri26
 
-Pan–Tian 2026 IBLT peel + MP-OPRF + dual Core COT.
+Piske–Trieu 2026 IBLT peel + MP-OPRF + dual Core COT.
 
 ## At a glance
 
@@ -63,6 +63,12 @@ Summarize:
 ```bash
 python3 scripts/summarize_psu_fair_outputs.py --out temp/psu_fair_summary_2p5.csv
 ```
+
+## Fidelity status
+
+* OT polarity (`m0=BOT`, `m1=sum1` iff `cnt1==1`), two-sided output, power-of-two `Z_M`, residual IBLT abort: matched to the paper/reference behavior exercised by Java tests.
+* Authors: **Piske–Trieu** (not “Pan–Tian”).
+* Cross-language C++ IBLT peel/hash KAT against `IBLT-based-PSU` @ `ccfb9b3…` is **not yet claimed**.
 
 ## Notes
 
