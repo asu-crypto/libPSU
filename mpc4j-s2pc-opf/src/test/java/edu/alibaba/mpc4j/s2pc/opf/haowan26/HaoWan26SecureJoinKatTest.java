@@ -1,6 +1,5 @@
 package edu.alibaba.mpc4j.s2pc.opf.haowan26;
 
-import edu.alibaba.mpc4j.common.tool.CommonConstants;
 import edu.alibaba.mpc4j.common.tool.galoisfield.Z3ByteField;
 import edu.alibaba.mpc4j.common.tool.utils.BinaryUtils;
 import edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.F32Wprf;
@@ -78,15 +77,13 @@ public class HaoWan26SecureJoinKatTest {
     public void testFFixedKeyResourcePresentAndSmoke() throws IOException {
         List<FKat> kats = loadFKats();
         Assert.assertEquals(5, kats.size());
-        // End-to-end F(k,x) byte match vs AltModPrf::eval remains open: G/A/B KATs pin public
-        // matrices; fixed-key vectors are retained for follow-up key-packing alignment.
-        Z3ByteField field = new Z3ByteField();
-        F32Wprf wprf = HaoWan26SecureJoinParams.createF32Wprf(field, F32WprfMatrixType.NAIVE);
-        byte[] key = new byte[F32Wprf.N_BYTE_LENGTH];
-        key[0] = 1;
-        wprf.init(HaoWan26SecureJoinParams.lePackedToBinaryUtilsPacked(key));
-        byte[] expanded = HaoWan26SecureJoinParams.expandG(leBlockLow(1L));
-        Assert.assertEquals(F32Wprf.getOutputByteLength(), wprf.prf(expanded).length);
+        byte[] keyLe = HaoWan26SecureJoinParams.fixedTestKeyLe();
+        for (F32WprfMatrixType type : F32WprfMatrixType.values()) {
+            for (FKat kat : kats) {
+                byte[] got = HaoWan26SecureJoinParams.evaluateFLe(keyLe, kat.xLe(), type);
+                Assert.assertArrayEquals(kat.name() + "/" + type, kat.yLe(), got);
+            }
+        }
     }
 
     @Test
@@ -114,16 +111,6 @@ public class HaoWan26SecureJoinKatTest {
         Assert.assertArrayEquals(name, expectedLe64, packedLe);
     }
 
-    /** Test-only key matching dump_altmod_basis.cpp: key[i]=block(i+1,i+2) for i in 0..3. */
-    private static byte[] buildFixedTestKeyLe() {
-        byte[] key = new byte[F32Wprf.N_BYTE_LENGTH];
-        for (int i = 0; i < 4; i++) {
-            putLeLong(key, i * 16, i + 2L);
-            putLeLong(key, i * 16 + 8, i + 1L);
-        }
-        return key;
-    }
-
     private static void putLeLong(byte[] dest, int offset, long value) {
         for (int b = 0; b < 8; b++) {
             dest[offset + b] = (byte) (value >>> (8 * b));
@@ -134,15 +121,6 @@ public class HaoWan26SecureJoinKatTest {
         byte[] x = new byte[16];
         putLeLong(x, 0, low);
         return x;
-    }
-
-    private static boolean isAllZero(byte[] a) {
-        for (byte b : a) {
-            if (b != 0) {
-                return false;
-            }
-        }
-        return true;
     }
 
     private static Map<String, byte[]> loadNamedBlocks(String file, int byteLen) throws IOException {

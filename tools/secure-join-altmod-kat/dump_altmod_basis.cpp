@@ -33,6 +33,8 @@ static void writeMeta(std::ostream& o, const char* name) {
   o << "# name=" << name << "\n";
   o << "# reference=https://github.com/ladnir/secure-join\n";
   o << "# commit=1e1dddf250a0bd23dd9fc15e88480a58da2cb2a0\n";
+  o << "# haowan_setup_pin=Th0masAndy/secure-join@4a23526f4b3a8432f7fb12d54b9865e95faedcf4\n";
+  o << "# a_source=AltModPrf::mACode\n";
   o << "# generator=tools/secure-join-altmod-kat/dump_altmod_basis.cpp\n";
   o << "# byte_order=little-endian block bytes as cryptoTools::block::data()\n";
 }
@@ -51,9 +53,9 @@ int main(int argc, char** argv) {
     }
   }
 
-  // A code
-  F3AccPermCode aCode;
-  aCode.init(KeySize, MidSize); // p=max(7,ceil(log2(256)))=8, seed=CCBlock
+  // A must be AltModPrf::mACode (static). A separately constructed
+  // F3AccPermCode(CCBlock) does NOT match eval due to static-init ordering.
+  const F3AccPermCode& aCode = AltModPrf::mACode;
 
   // B parity half + code
   std::array<block, 128> mB;

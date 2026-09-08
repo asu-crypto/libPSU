@@ -20,13 +20,17 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Loads Hao–Wan / secure-join AltMod public parameters pinned at ladnir/secure-join
- * {@code 1e1dddf250a0bd23dd9fc15e88480a58da2cb2a0}.
+ * Loads Hao–Wan / secure-join AltMod public parameters.
  * <p>
- * Resource root: {@code classpath:haowan26/secure-join-1e1dddf/}.
+ * HaoWan {@code ePSU-from-ssPMT} {@code setup.sh} pins {@code Th0masAndy/secure-join} at
+ * {@code 4a23526f4b3a8432f7fb12d54b9865e95faedcf4}. The later {@code ladnir/secure-join}
+ * commit {@code 1e1dddf250a0bd23dd9fc15e88480a58da2cb2a0} has an identical {@code Prf} subtree;
+ * vectors under {@code classpath:haowan26/secure-join-1e1dddf/} were dumped from that tree.
+ * </p>
+ * <p>
  * Bit strings in the resource files use cryptoTools little-endian bit packing within each byte.
- * {@link DenseBitMatrix} / {@link BinaryUtils} use MSB-first bit indices; this loader converts
- * when building {@code B} so logical bit index {@code i} is preserved.
+ * {@link edu.alibaba.mpc4j.common.tool.utils.BinaryUtils} use MSB-first bit indices; this loader
+ * converts when building {@code B} so logical bit index {@code i} is preserved.
  * </p>
  */
 public final class HaoWan26SecureJoinParams {
@@ -92,6 +96,48 @@ public final class HaoWan26SecureJoinParams {
     public static F32Wprf createF32Wprf(Z3ByteField z3Field, F32WprfMatrixType type) {
         return new F32Wprf(z3Field, matrixA(z3Field, type), matrixB());
     }
+
+    /**
+     * Evaluates {@code F(k,x)} with secure-join public matrices using cryptoTools little-endian
+     * key and input blocks (same as {@code AltModPrf::eval} / {@code f_fixed_key.txt}).
+     * <p>
+     * Converts LE ↔ MSB packing at the boundary; production protocol keys remain MSB-packed
+     * Java random keys.
+     * </p>
+     *
+     * @param keyLe64 64-byte LE key ({@code KeyType} as contiguous {@code block::data()}).
+     * @param xLe16   16-byte LE input block.
+     * @param type    matrix encoding.
+     * @return 16-byte LE PRF output.
+     */
+    public static byte[] evaluateFLe(byte[] keyLe64, byte[] xLe16, F32WprfMatrixType type) {
+        MathPreconditions.checkEqual("keyLe64.length", "64", keyLe64.length, F32Wprf.N_BYTE_LENGTH);
+        MathPreconditions.checkEqual("xLe16.length", "16", xLe16.length, CommonConstants.BLOCK_BYTE_LENGTH);
+        Z3ByteField field = new Z3ByteField();
+        F32Wprf wprf = createF32Wprf(field, type);
+        wprf.init(lePackedToBinaryUtilsPacked(keyLe64));
+        byte[] yMsb = wprf.prf(expandG(xLe16));
+        return binaryUtilsPackedToLePacked(yMsb);
+    }
+
+    /**
+     * Builds the dump_altmod_basis fixed test key: {@code key[i] = block(i+1, i+2)} for {@code i∈[0,4)}.
+     */
+    public static byte[] fixedTestKeyLe() {
+        byte[] key = new byte[F32Wprf.N_BYTE_LENGTH];
+        for (int i = 0; i < 4; i++) {
+            putLeLong(key, i * 16, i + 2L);
+            putLeLong(key, i * 16 + 8, i + 1L);
+        }
+        return key;
+    }
+
+    private static void putLeLong(byte[] dest, int offset, long value) {
+        for (int b = 0; b < 8; b++) {
+            dest[offset + b] = (byte) (value >>> (8 * b));
+        }
+    }
+
 
     /**
      * Converts cryptoTools / secure-join little-endian packed bits to {@link BinaryUtils} MSB-first packing

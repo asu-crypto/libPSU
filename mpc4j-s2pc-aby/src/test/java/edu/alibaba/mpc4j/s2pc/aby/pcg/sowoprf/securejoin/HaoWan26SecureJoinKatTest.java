@@ -96,28 +96,55 @@ public class HaoWan26SecureJoinKatTest {
     }
 
     @Test
-    public void fFixedKeyNaiveAndLong() throws Exception {
-        // Full F(k,x)=B(A(k⊙G(x))) KATs require matching AltModPrf key-bit iteration and
-        // F3→F2 conversion; G/A/B basis KATs above pin the public matrices. Keep fixed-key
-        // vectors as documentation; evaluate once matrices+key packing are proven identical.
-        try (BufferedReader r = open("f_fixed_key.txt")) {
-            int lines = 0;
-            String line;
-            while ((line = r.readLine()) != null) {
-                if (line.contains(" x=") && line.contains(" y=")) {
-                    lines++;
-                    Assert.assertTrue(line.contains("x=") && line.contains("y="));
+    public void fFixedKeyAllMatrixTypes() throws Exception {
+        byte[] keyLe = HaoWan26SecureJoinParams.fixedTestKeyLe();
+        for (F32WprfMatrixType type : F32WprfMatrixType.values()) {
+            try (BufferedReader r = open("f_fixed_key.txt")) {
+                String line;
+                while ((line = r.readLine()) != null) {
+                    if (!line.contains(" x=") || !line.contains(" y=")) {
+                        continue;
+                    }
+                    int xAt = line.indexOf(" x=");
+                    int yAt = line.indexOf(" y=");
+                    String name = line.substring(0, xAt).trim();
+                    byte[] xLe = hex(line.substring(xAt + 3, yAt).trim());
+                    byte[] yLe = hex(line.substring(yAt + 3).trim());
+                    byte[] got = HaoWan26SecureJoinParams.evaluateFLe(keyLe, xLe, type);
+                    Assert.assertArrayEquals(name + "/" + type, yLe, got);
                 }
             }
-            Assert.assertEquals(5, lines);
         }
-        // Smoke: zero expands to zero and is rejected by F32Wprf.prf
+    }
+
+    @Test
+    public void fZeroInputAccepted() {
         F32Wprf wprf = HaoWan26SecureJoinParams.createF32Wprf(FIELD, F32WprfMatrixType.NAIVE);
-        byte[] key = new byte[F32Wprf.N_BYTE_LENGTH];
-        key[0] = 1;
-        wprf.init(HaoWan26SecureJoinParams.lePackedToBinaryUtilsPacked(key));
-        byte[] nonzero = HaoWan26SecureJoinParams.expandG(hex("01000000000000000000000000000000"));
-        Assert.assertEquals(F32Wprf.getOutputByteLength(), wprf.prf(nonzero).length);
+        wprf.init(HaoWan26SecureJoinParams.lePackedToBinaryUtilsPacked(HaoWan26SecureJoinParams.fixedTestKeyLe()));
+        byte[] zeroCodeword = HaoWan26SecureJoinParams.expandG(new byte[16]);
+        Assert.assertArrayEquals(new byte[F32Wprf.N], zeroCodeword);
+        Assert.assertArrayEquals(new byte[F32Wprf.getOutputByteLength()], wprf.prf(zeroCodeword));
+    }
+
+    @Test
+    public void fBackendDifferentialRandom() {
+        byte[] keyMsb = new byte[F32Wprf.N_BYTE_LENGTH];
+        new java.security.SecureRandom().nextBytes(keyMsb);
+        F32Wprf naive = HaoWan26SecureJoinParams.createF32Wprf(FIELD, F32WprfMatrixType.NAIVE);
+        F32Wprf packedByte = HaoWan26SecureJoinParams.createF32Wprf(FIELD, F32WprfMatrixType.BYTE);
+        F32Wprf packedLong = HaoWan26SecureJoinParams.createF32Wprf(FIELD, F32WprfMatrixType.LONG);
+        naive.init(keyMsb);
+        packedByte.init(keyMsb);
+        packedLong.init(keyMsb);
+        java.security.SecureRandom random = new java.security.SecureRandom();
+        for (int t = 0; t < 32; t++) {
+            byte[] x = new byte[16];
+            random.nextBytes(x);
+            byte[] e = HaoWan26SecureJoinParams.expandG(x);
+            byte[] yn = naive.prf(e);
+            Assert.assertArrayEquals(yn, packedByte.prf(e));
+            Assert.assertArrayEquals(yn, packedLong.prf(e));
+        }
     }
 
     private static void assertGLine(String name, byte[] xLe) throws Exception {

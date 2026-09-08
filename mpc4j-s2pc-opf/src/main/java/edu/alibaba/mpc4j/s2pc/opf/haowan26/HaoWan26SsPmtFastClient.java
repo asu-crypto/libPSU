@@ -16,6 +16,7 @@ import edu.alibaba.mpc4j.s2pc.aby.operator.row.peqt.PeqtParty;
 import edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.F32SowOprfFactory;
 import edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.F32SowOprfSender;
 import edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.F32Wprf;
+import edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.F32WprfPublicParamsType;
 import edu.alibaba.mpc4j.s2pc.opf.haowan26.HaoWan26AltModExpand.ExpandProfile;
 import edu.alibaba.mpc4j.s2pc.opf.haowan26.HaoWan26SsPmtFastPtoDesc.PtoStep;
 
@@ -39,6 +40,7 @@ public class HaoWan26SsPmtFastClient extends AbstractTwoPartyPto {
     private final PeqtParty peqtReceiver;
     private final Gf2eDokvsType gf2eDokvsType;
     private final ExpandProfile expandProfile;
+    private final F32WprfPublicParamsType publicParamsType;
     private final boolean fullOutputLength;
     private int maxServerN;
     private int maxClientN;
@@ -52,6 +54,7 @@ public class HaoWan26SsPmtFastClient extends AbstractTwoPartyPto {
         addSubPto(peqtReceiver);
         gf2eDokvsType = config.getGf2eDokvsType();
         expandProfile = config.getExpandProfile();
+        publicParamsType = config.getPublicParamsType();
         fullOutputLength = config.isFullOutputLength();
     }
 
@@ -112,7 +115,10 @@ public class HaoWan26SsPmtFastClient extends AbstractTwoPartyPto {
         Map<ByteBuffer, byte[]> kvMap = new HashMap<>(clientN);
         for (int i = 0; i < clientN; i++) {
             byte[] fy = f32SowSender.prf(HaoWan26AltModExpand.expand(clientElements[i], expandProfile));
-            kvMap.put(ByteBuffer.wrap(clientElements[i]), HaoWan26Truncate.truncate(fy, ellBits));
+            kvMap.put(
+                ByteBuffer.wrap(clientElements[i]),
+                HaoWan26Truncate.truncateJavaMsbShare(fy, ellBits, publicParamsType)
+            );
         }
         byte[][] okvsKeys = BlockUtils.randomBlocks(Gf2eDokvsFactory.getHashKeyNum(gf2eDokvsType), secureRandom);
         Gf2eDokvs<ByteBuffer> dokvs = Gf2eDokvsFactory.createInstance(
@@ -128,7 +134,7 @@ public class HaoWan26SsPmtFastClient extends AbstractTwoPartyPto {
         sendOtherPartyPayload(PtoStep.CLIENT_SEND_OKVS.ordinal(), okvsPayload);
 
         byte[][] peqtInputs = IntStream.range(0, serverElementSize)
-            .mapToObj(i -> HaoWan26Truncate.truncate(clientTShares[i], ellBits))
+            .mapToObj(i -> HaoWan26Truncate.truncateJavaMsbShare(clientTShares[i], ellBits, publicParamsType))
             .toArray(byte[][]::new);
         SquareZ2Vector membershipShare = peqtReceiver.peqt(ellBits, peqtInputs);
         logPhaseInfo(PtoState.PTO_END);

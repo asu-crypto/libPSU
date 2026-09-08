@@ -17,6 +17,7 @@ import edu.alibaba.mpc4j.s2pc.aby.operator.row.peqt.PeqtParty;
 import edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.F32SowOprfFactory;
 import edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.F32SowOprfReceiver;
 import edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.F32Wprf;
+import edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.F32WprfPublicParamsType;
 import edu.alibaba.mpc4j.s2pc.opf.haowan26.HaoWan26AltModExpand.ExpandProfile;
 import edu.alibaba.mpc4j.s2pc.opf.haowan26.HaoWan26SsPmtFastPtoDesc.PtoStep;
 
@@ -36,6 +37,7 @@ public class HaoWan26SsPmtFastServer extends AbstractTwoPartyPto {
     private final PeqtParty peqtSender;
     private final Gf2eDokvsType gf2eDokvsType;
     private final ExpandProfile expandProfile;
+    private final F32WprfPublicParamsType publicParamsType;
     private final boolean fullOutputLength;
     private int maxServerN;
     private int maxClientN;
@@ -49,6 +51,7 @@ public class HaoWan26SsPmtFastServer extends AbstractTwoPartyPto {
         addSubPto(peqtSender);
         gf2eDokvsType = config.getGf2eDokvsType();
         expandProfile = config.getExpandProfile();
+        publicParamsType = config.getPublicParamsType();
         fullOutputLength = config.isFullOutputLength();
     }
 
@@ -123,7 +126,9 @@ public class HaoWan26SsPmtFastServer extends AbstractTwoPartyPto {
         byte[][] peqtInputs = new byte[serverN][];
         for (int i = 0; i < serverN; i++) {
             byte[] decoded = dokvs.decode(storage, ByteBuffer.wrap(serverElements[i]));
-            byte[] share0 = HaoWan26Truncate.truncate(serverTShares[i], ellBits);
+            byte[] share0 = HaoWan26Truncate.truncateJavaMsbShare(
+                serverTShares[i], ellBits, publicParamsType
+            );
             peqtInputs[i] = BytesUtils.xor(share0, decoded);
         }
 
