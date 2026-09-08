@@ -26,20 +26,21 @@ Hao–Wan ePSU-fast (Figure 17): F32 shared-output OPRF + OKVS + PEQT + ssOTd.
 
 ## Secure-join AltMod parameters
 
-HaoWan `ePSU-from-ssPMT` `setup.sh` pins `Th0masAndy/secure-join` @ `4a23526f4b3a8432f7fb12d54b9865e95faedcf4`.
-Vectors under `haowan26/secure-join-1e1dddf/` were dumped from `ladnir/secure-join` @ `1e1dddf` (identical `Prf` subtree). Matrix **A** is taken from `AltModPrf::mACode` (the static instance used by `eval`).
+The `HAO_WAN_SECURE_JOIN` Java profile matches G, A, B and the complete fixed-key `F(k,x)` bytes observed from the original `ePSU-from-ssPMT@255bf1e` `ePSU_fast` executable, linked with `secure-join@4a23526` and the dependency/toolchain/link configuration recorded in the resource manifest.
 
-**The secure-join profile matches the pinned reference for G, A, B, complete fixed-key `F(k,x)` evaluation, LE byte ordering, and truncation prefix (`memcpy` of the first `ceil(ell/8)` LE bytes) under the committed KAT suite.**
+The reference A initialization is sensitive to cross-translation-unit dynamic initialization. This compatibility statement is tied to the recorded `ePSU_fast` link configuration and is not a claim that every standalone `secureJoin` executable produces identical A/F bytes.
 
-Protocol OKVS/PEQT store those same `ell` bits after a GF(2)-linear LE→MPC4J fixed-reduce repack (last-byte mask as in HaoWan PEQT, then byte reverse) so DOKVS accepts `isFixedReduceByteArray`. That repack is not a second cryptographic truncation.
+Observed on the recorded link path: **`A_SEED_CLASS=CC`**.
 
 Also:
 
 * all-zero 128-bit elements are valid and supported (`G(0)=0`, `F(k,0)=0`);
 * G expansion and SOW A/B must share one `F32WprfPublicParamsType` (mixed profiles rejected);
-* `MPC4J_NATIVE` remains a separate non-byte-compatible profile.
+* `MPC4J_NATIVE` remains a separate non-byte-compatible profile;
+* protocol OKVS/PEQT uses the documented LE→fixed-reduce repack of the same `ell` bits (not raw C++ OKVS bytes);
+* `ladnir/secure-join@1e1dddf` may be mentioned only as a later commit with an identical `Prf/` subtree.
 
-Honest union tests do **not** certify malicious security.
+Honest union tests do **not** certify malicious security. HaoWan26 is implemented under its stated semi-honest model.
 
 ## Implementation
 
@@ -53,4 +54,4 @@ Honest union tests do **not** certify malicious security.
 
 - [OT_BASE_COST_AUDIT.md](../OT_BASE_COST_AUDIT.md)
 - `tools/secure-join-altmod-kat/README.md`
-- Resource MANIFEST: `mpc4j-s2pc-opf/src/main/resources/haowan26/secure-join-1e1dddf/MANIFEST.md`
+- Resource MANIFEST: `mpc4j-s2pc-aby/src/main/resources/haowan26/secure-join-4a23526-epsu-fast/MANIFEST.md`
