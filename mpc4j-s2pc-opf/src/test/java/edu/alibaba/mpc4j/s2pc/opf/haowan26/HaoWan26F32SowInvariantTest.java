@@ -6,6 +6,8 @@ import edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.F32SowOprfFactory;
 import edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.F32SowOprfReceiver;
 import edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.F32SowOprfSender;
 import edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.F32Wprf;
+import edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.F32WprfPublicParamsType;
+import edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.aprr24.Aprr24F32SowOprfConfig;
 import edu.alibaba.mpc4j.s2pc.pcg.ot.conv32.Conv32Factory.Conv32Type;
 import org.junit.Assert;
 import org.junit.Test;
@@ -13,7 +15,7 @@ import org.junit.Test;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * SOW invariant: {@code share0 XOR share1 == F(x)} for APRR24 F32 with HaoWan expand.
+ * SOW invariant: {@code share0 XOR share1 == F(x)} with matching secure-join G/A/B.
  */
 public class HaoWan26F32SowInvariantTest extends AbstractTwoPartyMemoryRpcPto {
     private static final int BATCH = 8;
@@ -23,23 +25,60 @@ public class HaoWan26F32SowInvariantTest extends AbstractTwoPartyMemoryRpcPto {
     }
 
     @Test(timeout = 180_000)
-    public void testShareXorEqualsPrf() throws InterruptedException {
-        var config = F32SowOprfFactory.createDefaultConfig(Conv32Type.CCOT);
+    public void testShareXorEqualsPrfSecureJoin() throws InterruptedException {
+        var config = new Aprr24F32SowOprfConfig.Builder(Conv32Type.CCOT)
+            .setPublicParamsType(F32WprfPublicParamsType.HAO_WAN_SECURE_JOIN)
+            .build();
+        runInvariant(config, HaoWan26AltModExpand.ExpandProfile.HAO_WAN_SECURE_JOIN, true);
+    }
+
+    @Test(timeout = 180_000)
+    public void testShareXorEqualsPrfIncludingZero() throws InterruptedException {
+        var config = new Aprr24F32SowOprfConfig.Builder(Conv32Type.CCOT)
+            .setPublicParamsType(F32WprfPublicParamsType.HAO_WAN_SECURE_JOIN)
+            .build();
         F32SowOprfSender sender = F32SowOprfFactory.createSender(firstRpc, secondRpc.ownParty(), config);
         F32SowOprfReceiver receiver = F32SowOprfFactory.createReceiver(secondRpc, firstRpc.ownParty(), config);
         int taskId = Math.abs(SECURE_RANDOM.nextInt());
         sender.setTaskId(taskId);
         receiver.setTaskId(taskId);
 
-        byte[][] items = new byte[BATCH][16];
-        for (int i = 0; i < BATCH; i++) {
-            SECURE_RANDOM.nextBytes(items[i]);
+        byte[][] expanded = new byte[BATCH][];
+        expanded[0] = HaoWan26AltModExpand.expand(new byte[16], HaoWan26AltModExpand.ExpandProfile.HAO_WAN_SECURE_JOIN);
+        for (int i = 1; i < BATCH; i++) {
+            byte[] item = new byte[16];
+            SECURE_RANDOM.nextBytes(item);
+            expanded[i] = HaoWan26AltModExpand.expand(item, HaoWan26AltModExpand.ExpandProfile.HAO_WAN_SECURE_JOIN);
         }
+        runShares(sender, receiver, expanded);
+    }
+
+    private void runInvariant(
+        edu.alibaba.mpc4j.s2pc.aby.pcg.sowoprf.F32SowOprfConfig config,
+        HaoWan26AltModExpand.ExpandProfile expandProfile,
+        boolean includeRandom
+    ) throws InterruptedException {
+        F32SowOprfSender sender = F32SowOprfFactory.createSender(firstRpc, secondRpc.ownParty(), config);
+        F32SowOprfReceiver receiver = F32SowOprfFactory.createReceiver(secondRpc, firstRpc.ownParty(), config);
+        int taskId = Math.abs(SECURE_RANDOM.nextInt());
+        sender.setTaskId(taskId);
+        receiver.setTaskId(taskId);
+
         byte[][] expanded = new byte[BATCH][];
         for (int i = 0; i < BATCH; i++) {
-            expanded[i] = HaoWan26AltModExpand.expand(items[i]);
+            byte[] item = new byte[16];
+            if (includeRandom) {
+                SECURE_RANDOM.nextBytes(item);
+            } else {
+                item[0] = (byte) (i + 1);
+            }
+            expanded[i] = HaoWan26AltModExpand.expand(item, expandProfile);
         }
+        runShares(sender, receiver, expanded);
+    }
 
+    private void runShares(F32SowOprfSender sender, F32SowOprfReceiver receiver, byte[][] expanded)
+        throws InterruptedException {
         AtomicReference<byte[][]> senderShares = new AtomicReference<>();
         AtomicReference<byte[][]> receiverShares = new AtomicReference<>();
         AtomicReference<Throwable> err = new AtomicReference<>();
