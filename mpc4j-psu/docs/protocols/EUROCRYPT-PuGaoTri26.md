@@ -14,6 +14,17 @@ Pu–Gao–Trieu malicious two-sided (EC + AoK shuffle/RDDH).
 | **Driver** | `PsuMain` |
 | **Config key** | `psu_pto_name = EUROCRYPT:PuGaoTri26` |
 | **OT / cost** | NO_OT |
+| **Init order** | Server: `init(maxServerElementSize, maxClientElementSize)`; Client: `init(maxClientElementSize, maxServerElementSize)` |
+| **Public support** | **2M only** (`PGT26_1M` is rejected by `PsuFactory` / experimental quarantine) |
+
+## Malicious checks
+
+* Adapted shuffle and batched RDDH proofs are verified unconditionally (no production bypass).
+* Proof commitments must be canonical prime-subgroup points (`isValidPrimeSubgroupPoint`); identity allowed for commitments.
+* Statement points / public keys use `isValidNonIdentityPoint`.
+* Figure 6 Round-4 coverage: receiver aborts if revealed index multiset ≠ expected difference indices (before RDDH verify).
+
+Honest union tests do **not** certify malicious security.
 
 ## Implementation
 

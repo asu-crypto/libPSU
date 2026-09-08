@@ -14,6 +14,7 @@ Pan–Tian 2026 IBLT peel + MP-OPRF + dual Core COT.
 | **Driver** | `PsuMain` (two-sided routing) |
 | **Config key** | `psu_pto_name = EUROCRYPT:PisTri26` |
 | **OT / cost** | INCLUDED_INIT (OT12 + OT3 + MP-OPRF init) |
+| **Init order** | Server: `init(maxServerElementSize, maxClientElementSize)`; Client: `init(maxClientElementSize, maxServerElementSize)` |
 
 ## Parameters
 
