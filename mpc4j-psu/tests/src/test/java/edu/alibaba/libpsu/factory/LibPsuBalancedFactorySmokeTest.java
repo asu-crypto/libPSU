@@ -59,7 +59,6 @@ public class LibPsuBalancedFactorySmokeTest extends AbstractTwoPartyMemoryRpcPto
                 Assert.assertTrue(
                     "one-sided public API for " + caps.protocolId() + " / " + caps.outputModel(),
                     OutputModel.isOneSidedPublicApi(caps.outputModel())
-                        || type == PsuType.JOC_HazNis12
                 );
                 PsuServer server = ProtocolRegistry.createPsuServer(serverRpc, clientParty, config);
                 PsuClient client = ProtocolRegistry.createPsuClient(clientRpc, serverParty, config);

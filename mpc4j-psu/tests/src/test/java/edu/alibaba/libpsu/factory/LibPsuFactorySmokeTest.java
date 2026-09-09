@@ -67,7 +67,8 @@ public class LibPsuFactorySmokeTest extends AbstractTwoPartyMemoryRpcPto {
         hn.setProperty(PsuConfigUtils.PSU_PTO_NAME_KEY, "JOC:HazNis12");
         PsuConfig hnConfig = ProtocolRegistry.createPsuConfig(hn);
         Assert.assertEquals(PsuType.JOC_HazNis12, hnConfig.getPtoType());
-        Assert.assertNotNull(ProtocolRegistry.createPsuServer(firstRpc, secondRpc.ownParty(), hnConfig));
-        Assert.assertNotNull(ProtocolRegistry.createPsuClient(secondRpc, firstRpc.ownParty(), hnConfig));
+        Assert.assertTrue(ProtocolRegistry.usesTwoSidedPublicFactory(hnConfig));
+        Assert.assertNotNull(ProtocolRegistry.createTwoSidedPsuServer(firstRpc, secondRpc.ownParty(), hnConfig));
+        Assert.assertNotNull(ProtocolRegistry.createTwoSidedPsuClient(secondRpc, firstRpc.ownParty(), hnConfig));
     }
 }

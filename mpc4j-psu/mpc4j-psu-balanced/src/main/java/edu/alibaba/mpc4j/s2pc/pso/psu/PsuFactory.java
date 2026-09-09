@@ -84,14 +84,17 @@ public class PsuFactory implements PtoFactory {
                     "EUROCRYPT_PuGaoTri26 declares output model MALICIOUS_TWO_SIDED; "
                         + "use PsuFactory.createTwoSidedServer / ProtocolRegistry.createTwoSidedPsuServer."
                 );
+            case JOC_HazNis12:
+                throw new IllegalArgumentException(
+                    "JOC_HazNis12 declares output model TWO_SIDED; "
+                        + "use PsuFactory.createTwoSidedServer / ProtocolRegistry.createTwoSidedPsuServer."
+                );
             case ACISP_DavCid17:
                 return new Dc17PsuServer(serverRpc, clientParty, (Dc17PsuConfig) config);
             case ACNS_Frikken07:
                 return new F07PsuServer(serverRpc, clientParty, (F07PsuConfig) config);
             case C_KisSon05:
                 return new Ks05PsuServer(serverRpc, clientParty, (Ks05PsuConfig) config);
-            case JOC_HazNis12:
-                return new Hn12PsuServer(serverRpc, clientParty, (Hn12PsuConfig) config);
             case USENIX_BinYujConYanYu25:
                 return new Tbz25PsuServer(serverRpc, clientParty, (Tbz25PsuConfig) config);
             case USENIX_HaoWan26:
@@ -158,14 +161,17 @@ public class PsuFactory implements PtoFactory {
                     "EUROCRYPT_PuGaoTri26 declares output model MALICIOUS_TWO_SIDED; "
                         + "use PsuFactory.createTwoSidedClient / ProtocolRegistry.createTwoSidedPsuClient."
                 );
+            case JOC_HazNis12:
+                throw new IllegalArgumentException(
+                    "JOC_HazNis12 declares output model TWO_SIDED; "
+                        + "use PsuFactory.createTwoSidedClient / ProtocolRegistry.createTwoSidedPsuClient."
+                );
             case ACISP_DavCid17:
                 return new Dc17PsuClient(clientRpc, serverParty, (Dc17PsuConfig) config);
             case ACNS_Frikken07:
                 return new F07PsuClient(clientRpc, serverParty, (F07PsuConfig) config);
             case C_KisSon05:
                 return new Ks05PsuClient(clientRpc, serverParty, (Ks05PsuConfig) config);
-            case JOC_HazNis12:
-                return new Hn12PsuClient(clientRpc, serverParty, (Hn12PsuConfig) config);
             case USENIX_BinYujConYanYu25:
                 return new Tbz25PsuClient(clientRpc, serverParty, (Tbz25PsuConfig) config);
             case USENIX_HaoWan26:
@@ -185,6 +191,8 @@ public class PsuFactory implements PtoFactory {
                 return new Pgt26_2mPsuClient(clientRpc, serverParty, (Pgt26_2mPsuConfig) config);
             case EUROCRYPT_PisTri26:
                 return new Pt26PsuClient(clientRpc, serverParty, (Pt26PsuConfig) config);
+            case JOC_HazNis12:
+                return new Hn12PsuClient(clientRpc, serverParty, (Hn12PsuConfig) config);
             default:
                 throw new IllegalArgumentException(
                     "two-sided factory does not support " + config.getPtoType().protocolId()
@@ -198,6 +206,8 @@ public class PsuFactory implements PtoFactory {
                 return new Pgt26_2mPsuServer(serverRpc, clientParty, (Pgt26_2mPsuConfig) config);
             case EUROCRYPT_PisTri26:
                 return new Pt26PsuServer(serverRpc, clientParty, (Pt26PsuConfig) config);
+            case JOC_HazNis12:
+                return new Hn12PsuServer(serverRpc, clientParty, (Hn12PsuConfig) config);
             default:
                 throw new IllegalArgumentException(
                     "two-sided factory does not support " + config.getPtoType().protocolId()

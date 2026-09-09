@@ -102,17 +102,10 @@ public final class ProtocolRegistry {
     }
 
     /**
-     * HN12 declares {@link OutputModel#TWO_SIDED} knowledge but still exposes legacy one-sided
-     * {@link PsuServer}/{@link PsuClient} parties until the dedicated two-sided wrappers ship.
-     * PT26 and PGT26 always use the two-sided public factory.
+     * PT26, PGT26, and HN12 declare two-sided output and use the two-sided public factory.
      */
     public static boolean usesTwoSidedPublicFactory(PsuConfig config) {
-        PsuProtocolCapabilities caps = capabilitiesOf(config);
-        if (!caps.isTwoSided()) {
-            return false;
-        }
-        // Experimental HN12 still uses one-sided party types that cryptographically learn the union.
-        return config.getPtoType() != PsuType.JOC_HazNis12;
+        return capabilitiesOf(config).isTwoSided();
     }
 
     public static PsuServer createPsuServer(Rpc serverRpc, Party clientParty, PsuConfig config) {

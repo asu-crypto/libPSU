@@ -5,7 +5,6 @@ import edu.alibaba.mpc4j.common.rpc.pto.AbstractTwoPartyMemoryRpcPto;
 import edu.alibaba.mpc4j.common.tool.CommonConstants;
 import edu.alibaba.mpc4j.psu.test.TwoPartyTestJoin;
 import edu.alibaba.mpc4j.s2pc.pso.psi.hn12.Hn12PsuConfig;
-import edu.alibaba.mpc4j.s2pc.pso.psu.PsuFactory;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -62,7 +61,7 @@ public class Hn12PsuTest extends AbstractTwoPartyMemoryRpcPto {
     }
 
     @Test
-    public void debugModeExactUnionAndPsiCa() throws Exception {
+    public void debugModeExactUnionBothParties() throws Exception {
         runOnce(10, 8, 4);
         runOnce(8, 8, 0);
         runOnce(8, 8, 8);
@@ -70,8 +69,8 @@ public class Hn12PsuTest extends AbstractTwoPartyMemoryRpcPto {
 
     private void runOnce(int serverSize, int clientSize, int intersectionSize) throws Exception {
         Hn12PsuConfig config = new Hn12PsuConfig.Builder().build();
-        PsuServer server = PsuFactory.createServer(firstRpc, secondRpc.ownParty(), config);
-        PsuClient client = PsuFactory.createClient(secondRpc, firstRpc.ownParty(), config);
+        PsuTwoSidedServer server = PsuFactory.createTwoSidedServer(firstRpc, secondRpc.ownParty(), config);
+        PsuTwoSidedClient client = PsuFactory.createTwoSidedClient(secondRpc, firstRpc.ownParty(), config);
         int tid = Math.abs(SECURE_RANDOM.nextInt());
         server.setTaskId(tid);
         client.setTaskId(tid);
@@ -79,8 +78,8 @@ public class Hn12PsuTest extends AbstractTwoPartyMemoryRpcPto {
         ArrayList<Set<ByteBuffer>> sets = generateBytesSets(serverSize, clientSize, intersectionSize, ELEMENT_BYTE_LENGTH);
         Set<ByteBuffer> serverSet = sets.get(0);
         Set<ByteBuffer> clientSet = sets.get(1);
-        PsuServerThread st = new PsuServerThread(server, serverSet, clientSet.size(), ELEMENT_BYTE_LENGTH);
-        PsuClientThread ct = new PsuClientThread(client, clientSet, serverSet.size(), ELEMENT_BYTE_LENGTH);
+        TwoSidedServerThread st = new TwoSidedServerThread(server, serverSet, clientSet.size(), ELEMENT_BYTE_LENGTH);
+        TwoSidedClientThread ct = new TwoSidedClientThread(client, clientSet, serverSet.size(), ELEMENT_BYTE_LENGTH);
         st.start();
         ct.start();
         TwoPartyTestJoin.joinFailFast(
@@ -91,10 +90,8 @@ public class Hn12PsuTest extends AbstractTwoPartyMemoryRpcPto {
 
         Set<ByteBuffer> expectUnion = new HashSet<>(serverSet);
         expectUnion.addAll(clientSet);
-        PsuClientOutput out = ct.getClientOutput();
-        Assert.assertNotNull(out);
-        Assert.assertEquals(expectUnion, out.getUnion());
-        Assert.assertEquals(intersectionSize, out.getPsiCa());
+        Assert.assertEquals(expectUnion, st.getOutput().getUnion());
+        Assert.assertEquals(expectUnion, ct.getOutput().getUnion());
     }
 
     private static ArrayList<Set<ByteBuffer>> generateBytesSets(
@@ -127,5 +124,73 @@ public class Hn12PsuTest extends AbstractTwoPartyMemoryRpcPto {
         out.add(serverSet);
         out.add(clientSet);
         return out;
+    }
+
+    private static final class TwoSidedServerThread extends Thread {
+        private final PsuTwoSidedServer server;
+        private final Set<ByteBuffer> set;
+        private final int otherSize;
+        private final int elementLen;
+        private PsuTwoSidedOutput output;
+        private volatile Throwable failure;
+
+        TwoSidedServerThread(PsuTwoSidedServer server, Set<ByteBuffer> set, int otherSize, int elementLen) {
+            this.server = server;
+            this.set = set;
+            this.otherSize = otherSize;
+            this.elementLen = elementLen;
+        }
+
+        @Override
+        public void run() {
+            try {
+                server.init(set.size(), otherSize);
+                output = server.psu(set, otherSize, elementLen);
+            } catch (Throwable t) {
+                failure = t;
+            }
+        }
+
+        PsuTwoSidedOutput getOutput() {
+            return output;
+        }
+
+        Throwable getFailure() {
+            return failure;
+        }
+    }
+
+    private static final class TwoSidedClientThread extends Thread {
+        private final PsuTwoSidedClient client;
+        private final Set<ByteBuffer> set;
+        private final int otherSize;
+        private final int elementLen;
+        private PsuTwoSidedOutput output;
+        private volatile Throwable failure;
+
+        TwoSidedClientThread(PsuTwoSidedClient client, Set<ByteBuffer> set, int otherSize, int elementLen) {
+            this.client = client;
+            this.set = set;
+            this.otherSize = otherSize;
+            this.elementLen = elementLen;
+        }
+
+        @Override
+        public void run() {
+            try {
+                client.init(set.size(), otherSize);
+                output = client.psu(set, otherSize, elementLen);
+            } catch (Throwable t) {
+                failure = t;
+            }
+        }
+
+        PsuTwoSidedOutput getOutput() {
+            return output;
+        }
+
+        Throwable getFailure() {
+            return failure;
+        }
     }
 }

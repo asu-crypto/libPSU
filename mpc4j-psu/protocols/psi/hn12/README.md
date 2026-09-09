@@ -8,12 +8,11 @@ Polynomial / ElGamal-in-exponent / Pedersen / ZK / PRF based private set protoco
 
 | ID | Paper | Output |
 |------|-------|--------|
-| `JOC:HazNis12` | Protocol 8, π∪ | Client (P1) learns `X ∪ Y`; server receives union (`Y ⊆ U` check) |
+| `JOC:HazNis12` | Protocol 8, π∪ | Two-sided: both parties learn `X ∪ Y` via `PsuTwoSided*` |
 
-- **Classes:** `Hn12PsuConfig`, `Hn12PsuServer`, `Hn12PsuClient`
-- **Factory / driver:** `PsuFactory` / `PsuMain` (`psu_pto_name = JOC:HazNis12`)
-- **Bench configs:** `bench/configs/psu/24_HN12/`, unbalanced harness under `upsu/24_HN12/` (and legacy `upsu/19_HN12_PSI/` path)
-- **Default bench flags:** `hn12_semi_honest_debug=true`, ideal PRF (full malicious πCOUNT/πNZ not complete)
+- **Classes:** `Hn12PsuConfig`, `Hn12PsuServer`, `Hn12PsuClient` (`AbstractPsuTwoSided*`)
+- **Factory / driver:** `PsuFactory.createTwoSided*` / `ProtocolRegistry.createTwoSidedPsu*` / `PsuMain` (`psu_pto_name = JOC:HazNis12`)
+- **Caveat:** experimental semi-honest/debug path with ideal PRF; malicious ZK / production PRF unsupported
 
 ## Legacy PSI (unit tests)
 
