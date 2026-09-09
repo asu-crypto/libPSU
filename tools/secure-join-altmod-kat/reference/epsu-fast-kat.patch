@@ -1,26 +1,32 @@
+diff --git a/src/SoOPPRF.cpp b/src/SoOPPRF.cpp
+index 438a4f8..164c5b3 100644
 --- a/src/SoOPPRF.cpp
 +++ b/src/SoOPPRF.cpp
 @@ -160,3 +160,6 @@ void SoOPPRFRecver::OPPRF(std::vector<oc::block> &keys, std::vector<oc::block> &
      }
-
+ 
  }
 +
 +// Reference-only AltMod KAT dump (libPSU tools/secure-join-altmod-kat).
 +#include "dump_altmod_kat.inc"
+diff --git a/test/test_ePSU.cpp b/test/test_ePSU.cpp
+index 1c746a1..a767836 100644
 --- a/test/test_ePSU.cpp
 +++ b/test/test_ePSU.cpp
-@@ -15,7 +15,10 @@
+@@ -15,8 +15,11 @@
  #include <thread>
  #include <unistd.h>
  #include <vector>
 +#include <cstdlib>
  #include "ePSU.h"
-
+ 
 +int dumpAltModKat(const char* outDir);
 +
-
-@@ -49,6 +52,11 @@ void test(u32 nn, u32 idx){
-
+ 
+ using namespace secJoin;
+ 
+@@ -50,6 +53,11 @@ void test(u32 nn, u32 idx){
+ 
  int main(int argc, char **argv)
  {
 +    const char* katOut = std::getenv("HAOWAN_ALT_MOD_KAT_OUT");
@@ -31,7 +37,3 @@
      CLP cmd;
      cmd.parse(argc, argv);
      u32 nn = cmd.getOr("nn", 14);
-     u32 idx = cmd.getOr("r", 0);
-     test(nn, idx);
-     return 0;
- }

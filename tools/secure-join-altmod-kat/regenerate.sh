@@ -13,6 +13,7 @@ EPSU_COMMIT="${EPSU_COMMIT:-255bf1e4055128dc3eeeae43d934b4d068cabe67}"
 SECURE_JOIN_COMMIT="${SECURE_JOIN_COMMIT:-4a23526f4b3a8432f7fb12d54b9865e95faedcf4}"
 LIBOTE_COMMIT="${LIBOTE_COMMIT:-d0e499206d1d4d16c6b4ca6c0e712490e0632f80}"
 CRYPTOTOOLS_COMMIT="${CRYPTOTOOLS_COMMIT:-0cf6986873e2b83966d5110398dca99172d63c20}"
+VOLEPSI_COMMIT="${VOLEPSI_COMMIT:-52ae9e8264e444a4cf3e8a2b128520be9dbc1233}"
 
 KEEP_WORK=0
 OUT_DIR=""
@@ -80,30 +81,11 @@ build_and_dump() {
   cp "${DUMP_INC}" "${epsu_fast}/include/dump_altmod_kat.inc"
   (
     cd "${epsu_fast}"
-    if ! patch -p1 --forward --dry-run < "${PATCH}" >/dev/null 2>&1; then
-      echo "unified patch dry-run failed; applying surgical edits" >&2
-      if ! grep -q 'dump_altmod_kat.inc' src/SoOPPRF.cpp; then
-        printf '\n// Reference-only AltMod KAT dump (libPSU tools/secure-join-altmod-kat).\n#include "dump_altmod_kat.inc"\n' >> src/SoOPPRF.cpp
-      fi
-      python3 - <<'PY'
-from pathlib import Path
-p = Path("test/test_ePSU.cpp")
-t = p.read_text()
-if "HAOWAN_ALT_MOD_KAT_OUT" not in t:
-    if "#include <cstdlib>" not in t:
-        t = t.replace('#include <vector>\n', '#include <vector>\n#include <cstdlib>\n')
-    if 'int dumpAltModKat(const char* outDir);' not in t:
-        t = t.replace('#include "ePSU.h"\n', '#include "ePSU.h"\n\nint dumpAltModKat(const char* outDir);\n')
-    needle = "int main(int argc, char **argv)\n{\n"
-    insert = needle + "    const char* katOut = std::getenv(\"HAOWAN_ALT_MOD_KAT_OUT\");\n    if (katOut != nullptr) {\n        return dumpAltModKat(katOut);\n    }\n\n"
-    if needle not in t:
-        raise SystemExit("test_ePSU.cpp main() pattern not found")
-    p.write_text(t.replace(needle, insert, 1))
-print("surgical patch ok")
-PY
-    else
-      patch -p1 < "${PATCH}"
+    if ! patch -p1 --forward --dry-run < "${PATCH}" >/dev/null; then
+      echo "FAIL: epsu-fast-kat.patch does not apply to pinned ePSU tree" >&2
+      exit 1
     fi
+    patch -p1 < "${PATCH}"
   )
 
   echo "===== [${tag}] build thirdparty (secure-join + volePSI) ====="
@@ -132,14 +114,18 @@ PY
     fi
     cd ..
 
-    # Disclose: original setup.sh does not pin volePSI.
+    # Disclose: original setup.sh does not pin volePSI; libPSU pins the audited commit.
     git clone https://github.com/Th0masAndy/volepsi.git
     cd volepsi
-    VOLEPSI_COMMIT="$(git rev-parse HEAD)"
-    echo "${VOLEPSI_COMMIT}" > "${dump_out}/volepsi.commit"
-    echo "NOTE: volePSI is unpinned by ePSU_fast/setup.sh; observed commit=${VOLEPSI_COMMIT}" | tee "${dump_out}/volepsi.UNPINNED.txt"
+    git checkout "${VOLEPSI_COMMIT}"
+    OBSERVED_VOLEPSI="$(git rev-parse HEAD)"
+    echo "${OBSERVED_VOLEPSI}" > "${dump_out}/volepsi.commit"
+    if [[ "${OBSERVED_VOLEPSI}" != "${VOLEPSI_COMMIT}" ]]; then
+      echo "volePSI commit mismatch: got ${OBSERVED_VOLEPSI} want ${VOLEPSI_COMMIT}" >&2
+      exit 1
+    fi
     if [[ -f volePSI/GMW/Gmw.cpp ]]; then
-      sed -i '157s/co_await(generateTriple(1 << 20, 2, chl));/co_await(generateTriple(1 << 18, 2, chl));/' volePSI/GMW/Gmw.cpp || true
+      sed -i '157s/co_await(generateTriple(1 << 20, 2, chl));/co_await(generateTriple(1 << 18, 2, chl));/' volePSI/GMW/Gmw.cpp
     fi
     # Prefer the fetched/install tree Boost over mismatched /usr/local Boost configs.
     python3 build.py --install=../out/install \
@@ -147,23 +133,22 @@ PY
       -DVOLE_PSI_ENABLE_BITPOLYMUL=false \
       -DVOLE_PSI_SODIUM_MONTGOMERY=false \
       -DCMAKE_PREFIX_PATH="$(pwd)/../out/install" \
-      -DVOLE_PSI_NO_SYSTEM_PATH=true || true
-    # build.py may fail on sparsehash install even after a successful compile; salvage.
+      -DVOLE_PSI_NO_SYSTEM_PATH=true
     if [[ ! -e thirdparty/sparsehash-c11/sparsehash && -d /usr/local/include/sparsehash ]]; then
       mkdir -p thirdparty/sparsehash-c11
       ln -sfn /usr/local/include/sparsehash thirdparty/sparsehash-c11/sparsehash
     fi
-    cmake --install ./out/build/linux --prefix ../out/install || true
+    cmake --install ./out/build/linux --prefix ../out/install
     mkdir -p ../out/install/include/volePSI ../out/install/lib
     if [[ -f ./out/build/linux/volePSI/config.h ]]; then
       cp ./out/build/linux/volePSI/config.h ../out/install/include/volePSI/
     fi
     if [[ -d ./out/install/linux ]]; then
-      cp -a ./out/install/linux/. ../out/install/ || true
+      cp -a ./out/install/linux/. ../out/install/
     fi
-    find ./out/build/linux -name 'libvolePSI*.a' -exec cp -n {} ../out/install/lib/ \; || true
+    find ./out/build/linux -name 'libvolePSI*.a' -exec cp -n {} ../out/install/lib/ \;
     if [[ ! -f ../out/install/lib/cmake/volePSI/volePSIConfig.cmake ]]; then
-      echo "volePSIConfig.cmake missing after salvage" >&2
+      echo "volePSIConfig.cmake missing after install" >&2
       exit 1
     fi
     cd ../..
@@ -179,23 +164,39 @@ PY
   # Verify secure-join nested dependency pins when FETCH_ALL materializes them.
   local sj_out="${epsu_fast}/thirdparty/secure-join"
   if [[ -d "${sj_out}/out/libOTe" ]]; then
-    git -C "${sj_out}/out/libOTe" rev-parse HEAD > "${dump_out}/libOTe.commit" || true
+    local got_libote
+    got_libote="$(git -C "${sj_out}/out/libOTe" rev-parse HEAD)"
+    echo "${got_libote}" > "${dump_out}/libOTe.commit"
+    if [[ "${got_libote}" != "${LIBOTE_COMMIT}" ]]; then
+      echo "libOTe commit mismatch: got ${got_libote} want ${LIBOTE_COMMIT}" >&2
+      exit 1
+    fi
+  else
+    echo "missing nested libOTe under secure-join out/" >&2
+    exit 1
   fi
+  local ct_dir=""
   if [[ -d "${sj_out}/out/libOTe/cryptoTools" ]]; then
-    git -C "${sj_out}/out/libOTe/cryptoTools" rev-parse HEAD > "${dump_out}/cryptoTools.commit" || true
+    ct_dir="${sj_out}/out/libOTe/cryptoTools"
   elif [[ -d "${sj_out}/out/cryptoTools" ]]; then
-    git -C "${sj_out}/out/cryptoTools" rev-parse HEAD > "${dump_out}/cryptoTools.commit" || true
+    ct_dir="${sj_out}/out/cryptoTools"
+  fi
+  if [[ -z "${ct_dir}" ]]; then
+    echo "missing nested cryptoTools under secure-join out/" >&2
+    exit 1
+  fi
+  local got_ct
+  got_ct="$(git -C "${ct_dir}" rev-parse HEAD)"
+  echo "${got_ct}" > "${dump_out}/cryptoTools.commit"
+  if [[ "${got_ct}" != "${CRYPTOTOOLS_COMMIT}" ]]; then
+    echo "cryptoTools commit mismatch: got ${got_ct} want ${CRYPTOTOOLS_COMMIT}" >&2
+    exit 1
   fi
 
-  # Forward declaration for dumpAltModKat
+  # Forward declaration is part of the required patch; refuse missing dump entrypoint.
   if ! grep -q 'int dumpAltModKat' "${epsu_fast}/test/test_ePSU.cpp"; then
-    python3 - <<PY
-from pathlib import Path
-p = Path("${epsu_fast}/test/test_ePSU.cpp")
-t = p.read_text()
-t = t.replace('#include "ePSU.h"\n', '#include "ePSU.h"\n\nint dumpAltModKat(const char* outDir);\n')
-p.write_text(t)
-PY
+    echo "dumpAltModKat declaration missing after patch apply" >&2
+    exit 1
   fi
 
   echo "===== [${tag}] configure + link ePSU ====="
