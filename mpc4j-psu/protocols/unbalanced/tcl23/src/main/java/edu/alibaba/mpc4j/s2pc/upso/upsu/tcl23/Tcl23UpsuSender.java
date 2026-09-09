@@ -12,6 +12,7 @@ import edu.alibaba.mpc4j.common.tool.crypto.prg.PrgFactory;
 import edu.alibaba.mpc4j.common.tool.galoisfield.zp64.Zp64;
 import edu.alibaba.mpc4j.common.tool.galoisfield.zp64.Zp64Factory;
 import edu.alibaba.mpc4j.common.tool.hashbin.MaxBinSizeUtils;
+import edu.alibaba.mpc4j.common.tool.hashbin.object.HashBinEntry;
 import edu.alibaba.mpc4j.common.tool.hashbin.object.cuckoo.CuckooHashBin;
 import edu.alibaba.mpc4j.common.tool.hashbin.object.cuckoo.CuckooHashBinFactory;
 import edu.alibaba.mpc4j.common.tool.utils.BlockUtils;
@@ -232,15 +233,28 @@ public class Tcl23UpsuSender extends AbstractUpsuSender {
      */
     private List<byte[]> handleCotSenderOutput(CotSenderOutput cotSenderOutput, CuckooHashBin<ByteBuffer> cuckooHashBin,
                                                Map<ByteBuffer, byte[]> oprfItemMap, int[] columnPermutationMap) {
-        Prg encPrg = PrgFactory.createInstance(envType, elementByteLength);
+        int wireLen = elementByteLength + 1;
+        Prg encPrg = PrgFactory.createInstance(envType, wireLen);
         IntStream encIntStream = IntStream.range(0, params.getBinNum());
         encIntStream = parallel ? encIntStream.parallel() : encIntStream;
         return encIntStream
             .mapToObj(index -> {
-                // do not need CRHF since we call prg
                 byte[] ciphertext = encPrg.extendToBytes(cotSenderOutput.getR0(index));
-                ByteBuffer item = cuckooHashBin.getHashBinEntry(columnPermutationMap[index]).getItem();
-                BytesUtils.xori(ciphertext, oprfItemMap.containsKey(item) ? oprfItemMap.get(item) : botElementByteBuffer.array());
+                HashBinEntry<ByteBuffer> entry = cuckooHashBin.getHashBinEntry(columnPermutationMap[index]);
+                byte[] plaintext = new byte[wireLen];
+                if (entry.getHashIndex() == HashBinEntry.DUMMY_ITEM_HASH_INDEX) {
+                    plaintext[0] = 0;
+                } else {
+                    ByteBuffer item = entry.getItem();
+                    byte[] element = oprfItemMap.get(item);
+                    if (element == null) {
+                        plaintext[0] = 0;
+                    } else {
+                        plaintext[0] = 1;
+                        System.arraycopy(element, 0, plaintext, 1, elementByteLength);
+                    }
+                }
+                BytesUtils.xori(ciphertext, plaintext);
                 return ciphertext;
             })
             .collect(Collectors.toList());

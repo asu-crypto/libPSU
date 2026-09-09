@@ -4,6 +4,7 @@ import edu.alibaba.mpc4j.common.rpc.*;
 import edu.alibaba.mpc4j.common.tool.crypto.hash.Hash;
 import edu.alibaba.mpc4j.common.tool.crypto.hash.HashFactory;
 import edu.alibaba.mpc4j.common.tool.hashbin.MaxBinSizeUtils;
+import edu.alibaba.mpc4j.common.tool.hashbin.object.HashBinEntry;
 import edu.alibaba.mpc4j.common.tool.hashbin.object.cuckoo.CuckooHashBin;
 import edu.alibaba.mpc4j.common.tool.hashbin.object.cuckoo.CuckooHashBinFactory;
 import edu.alibaba.mpc4j.common.tool.hashbin.object.cuckoo.CuckooHashBinFactory.CuckooHashBinType;
@@ -104,6 +105,10 @@ public class Jsz22SfsPsuServer extends AbstractOoPsuServer {
      * second rosn result
      */
     RosnReceiverOutput secondRosnReceiverOutput;
+    /**
+     * True when the corresponding cuckoo bin is padding ({@link HashBinEntry#DUMMY_ITEM_HASH_INDEX}).
+     */
+    private boolean[] dummyBin;
 
     public Jsz22SfsPsuServer(Rpc serverRpc, Party clientParty, Jsz22SfsPsuConfig config) {
         super(Jsz22SfsPsuPtoDesc.getInstance(), serverRpc, clientParty, config);
@@ -187,10 +192,14 @@ public class Jsz22SfsPsuServer extends AbstractOoPsuServer {
         logStepInfo(PtoState.PTO_STEP, 1, 6, cuckooHashTime);
 
         stopWatch.start();
-        // 构建服务端元素向量(x_1, ..., x_m)
-        byte[][] xVector = IntStream.range(0, binNum)
-            .mapToObj(binIndex -> cuckooHashBin.getHashBinEntry(binIndex).getItemByteArray())
-            .toArray(byte[][]::new);
+        // 构建服务端元素向量(x_1, ..., x_m)；padding tracked out-of-band via DUMMY index
+        dummyBin = new boolean[binNum];
+        byte[][] xVector = new byte[binNum][];
+        for (int binIndex = 0; binIndex < binNum; binIndex++) {
+            HashBinEntry<ByteBuffer> entry = cuckooHashBin.getHashBinEntry(binIndex);
+            dummyBin[binIndex] = entry.getHashIndex() == HashBinEntry.DUMMY_ITEM_HASH_INDEX;
+            xVector[binIndex] = entry.getItemByteArray();
+        }
         cuckooHashBin = null;
         // S and R invoke the ideal functionality F_{PS}.
         // S acts as P_0 with input set X_S, obtains the shuffled shares {a_1, a_2, ... , a_b}.
@@ -301,16 +310,20 @@ public class Jsz22SfsPsuServer extends AbstractOoPsuServer {
         IntStream binIndexStream = parallel ? IntStream.range(0, binNum).parallel() : IntStream.range(0, binNum);
         List<byte[]> zsPayload = binIndexStream
             .mapToObj(binIndex -> {
-                // 这里与论文描述相反，uArray代表能匹配上
-                if (!uArray[secondPi[binIndex]]) {
-                    return BytesUtils.xor(aArray[secondPi[binIndex]], secondOsnReceiverOutput.getShare(binIndex));
-                } else {
+                int origBin = secondPi[binIndex];
+                if (dummyBin[origBin]) {
+                    // Distinct from length-0 intersection marker; client skips without PSI-CA++.
+                    return new byte[]{0};
+                }
+                if (uArray[origBin]) {
                     return new byte[0];
                 }
+                return BytesUtils.xor(aArray[origBin], secondOsnReceiverOutput.getShare(binIndex));
             })
             .collect(Collectors.toList());
         uArray = null;
         aArray = null;
+        dummyBin = null;
         secondOsnReceiverOutput = null;
         secondPi = null;
 

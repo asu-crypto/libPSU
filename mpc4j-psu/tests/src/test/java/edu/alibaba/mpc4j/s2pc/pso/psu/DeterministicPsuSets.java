@@ -14,8 +14,7 @@ import java.util.Set;
  * Deterministic fixed-length PSU element sets for small end-to-end matrix tests.
  * <p>
  * Domains: shared=0, server-only=1, client-only=2. Encoded as {@code byte[0] = domain + 1}
- * plus a big-endian index. All-zero is a valid protocol element for HaoWan and may be injected
- * via {@link #zeroBlock()}; the all-{@code 0xFF} BOT sentinel remains excluded.
+ * plus a big-endian index. All-zero and all-{@code 0xFF} are valid protocol elements.
  * </p>
  */
 public final class DeterministicPsuSets {
@@ -80,10 +79,6 @@ public final class DeterministicPsuSets {
         expectedUnion.addAll(clientSet);
         Assert.assertEquals(serverSize + clientSize - intersectionSize, expectedUnion.size());
 
-        for (ByteBuffer e : expectedUnion) {
-            assertNotBot(e, elementByteLength);
-        }
-
         return new SetsOf(serverSet, clientSet, expectedUnion, intersectionSize, elementByteLength);
     }
 
@@ -92,15 +87,18 @@ public final class DeterministicPsuSets {
         return ByteBuffer.wrap(new byte[CommonConstants.BLOCK_BYTE_LENGTH]);
     }
 
+    /** Independent all-{@code 0xFF} block (valid domain element; no longer a reserved BOT). */
+    public static ByteBuffer allFfBlock(int elementByteLength) {
+        return SetElementUtils.createBotElement(elementByteLength);
+    }
+
     public static ByteBuffer encode(int domain, int index, int elementByteLength) {
         Assert.assertTrue(domain >= DOMAIN_SHARED && domain <= DOMAIN_CLIENT_ONLY);
         Assert.assertTrue(elementByteLength >= 5);
         byte[] bytes = new byte[elementByteLength];
         bytes[0] = (byte) (domain + 1);
         ByteBuffer.wrap(bytes).putInt(1, index);
-        ByteBuffer element = ByteBuffer.wrap(bytes);
-        assertNotBot(element, elementByteLength);
-        return element;
+        return ByteBuffer.wrap(bytes);
     }
 
     public static void assertUnionEqual(Set<ByteBuffer> expected, Set<ByteBuffer> actual, int elementByteLength) {
@@ -110,7 +108,7 @@ public final class DeterministicPsuSets {
             Assert.assertTrue("missing expected element", unionContains(actual, e));
         }
         for (ByteBuffer a : actual) {
-            assertNotBot(a, elementByteLength);
+            Assert.assertEquals(elementByteLength, toBytes(a).length);
             Assert.assertTrue("unexpected element in union", unionContains(expected, a));
         }
     }
@@ -130,12 +128,6 @@ public final class DeterministicPsuSets {
         byte[] item = new byte[dup.remaining()];
         dup.get(item);
         return item;
-    }
-
-    public static void assertNotBot(ByteBuffer element, int elementByteLength) {
-        byte[] bytes = SetElementUtils.toFixedByteArray(element, elementByteLength);
-        byte[] bot = SetElementUtils.createBotElement(elementByteLength).array();
-        Assert.assertFalse("element must not equal BOT sentinel", Arrays.equals(bytes, bot));
     }
 
     private static ByteBuffer copyOf(ByteBuffer src) {

@@ -31,6 +31,8 @@ import java.util.concurrent.TimeUnit;
  * @date 2022/02/20
  */
 public class Krtw19PsuClient extends AbstractPsuClient {
+    private static final byte PAYLOAD_VALID_FLAG = 0x01;
+    private static final int OTP_FLAG_BYTE_LENGTH = 1;
     /**
      * OPRF used in RMPT
      */
@@ -150,7 +152,6 @@ public class Krtw19PsuClient extends AbstractPsuClient {
             union.addAll(handleBinColumn(binColumnIndex));
         }
         union.addAll(clientElementSet);
-        union.remove(botElementByteBuffer);
 
         logPhaseInfo(PtoState.PTO_END);
         return new PsuClientOutput(union, serverElementSize - difference);
@@ -169,7 +170,7 @@ public class Krtw19PsuClient extends AbstractPsuClient {
         gf2ePoly = Gf2ePolyFactory.createInstance(envType, fieldBitLength);
         int peqtByteLength = Krtw19PsuPtoDesc.getPeqtByteLength(binNum, maxBinSize);
         peqtHash = HashFactory.createInstance(envType, peqtByteLength);
-        encPrg = PrgFactory.createInstance(envType, elementByteLength);
+        encPrg = PrgFactory.createInstance(envType, elementByteLength + OTP_FLAG_BYTE_LENGTH);
         difference = 0;
     }
 
@@ -256,17 +257,19 @@ public class Krtw19PsuClient extends AbstractPsuClient {
         List<byte[]> encPayload = rpc.receive(encHeader).getPayload();
         MpcAbortPreconditions.checkArgument(encPayload.size() == binNum);
         ArrayList<byte[]> encArrayList = new ArrayList<byte[]>(encPayload);
-        // Y \cup Z
+        // Y \cup Z — validity flag is out-of-band from the element domain
         Set<ByteBuffer> binColumnUnion = new HashSet<ByteBuffer>(binNum);
+        int otpByteLength = elementByteLength + OTP_FLAG_BYTE_LENGTH;
         for (int binIndex = 0; binIndex < binNum; binIndex++) {
             if (choices[binIndex]) {
-                binColumnUnion.add(botElementByteBuffer);
-            } else {
-                // do not need CRHF since we call prg
-                byte[] message = encPrg.extendToBytes(cotReceiverOutput.getRb(binIndex));
-                BytesUtils.xori(message, encArrayList.get(binIndex));
-                binColumnUnion.add(ByteBuffer.wrap(message));
+                continue;
             }
+            byte[] message = encPrg.extendToBytes(cotReceiverOutput.getRb(binIndex));
+            BytesUtils.xori(message, encArrayList.get(binIndex));
+            if (message.length != otpByteLength || message[0] != PAYLOAD_VALID_FLAG) {
+                continue;
+            }
+            binColumnUnion.add(ByteBuffer.wrap(message, OTP_FLAG_BYTE_LENGTH, elementByteLength));
         }
         stopWatch.stop();
         long unionTime = stopWatch.getTime(TimeUnit.MILLISECONDS);

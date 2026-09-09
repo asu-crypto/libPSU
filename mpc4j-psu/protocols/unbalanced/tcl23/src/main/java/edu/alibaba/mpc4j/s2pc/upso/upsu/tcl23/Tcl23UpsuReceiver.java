@@ -383,22 +383,25 @@ public class Tcl23UpsuReceiver extends AbstractUpsuReceiver {
     private Set<ByteBuffer> handleEncPayload(List<byte[]> encPayload, boolean[] choiceArray,
                                              CotReceiverOutput cotReceiverOutput) {
         List<byte[]> encArrayList = new ArrayList<>(encPayload);
-        Prg encPrg = PrgFactory.createInstance(envType, elementByteLength);
+        int wireLen = elementByteLength + 1;
+        Prg encPrg = PrgFactory.createInstance(envType, wireLen);
         IntStream decIntStream = IntStream.range(0, params.getBinNum());
         decIntStream = parallel ? decIntStream.parallel() : decIntStream;
-        Set<ByteBuffer> union = decIntStream
-            .mapToObj(index -> {
-                if (choiceArray[index]) {
-                    return botElementByteBuffer;
-                } else {
-                    // do not need CRHF since we call prg
-                    byte[] message = encPrg.extendToBytes(cotReceiverOutput.getRb(index));
-                    BytesUtils.xori(message, encArrayList.get(index));
-                    return ByteBuffer.wrap(message);
-                }
-            })
-            .collect(Collectors.toSet());
-        union.remove(botElementByteBuffer);
+        Set<ByteBuffer> union = new HashSet<>();
+        decIntStream.forEach(index -> {
+            if (choiceArray[index]) {
+                return;
+            }
+            byte[] message = encPrg.extendToBytes(cotReceiverOutput.getRb(index));
+            BytesUtils.xori(message, encArrayList.get(index));
+            if (message.length != wireLen || message[0] != 1) {
+                return;
+            }
+            byte[] element = Arrays.copyOfRange(message, 1, wireLen);
+            synchronized (union) {
+                union.add(ByteBuffer.wrap(element));
+            }
+        });
         union.addAll(receiverElementList);
         return union;
     }

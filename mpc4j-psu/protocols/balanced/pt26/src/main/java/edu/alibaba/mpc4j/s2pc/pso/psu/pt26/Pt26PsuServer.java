@@ -142,7 +142,6 @@ public class Pt26PsuServer extends AbstractPsuTwoSidedServer {
 
         Set<ByteBuffer> union = new HashSet<>(serverElementSet);
         union.addAll(recovered);
-        union.remove(botElementByteBuffer);
         return new PsuTwoSidedOutput(union);
     }
 

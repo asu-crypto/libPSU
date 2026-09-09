@@ -173,20 +173,21 @@ public class Css25PsuServer extends AbstractPsuServer {
         // Final OT slot j corresponds to permuted position j; original cuckoo bin is pi[j]
         // (same convention as PermutationNetworkUtils / ROSN / CnP permuteByPi).
         CotSenderOutput cotSenderOutput = coreCotSender.send(beta);
-        byte[] payloadBot = Css25CnPUtils.botElementBytes(elementByteLength);
-        Prg encPrg = PrgFactory.createInstance(envType, elementByteLength);
+        Prg encPrg = PrgFactory.createInstance(envType, Css25CnPUtils.otpPayloadByteLength(elementByteLength));
         List<byte[]> encPayload = new ArrayList<>(beta);
         for (int j = 0; j < beta; j++) {
             int origBin = pi[j];
             ByteBuffer elem = cuckooTable.get(origBin);
             byte[] ciphertext = encPrg.extendToBytes(cotSenderOutput.getR0(j));
+            byte[] plaintext;
             if (elem == null) {
-                BytesUtils.xori(ciphertext, payloadBot);
+                plaintext = Css25CnPUtils.encodeInvalidPayload(elementByteLength);
             } else {
                 byte[] elementBytes = maskedToServerElement.get(elem);
                 MpcAbortPreconditions.checkArgument(elementBytes != null, "ASIACCS_CSSW25 missing original sender element");
-                BytesUtils.xori(ciphertext, elementBytes);
+                plaintext = Css25CnPUtils.encodeValidPayload(elementBytes);
             }
+            BytesUtils.xori(ciphertext, plaintext);
             encPayload.add(ciphertext);
         }
         DataPacketHeader encHeader = new DataPacketHeader(

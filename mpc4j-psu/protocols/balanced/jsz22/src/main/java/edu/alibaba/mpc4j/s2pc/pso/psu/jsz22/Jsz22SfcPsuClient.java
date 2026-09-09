@@ -223,7 +223,6 @@ public class Jsz22SfcPsuClient extends AbstractOoPsuClient {
             union.add(ByteBuffer.wrap(message));
         }
         union.addAll(clientElementSet);
-        union.remove(botElementByteBuffer);
         stopWatch.stop();
         long unionTime = stopWatch.getTime(TimeUnit.MILLISECONDS);
         stopWatch.reset();

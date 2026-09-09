@@ -128,13 +128,12 @@ public class Tbz25PsuServer extends AbstractPsuServer {
     private byte[][] buildPermutedPayload(CuckooHashBin<ByteBuffer> cuckooHashBin, int binNum, int[] pi) {
         int otpByteLength = otpPayloadByteLength();
         byte[][] slotPayload = new byte[binNum][otpByteLength];
-        byte[] botBytes = botElementByteBuffer.array();
         for (int binIndex = 0; binIndex < binNum; binIndex++) {
             HashBinEntry<ByteBuffer> entry = cuckooHashBin.getHashBinEntry(binIndex);
             byte[] payload = slotPayload[binIndex];
             if (entry.getHashIndex() == HashBinEntry.DUMMY_ITEM_HASH_INDEX) {
                 payload[0] = PAYLOAD_INVALID_FLAG;
-                System.arraycopy(botBytes, 0, payload, OTP_FLAG_BYTE_LENGTH, elementByteLength);
+                // remaining bytes stay zero; do not stuff a reserved user-domain sentinel
             } else {
                 payload[0] = PAYLOAD_VALID_FLAG;
                 System.arraycopy(entry.getItemByteArray(), 0, payload, OTP_FLAG_BYTE_LENGTH, elementByteLength);

@@ -154,7 +154,6 @@ public class Pt26PsuClient extends AbstractPsuTwoSidedClient {
 
         Set<ByteBuffer> union = new HashSet<>(clientElementSet);
         union.addAll(recovered);
-        union.remove(botElementByteBuffer);
         stopWatch.stop();
         logStepInfo(PtoState.PTO_STEP, 1, 1, stopWatch.getTime(TimeUnit.MILLISECONDS));
         stopWatch.reset();

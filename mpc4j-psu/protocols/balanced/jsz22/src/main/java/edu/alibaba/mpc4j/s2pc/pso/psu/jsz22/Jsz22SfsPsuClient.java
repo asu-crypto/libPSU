@@ -253,7 +253,7 @@ public class Jsz22SfsPsuClient extends AbstractOoPsuClient {
         for (int i = 0; i < zsPayload.size(); i++) {
             zsArray[i] = zsPayload.get(i);
         }
-        // If z_i  ̸= ⊥ and z_i ⊕ s^2_i  ̸= d, R sets Z = Z ∪ {zi ⊕ s^2_i}
+        // length 0 = intersection (⊥); length != elementByteLength = padding; else recover element
         Set<ByteBuffer> union = new HashSet<ByteBuffer>(binNum + clientElementSize);
         int psica = 0;
         for (int binIndex = 0; binIndex < binNum; binIndex++) {
@@ -262,11 +262,13 @@ public class Jsz22SfsPsuClient extends AbstractOoPsuClient {
                 psica++;
                 continue;
             }
+            if (zi.length != elementByteLength) {
+                continue;
+            }
             byte[] s2i = s2Array[binIndex];
             union.add(ByteBuffer.wrap(BytesUtils.xor(zi, s2i)));
         }
         union.addAll(clientElementSet);
-        union.remove(botElementByteBuffer);
         stopWatch.stop();
         long unionTime = stopWatch.getTime(TimeUnit.MILLISECONDS);
         stopWatch.reset();

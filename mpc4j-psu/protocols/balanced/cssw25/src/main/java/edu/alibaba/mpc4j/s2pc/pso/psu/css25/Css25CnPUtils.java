@@ -12,7 +12,6 @@ import edu.alibaba.mpc4j.s2pc.aby.pcg.osn.rosn.RosnReceiverOutput;
 import edu.alibaba.mpc4j.s2pc.aby.pcg.osn.rosn.RosnSenderOutput;
 import edu.alibaba.mpc4j.s2pc.pso.psu.css25.Css25PsuPtoDesc.PtoStep;
 
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -102,12 +101,28 @@ class Css25CnPUtils {
     }
 
     /**
-     * ⊥ for empty cuckoo bins in the final OT (length matches the PSU payload element).
+     * Leading flag byte in final-OT payloads ({@code 0x01} = real cuckoo item, {@code 0x00} = empty bin).
+     * Padding is out-of-band from the user element domain (all-{@code 0xFF} is a valid element).
      */
-    static byte[] botElementBytes(int byteLength) {
-        byte[] bot = new byte[byteLength];
-        Arrays.fill(bot, (byte) 0xFF);
-        return bot;
+    static final byte PAYLOAD_VALID_FLAG = 0x01;
+    static final byte PAYLOAD_INVALID_FLAG = 0x00;
+    static final int OTP_FLAG_BYTE_LENGTH = 1;
+
+    static int otpPayloadByteLength(int elementByteLength) {
+        return elementByteLength + OTP_FLAG_BYTE_LENGTH;
+    }
+
+    static byte[] encodeValidPayload(byte[] element) {
+        byte[] payload = new byte[otpPayloadByteLength(element.length)];
+        payload[0] = PAYLOAD_VALID_FLAG;
+        System.arraycopy(element, 0, payload, OTP_FLAG_BYTE_LENGTH, element.length);
+        return payload;
+    }
+
+    static byte[] encodeInvalidPayload(int elementByteLength) {
+        byte[] payload = new byte[otpPayloadByteLength(elementByteLength)];
+        payload[0] = PAYLOAD_INVALID_FLAG;
+        return payload;
     }
 
     private Css25CnPUtils() {

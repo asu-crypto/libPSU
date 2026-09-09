@@ -24,7 +24,6 @@ import edu.alibaba.mpc4j.s2pc.pso.psu.PsuClientOutput;
 import edu.alibaba.mpc4j.s2pc.pso.psu.css25.Css25PsuPtoDesc.PtoStep;
 
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -172,8 +171,8 @@ public class Css25PsuClient extends AbstractPsuClient {
         );
         List<byte[]> encPayload = rpc.receive(encHeader).getPayload();
         MpcAbortPreconditions.checkArgument(encPayload.size() == beta);
-        byte[] payloadBot = Css25CnPUtils.botElementBytes(elementByteLength);
-        Prg encPrg = PrgFactory.createInstance(envType, elementByteLength);
+        int otpByteLength = Css25CnPUtils.otpPayloadByteLength(elementByteLength);
+        Prg encPrg = PrgFactory.createInstance(envType, otpByteLength);
         Set<ByteBuffer> union = new HashSet<ByteBuffer>(beta);
         for (int j = 0; j < beta; j++) {
             if (zTilde[j]) {
@@ -181,12 +180,13 @@ public class Css25PsuClient extends AbstractPsuClient {
             }
             byte[] message = encPrg.extendToBytes(cotReceiverOutput.getRb(j));
             BytesUtils.xori(message, encPayload.get(j));
-            if (!Arrays.equals(message, payloadBot)) {
-                union.add(ByteBuffer.wrap(message));
+            if (message.length == otpByteLength && message[0] == Css25CnPUtils.PAYLOAD_VALID_FLAG) {
+                union.add(ByteBuffer.wrap(
+                    message, Css25CnPUtils.OTP_FLAG_BYTE_LENGTH, elementByteLength
+                ));
             }
         }
         union.addAll(clientElementArrayList);
-        union.remove(botElementByteBuffer);
         // PSI-CA is |X ∩ Y|; circuit bins (z̃) can exceed that when β > n at small set sizes.
         int psica = clientElementSize + serverElementSize - union.size();
         long finalOtBytes = rpc.getSendByteLength() - base;
