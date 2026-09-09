@@ -1,5 +1,6 @@
 package edu.alibaba.mpc4j.s2pc.upso.upsu.tcl23;
 
+import com.google.common.base.Preconditions;
 import edu.alibaba.mpc4j.common.rpc.*;
 import edu.alibaba.mpc4j.common.rpc.utils.DataPacket;
 import edu.alibaba.mpc4j.common.rpc.utils.DataPacketHeader;
@@ -99,7 +100,8 @@ public class Tcl23UpsuSender extends AbstractUpsuSender {
 
         stopWatch.start();
         params = Tcl23UpsuParams.RECEIVER_16M_SENDER_MAX_1024;
-        assert maxSenderElementSize <= params.maxSenderElementSize() : "the sender element size is too large";
+        Preconditions.checkArgument(maxSenderElementSize <= params.maxSenderElementSize(),
+            "the sender element size is too large: %s > %s", maxSenderElementSize, params.maxSenderElementSize());
         // init OPRF
         sqOprfReceiver.init(maxSenderElementSize);
         // create zp64 poly
@@ -283,7 +285,8 @@ public class Tcl23UpsuSender extends AbstractUpsuSender {
             envType, params.getCuckooHashBinType(), senderElementSize, params.getBinNum(), hashKeys
         );
         cuckooHashBin.insertItems(new ArrayList<>(oprfItemMap.keySet()));
-        assert cuckooHashBin.itemNumInStash() == 0;
+        Preconditions.checkArgument(cuckooHashBin.itemNumInStash() == 0,
+            "TCL23 cuckoo stash must be empty; got %s items", cuckooHashBin.itemNumInStash());
         cuckooHashBin.insertPaddingItems(botElementByteBuffer);
         return cuckooHashBin;
     }

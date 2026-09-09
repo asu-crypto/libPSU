@@ -115,15 +115,15 @@ public class Tcl23UpsuParams implements UpsuParams {
     public static Tcl23UpsuParams create(CuckooHashBinType cuckooHashBinType, int binNum, int maxPartitionSizePerBin,
                                          int itemEncodedSlotSize, int psLowDegree, int[] queryPowers,
                                          long plainModulus, int polyModulusDegree, int[] coeffModulusBits, int maxSenderSize) {
-        Tcl23UpsuParams tcl23UpsuParams = new Tcl23UpsuParams(
+        Tcl23UpsuParamsChecker.validateRaw(
             cuckooHashBinType, binNum, maxPartitionSizePerBin, itemEncodedSlotSize,
             psLowDegree, queryPowers, plainModulus, polyModulusDegree, coeffModulusBits, maxSenderSize
         );
-        if (Tcl23UpsuParamsChecker.checkValid(tcl23UpsuParams)) {
-            return tcl23UpsuParams;
-        } else {
-            throw new IllegalArgumentException("Invalid UPSU parameters: " + tcl23UpsuParams);
-        }
+        return new Tcl23UpsuParams(
+            cuckooHashBinType, binNum, maxPartitionSizePerBin, itemEncodedSlotSize,
+            psLowDegree, Arrays.copyOf(queryPowers, queryPowers.length), plainModulus, polyModulusDegree,
+            Arrays.copyOf(coeffModulusBits, coeffModulusBits.length), maxSenderSize
+        );
     }
 
     /**
@@ -197,7 +197,7 @@ public class Tcl23UpsuParams implements UpsuParams {
      * @return query powers.
      */
     public int[] getQueryPowers() {
-        return queryPowers;
+        return Arrays.copyOf(queryPowers, queryPowers.length);
     }
 
     /**
@@ -216,6 +216,13 @@ public class Tcl23UpsuParams implements UpsuParams {
      */
     public int getPolyModulusDegree() {
         return polyModulusDegree;
+    }
+
+    /**
+     * return SEAL coefficient modulus bit lengths (defensive copy).
+     */
+    public int[] getCoeffModulusBits() {
+        return Arrays.copyOf(coeffModulusBits, coeffModulusBits.length);
     }
 
     /**

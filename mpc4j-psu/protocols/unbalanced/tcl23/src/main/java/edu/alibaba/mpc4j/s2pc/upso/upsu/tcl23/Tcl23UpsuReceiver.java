@@ -1,5 +1,6 @@
 package edu.alibaba.mpc4j.s2pc.upso.upsu.tcl23;
 
+import com.google.common.base.Preconditions;
 import edu.alibaba.mpc4j.common.rpc.*;
 import edu.alibaba.mpc4j.common.rpc.utils.DataPacket;
 import edu.alibaba.mpc4j.common.rpc.utils.DataPacketHeader;
@@ -107,7 +108,8 @@ public class Tcl23UpsuReceiver extends AbstractUpsuReceiver {
 
         stopWatch.start();
         params = Tcl23UpsuParams.RECEIVER_16M_SENDER_MAX_1024;
-        assert maxSenderElementSize <= params.maxSenderElementSize() : "the sender element size is too large";
+        Preconditions.checkArgument(maxSenderElementSize <= params.maxSenderElementSize(),
+            "the sender element size is too large: %s > %s", maxSenderElementSize, params.maxSenderElementSize());
         // init OPRF
         SqOprfKey sqOprfKey = sqOprfSender.keyGen();
         sqOprfSender.init(maxSenderElementSize, sqOprfKey);
@@ -338,7 +340,7 @@ public class Tcl23UpsuReceiver extends AbstractUpsuReceiver {
         for (int i = 0; i < params.getCiphertextNum(); i++) {
             for (int j = 0; j < alpha; j++) {
                 long[] r = IntStream.range(0, params.getPolyModulusDegree())
-                    .mapToLong(l -> Math.abs(secureRandom.nextLong()) % params.getPlainModulus())
+                    .mapToLong(l -> UpsoUtils.uniformLong(secureRandom, params.getPlainModulus()))
                     .toArray();
                 coeffList.add(r);
             }
