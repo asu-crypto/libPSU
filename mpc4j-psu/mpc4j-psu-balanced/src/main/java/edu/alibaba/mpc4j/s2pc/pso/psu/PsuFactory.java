@@ -76,9 +76,13 @@ public class PsuFactory implements PtoFactory {
                 return new Css25PsuServer(serverRpc, clientParty, (Css25PsuConfig) config);
             case EUROCRYPT_PisTri26:
                 throw new IllegalArgumentException(
-                    "EUROCRYPT_PisTri26 is two-sided (both parties learn the union); "
-                        + "use PsuFactory.createTwoSidedServer. The peel transcript reveals "
-                        + "recovered elements to the server — do not claim one-sided security."
+                    "EUROCRYPT_PisTri26 declares output model TWO_SIDED; "
+                        + "use PsuFactory.createTwoSidedServer / ProtocolRegistry.createTwoSidedPsuServer."
+                );
+            case EUROCRYPT_PuGaoTri26:
+                throw new IllegalArgumentException(
+                    "EUROCRYPT_PuGaoTri26 declares output model MALICIOUS_TWO_SIDED; "
+                        + "use PsuFactory.createTwoSidedServer / ProtocolRegistry.createTwoSidedPsuServer."
                 );
             case ACISP_DavCid17:
                 return new Dc17PsuServer(serverRpc, clientParty, (Dc17PsuConfig) config);
@@ -146,9 +150,13 @@ public class PsuFactory implements PtoFactory {
                 return new Css25PsuClient(clientRpc, serverParty, (Css25PsuConfig) config);
             case EUROCRYPT_PisTri26:
                 throw new IllegalArgumentException(
-                    "EUROCRYPT_PisTri26 is two-sided (both parties learn the union); "
-                        + "use PsuFactory.createTwoSidedClient. The peel transcript reveals "
-                        + "recovered elements to the server — do not claim one-sided security."
+                    "EUROCRYPT_PisTri26 declares output model TWO_SIDED; "
+                        + "use PsuFactory.createTwoSidedClient / ProtocolRegistry.createTwoSidedPsuClient."
+                );
+            case EUROCRYPT_PuGaoTri26:
+                throw new IllegalArgumentException(
+                    "EUROCRYPT_PuGaoTri26 declares output model MALICIOUS_TWO_SIDED; "
+                        + "use PsuFactory.createTwoSidedClient / ProtocolRegistry.createTwoSidedPsuClient."
                 );
             case ACISP_DavCid17:
                 return new Dc17PsuClient(clientRpc, serverParty, (Dc17PsuConfig) config);

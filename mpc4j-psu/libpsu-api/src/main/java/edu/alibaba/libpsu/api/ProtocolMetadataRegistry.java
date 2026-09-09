@@ -138,7 +138,9 @@ public final class ProtocolMetadataRegistry {
         put(list, psu(ProtocolNames.ASIACCS_CSSW25, "CSS25", 2025, ProtocolFamily.OTHER, "mpc4j-psu-protocol-css25")
             .readiness(ProtocolReadiness.EXPERIMENTAL)
             .build());
-        put(list, psu(ProtocolNames.EUROCRYPT_PIS_TRI26, "PT26", 2026, ProtocolFamily.IBLT, "mpc4j-psu-protocol-pt26").build());
+        put(list, psu(ProtocolNames.EUROCRYPT_PIS_TRI26, "PT26", 2026, ProtocolFamily.IBLT, "mpc4j-psu-protocol-pt26")
+            .outputModel(OutputModel.TWO_SIDED)
+            .build());
         put(list, psu(ProtocolNames.ACISP_DAV_CID17, "DC17", 2017, ProtocolFamily.BLOOM_AHE, "mpc4j-psu-protocol-dc17").build());
         put(list, psu(ProtocolNames.ACNS_FRIKKEN07, "F07", 2007, ProtocolFamily.POLYNOMIAL_AHE, "mpc4j-psu-protocol-f07").build());
         put(list, psu(ProtocolNames.C_KIS_SON05, "KS05", 2005, ProtocolFamily.POLYNOMIAL_AHE, "mpc4j-psu-protocol-ks05").build());

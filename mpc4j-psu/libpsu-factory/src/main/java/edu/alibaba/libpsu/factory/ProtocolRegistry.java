@@ -1,12 +1,15 @@
 package edu.alibaba.libpsu.factory;
 
+import edu.alibaba.libpsu.api.OutputModel;
 import edu.alibaba.libpsu.api.ProtocolFunctionality;
 import edu.alibaba.libpsu.api.ProtocolInfo;
 import edu.alibaba.libpsu.api.ProtocolNames;
 import edu.alibaba.libpsu.api.ProtocolMetadataRegistry;
+import edu.alibaba.libpsu.api.PsuProtocolCapabilities;
 import edu.alibaba.libpsu.spi.ProtocolDescriptor;
 import edu.alibaba.mpc4j.common.rpc.Party;
 import edu.alibaba.mpc4j.common.rpc.Rpc;
+import edu.alibaba.mpc4j.common.rpc.desc.SecurityModel;
 import edu.alibaba.mpc4j.common.rpc.pto.MultiPartyPtoConfig;
 import edu.alibaba.mpc4j.s2pc.pso.PsuPaperFidelity;
 import edu.alibaba.mpc4j.s2pc.pso.main.psu.PsuConfigUtils;
@@ -14,7 +17,10 @@ import edu.alibaba.mpc4j.s2pc.pso.psu.PsuClient;
 import edu.alibaba.mpc4j.s2pc.pso.psu.PsuConfig;
 import edu.alibaba.mpc4j.s2pc.pso.psu.PsuFactory;
 import edu.alibaba.mpc4j.s2pc.pso.psu.PsuServer;
+import edu.alibaba.mpc4j.s2pc.pso.psu.PsuTwoSidedClient;
+import edu.alibaba.mpc4j.s2pc.pso.psu.PsuTwoSidedServer;
 import edu.alibaba.mpc4j.s2pc.pso.psu.PsuType;
+import edu.alibaba.mpc4j.s2pc.pso.psu.pgt26.twosided.Pgt26_2mPsuConfig;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -42,7 +48,7 @@ public final class ProtocolRegistry {
         String trimmed = protocolName.trim();
         if ("PGT26_1M".equals(trimmed) || "PGT26-1M".equals(trimmed)) {
             throw new IllegalArgumentException(
-                "PGT26_1M denotes internal one-sided PGT26 experimental code and has no public "
+                "PGT26_1M denotes unsupported/removed one-sided PGT26 code and has no public "
                     + "factory API. Use EUROCRYPT:PuGaoTri26 / PGT26_2M for public two-sided PGT26."
             );
         }
@@ -81,16 +87,102 @@ public final class ProtocolRegistry {
         return (PsuConfig) config;
     }
 
+    /**
+     * Capabilities for a constructed config, resolved from metadata (not hard-coded enum lists).
+     */
+    public static PsuProtocolCapabilities capabilitiesOf(PsuConfig config) {
+        Objects.requireNonNull(config, "config");
+        String protocolId = config.getPtoType().protocolId();
+        return PsuProtocolCapabilities.findPsu(protocolId)
+            .orElseThrow(() -> new IllegalStateException("Missing PSU metadata for " + protocolId));
+    }
+
+    public static boolean isTwoSided(PsuConfig config) {
+        return capabilitiesOf(config).isTwoSided();
+    }
+
+    /**
+     * HN12 declares {@link OutputModel#TWO_SIDED} knowledge but still exposes legacy one-sided
+     * {@link PsuServer}/{@link PsuClient} parties until the dedicated two-sided wrappers ship.
+     * PT26 and PGT26 always use the two-sided public factory.
+     */
+    public static boolean usesTwoSidedPublicFactory(PsuConfig config) {
+        PsuProtocolCapabilities caps = capabilitiesOf(config);
+        if (!caps.isTwoSided()) {
+            return false;
+        }
+        // Experimental HN12 still uses one-sided party types that cryptographically learn the union.
+        return config.getPtoType() != PsuType.JOC_HazNis12;
+    }
+
     public static PsuServer createPsuServer(Rpc serverRpc, Party clientParty, PsuConfig config) {
+        requireOneSidedPublicFactory(config);
         return PsuFactory.createServer(serverRpc, clientParty, config);
     }
 
     public static PsuClient createPsuClient(Rpc clientRpc, Party serverParty, PsuConfig config) {
+        requireOneSidedPublicFactory(config);
         return PsuFactory.createClient(clientRpc, serverParty, config);
+    }
+
+    public static PsuTwoSidedServer createTwoSidedPsuServer(
+        Rpc serverRpc, Party clientParty, PsuConfig config
+    ) {
+        requireTwoSidedPublicFactory(config);
+        return PsuFactory.createTwoSidedServer(serverRpc, clientParty, config);
+    }
+
+    public static PsuTwoSidedClient createTwoSidedPsuClient(
+        Rpc clientRpc, Party serverParty, PsuConfig config
+    ) {
+        requireTwoSidedPublicFactory(config);
+        return PsuFactory.createTwoSidedClient(clientRpc, serverParty, config);
+    }
+
+    /**
+     * Default two-sided config for the given security model.
+     * Malicious → PGT26-2M. Semi-honest two-sided → PT26.
+     */
+    public static PsuConfig createDefaultTwoSidedConfig(SecurityModel securityModel) {
+        Objects.requireNonNull(securityModel, "securityModel");
+        switch (securityModel) {
+            case MALICIOUS:
+                return new Pgt26_2mPsuConfig.Builder().build();
+            case SEMI_HONEST:
+                return new edu.alibaba.mpc4j.s2pc.pso.psu.pt26.Pt26PsuConfig.Builder().build();
+            default:
+                throw new IllegalArgumentException(
+                    "No default two-sided PSU config for " + securityModel
+                );
+        }
     }
 
     public static boolean isKnownBenchmarkProtocol(String name) {
         return ProtocolMetadataRegistry.isKnownBenchmarkName(name);
+    }
+
+    private static void requireOneSidedPublicFactory(PsuConfig config) {
+        if (usesTwoSidedPublicFactory(config)) {
+            PsuProtocolCapabilities caps = capabilitiesOf(config);
+            throw new IllegalArgumentException(
+                "Protocol " + caps.protocolId()
+                    + " declares output model " + caps.outputModel()
+                    + "; use ProtocolRegistry.createTwoSidedPsuServer/createTwoSidedPsuClient "
+                    + "(or PsuFactory.createTwoSidedServer/createTwoSidedClient)."
+            );
+        }
+    }
+
+    private static void requireTwoSidedPublicFactory(PsuConfig config) {
+        if (!usesTwoSidedPublicFactory(config)) {
+            PsuProtocolCapabilities caps = capabilitiesOf(config);
+            throw new IllegalArgumentException(
+                "Protocol " + caps.protocolId()
+                    + " declares output model " + caps.outputModel()
+                    + "; use ProtocolRegistry.createPsuServer/createPsuClient "
+                    + "(or PsuFactory.createServer/createClient)."
+            );
+        }
     }
 
     private static Map<String, ProtocolDescriptor> createPsuDescriptors() {

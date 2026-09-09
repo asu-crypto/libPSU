@@ -45,4 +45,18 @@ public class ProtocolMetadataRegistryTest {
         Assert.assertEquals(LibPsuSecurityModel.SEMI_HONEST, hn12.getSecurityModel());
         Assert.assertEquals(OutputModel.TWO_SIDED, hn12.getOutputModel());
     }
+
+    @Test
+    public void pt26IsTwoSided() {
+        ProtocolInfo pt26 = ProtocolMetadataRegistry.findByName("EUROCRYPT:PisTri26").orElseThrow();
+        Assert.assertEquals(OutputModel.TWO_SIDED, pt26.getOutputModel());
+        Assert.assertTrue(OutputModel.isTwoSided(pt26.getOutputModel()));
+    }
+
+    @Test
+    public void pgt26IsMaliciousTwoSided() {
+        ProtocolInfo pgt26 = ProtocolMetadataRegistry.findByName("EUROCRYPT:PuGaoTri26").orElseThrow();
+        Assert.assertEquals(OutputModel.MALICIOUS_TWO_SIDED, pgt26.getOutputModel());
+        Assert.assertTrue(OutputModel.isTwoSided(pgt26.getOutputModel()));
+    }
 }
