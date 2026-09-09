@@ -3,7 +3,9 @@ package edu.alibaba.mpc4j.s2pc.pso.psu.pt26;
 import edu.alibaba.mpc4j.common.rpc.*;
 import edu.alibaba.mpc4j.common.rpc.utils.DataPacket;
 import edu.alibaba.mpc4j.common.rpc.utils.DataPacketHeader;
+import edu.alibaba.mpc4j.common.tool.CommonConstants;
 import edu.alibaba.mpc4j.common.tool.utils.BlockUtils;
+import edu.alibaba.mpc4j.common.tool.utils.BytesUtils;
 import edu.alibaba.mpc4j.s2pc.opf.oprf.MpOprfReceiver;
 import edu.alibaba.mpc4j.s2pc.opf.oprf.MpOprfReceiverOutput;
 import edu.alibaba.mpc4j.s2pc.opf.oprf.OprfFactory;
@@ -52,9 +54,20 @@ public class Pt26PsuClient extends AbstractPsuTwoSidedClient {
             otherParty().getPartyId(), ownParty().getPartyId()
         );
         List<byte[]> payload = rpc.receive(header).getPayload();
-        hashKeys = new byte[payload.size()][];
-        for (int i = 0; i < payload.size(); i++) {
-            hashKeys[i] = payload.get(i);
+        MpcAbortPreconditions.checkArgument(
+            payload.size() == Pt26IbltParams.DEFAULT_K,
+            "PT26 hash-key payload size must be " + Pt26IbltParams.DEFAULT_K + ", got " + payload.size()
+        );
+        hashKeys = new byte[Pt26IbltParams.DEFAULT_K][];
+        for (int i = 0; i < Pt26IbltParams.DEFAULT_K; i++) {
+            byte[] key = payload.get(i);
+            MpcAbortPreconditions.checkArgument(key != null, "PT26 hash key " + i + " is null");
+            MpcAbortPreconditions.checkArgument(
+                key.length == CommonConstants.BLOCK_BYTE_LENGTH,
+                "PT26 hash key " + i + " length must be " + CommonConstants.BLOCK_BYTE_LENGTH
+                    + ", got " + key.length
+            );
+            hashKeys[i] = BytesUtils.clone(key);
         }
         byte[] delta = BlockUtils.randomBlock(secureRandom);
         ot12Sender.init(delta);

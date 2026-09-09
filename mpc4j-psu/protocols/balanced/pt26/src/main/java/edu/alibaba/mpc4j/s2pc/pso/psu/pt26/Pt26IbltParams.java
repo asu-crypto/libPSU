@@ -4,6 +4,8 @@ import edu.alibaba.mpc4j.common.tool.MathPreconditions;
 
 import java.io.Serializable;
 import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * Public IBLT parameters {@code prm = (M, k, ℓ)} for EUROCRYPT_PisTri26 (§3).
@@ -69,12 +71,24 @@ public class Pt26IbltParams implements Serializable {
         MathPreconditions.checkGreater("k", k, 1);
         MathPreconditions.checkGreater("subtableSize", subtableSize, 1);
         MathPreconditions.checkGreater("zmByteLength", zmByteLength, 1);
+        Objects.requireNonNull(modulus, "modulus");
+        Objects.requireNonNull(hashKeys, "hashKeys");
+        MathPreconditions.checkEqual("hashKeys.length", "k", hashKeys.length, k);
         this.k = k;
         this.subtableSize = subtableSize;
         this.modulus = modulus;
         this.zmByteLength = zmByteLength;
-        this.hashKeys = hashKeys;
-        MathPreconditions.checkEqual("hashKeys.length", "k", hashKeys.length, k);
+        this.hashKeys = new byte[k][];
+        for (int i = 0; i < k; i++) {
+            Objects.requireNonNull(hashKeys[i], "hashKeys[" + i + "]");
+            MathPreconditions.checkEqual(
+                "hashKeys[" + i + "].length",
+                "BLOCK_BYTE_LENGTH",
+                hashKeys[i].length,
+                edu.alibaba.mpc4j.common.tool.CommonConstants.BLOCK_BYTE_LENGTH
+            );
+            this.hashKeys[i] = Arrays.copyOf(hashKeys[i], hashKeys[i].length);
+        }
         MathPreconditions.checkEqual("modulus", "2^(8·zmByteLength)",
             modulus, Pt26Zm.modulusFor(zmByteLength));
     }
@@ -86,8 +100,14 @@ public class Pt26IbltParams implements Serializable {
     public static Pt26IbltParams createDefault(
         int maxServerSize, int maxClientSize, int elementByteLength, byte[][] hashKeys
     ) {
+        MathPreconditions.checkGreater("maxServerSize", maxServerSize, 0);
+        MathPreconditions.checkGreater("maxClientSize", maxClientSize, 0);
+        MathPreconditions.checkGreater("elementByteLength", elementByteLength, 0);
+        Objects.requireNonNull(hashKeys, "hashKeys");
         int k = DEFAULT_K;
-        int tau = maxServerSize + maxClientSize;
+        long tauLong = (long) maxServerSize + (long) maxClientSize;
+        MathPreconditions.checkLessOrEqual("tau", tauLong, Integer.MAX_VALUE);
+        int tau = (int) tauLong;
         double expansion = chooseExpansionForTau(tau);
         int subtableSize = Math.max(8, (int) Math.ceil(tau * expansion / k));
         int zmByteLength = elementByteLength + 1;
@@ -112,7 +132,7 @@ public class Pt26IbltParams implements Serializable {
     }
 
     public byte[] getHashKey(int hashIndex) {
-        return hashKeys[hashIndex];
+        return Arrays.copyOf(hashKeys[hashIndex], hashKeys[hashIndex].length);
     }
 
     public int totalBins() {
