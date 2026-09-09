@@ -217,6 +217,23 @@ run_psu_fair_benchmarks() {
     collect_fair_confs "${UPSU_CONF_ROOT}"
     collect_fair_confs "${UPSU_FAIR_CONF_ROOT}"
   fi
+
+  # Deduplicate by canonical path (UPSU roots often resolve to the same directory).
+  if [[ "${#CONF_FILES[@]}" -gt 0 ]]; then
+    declare -A _seen_fair_confs=()
+    local _deduped=()
+    local _conf _canon
+    for _conf in "${CONF_FILES[@]}"; do
+      _canon="$(realpath "${_conf}" 2>/dev/null || printf '%s' "${_conf}")"
+      if [[ -n "${_seen_fair_confs[${_canon}]+x}" ]]; then
+        continue
+      fi
+      _seen_fair_confs["${_canon}"]=1
+      _deduped+=("${_conf}")
+    done
+    CONF_FILES=("${_deduped[@]+"${_deduped[@]}"}")
+  fi
+
   if [[ -z "${PSU_FAIR_ONLY_CONF_BASENAME:-}" && "${PSU_FAIR_INCLUDE_PSI:-0}" == "1" ]]; then
     local PSI_CONF_ROOT="${PSU_FAIR_PSI_CONF_DIR:-$(psu_bench_resources)/psi}"
     collect_fair_confs "${PSI_CONF_ROOT}"

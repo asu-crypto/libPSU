@@ -133,5 +133,6 @@ jobs:
         run: |
           python3 -m unittest discover -s scripts/libpsu/tests -v
           find scripts tools -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n
+          bash scripts/libpsu/tests/test_fair_bench_conf_dedupe.sh
           bash tools/secure-join-altmod-kat/verify.sh
           git diff --check
