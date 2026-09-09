@@ -42,10 +42,6 @@ public abstract class AbstractPsuServer extends AbstractTwoPartyPto implements P
      * 元素字节长度
      */
     protected int elementByteLength;
-    /**
-     * 特殊空元素字节缓存区
-     */
-    protected ByteBuffer botElementByteBuffer;
 
     protected AbstractPsuServer(PtoDesc ptoDesc, Rpc serverRpc, Party clientParty, PsuConfig config) {
         super(ptoDesc, serverRpc, clientParty, config);
@@ -63,8 +59,6 @@ public abstract class AbstractPsuServer extends AbstractTwoPartyPto implements P
         checkInitialized();
         SetElementUtils.validateProtocolElementByteLength(elementByteLength);
         this.elementByteLength = elementByteLength;
-        // Temporary filler for hash-bin insertPaddingItems(T); padding is detected via DUMMY index.
-        botElementByteBuffer = SetElementUtils.createBotElement(elementByteLength);
         serverElementArrayList = SetElementUtils.normalizeProtocolElements(
             serverElementSet, elementByteLength, "server element"
         );

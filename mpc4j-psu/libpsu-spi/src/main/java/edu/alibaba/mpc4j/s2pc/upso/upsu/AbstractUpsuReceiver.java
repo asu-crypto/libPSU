@@ -35,10 +35,6 @@ public abstract class AbstractUpsuReceiver extends AbstractTwoPartyPto implement
      */
     protected int receiverElementSize;
     /**
-     * bot element bytebuffer
-     */
-    protected ByteBuffer botElementByteBuffer;
-    /**
      * element byte length
      */
     protected int elementByteLength;
@@ -51,8 +47,6 @@ public abstract class AbstractUpsuReceiver extends AbstractTwoPartyPto implement
         MathPreconditions.checkPositive("max sender element size", maxSenderElementSize);
         this.maxSenderElementSize = maxSenderElementSize;
         SetElementUtils.validateProtocolElementByteLength(elementByteLength);
-        // Temporary filler for hash-bin insertPaddingItems(T); padding is detected via DUMMY index.
-        this.botElementByteBuffer = SetElementUtils.createBotElement(elementByteLength);
         this.receiverElementList = SetElementUtils.normalizeProtocolElements(
             receiverElementSet, elementByteLength, "receiver element"
         );
