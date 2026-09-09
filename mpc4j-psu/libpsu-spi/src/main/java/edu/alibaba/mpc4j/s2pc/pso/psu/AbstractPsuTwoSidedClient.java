@@ -39,9 +39,10 @@ public abstract class AbstractPsuTwoSidedClient extends AbstractTwoPartyPto impl
         checkInitialized();
         SetElementUtils.validateProtocolElementByteLength(elementByteLength);
         this.elementByteLength = elementByteLength;
+        // Temporary filler for hash-bin insertPaddingItems(T); padding is detected via DUMMY index.
         botElementByteBuffer = SetElementUtils.createBotElement(elementByteLength);
         clientElementArrayList = SetElementUtils.normalizeProtocolElements(
-            clientElementSet, elementByteLength, botElementByteBuffer, "client element"
+            clientElementSet, elementByteLength, "client element"
         );
         clientElementSize = clientElementArrayList.size();
         SetElementUtils.checkElementSizeInRange("clientElementSize", clientElementSize, maxClientElementSize, 2);

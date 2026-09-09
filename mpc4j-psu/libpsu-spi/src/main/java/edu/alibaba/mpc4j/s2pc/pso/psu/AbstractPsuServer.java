@@ -63,9 +63,10 @@ public abstract class AbstractPsuServer extends AbstractTwoPartyPto implements P
         checkInitialized();
         SetElementUtils.validateProtocolElementByteLength(elementByteLength);
         this.elementByteLength = elementByteLength;
+        // Temporary filler for hash-bin insertPaddingItems(T); padding is detected via DUMMY index.
         botElementByteBuffer = SetElementUtils.createBotElement(elementByteLength);
         serverElementArrayList = SetElementUtils.normalizeProtocolElements(
-            serverElementSet, elementByteLength, botElementByteBuffer, "server element"
+            serverElementSet, elementByteLength, "server element"
         );
         serverElementSize = serverElementArrayList.size();
         SetElementUtils.checkElementSizeInRange("serverElementSize", serverElementSize, maxServerElementSize, 2);

@@ -33,6 +33,12 @@ public final class SetElementUtils {
         MathPreconditions.checkLessOrEqual(name, size, maxSize);
     }
 
+    /**
+     * Temporary all-{@code 0xFF} filler for hash-bin {@code insertPaddingItems(T)} APIs that still
+     * require a stored dummy value. Padding must be detected via
+     * {@code HashBinEntry.DUMMY_ITEM_HASH_INDEX}, never by comparing element bytes to this value.
+     * All-{@code 0xFF} is a valid user-domain element.
+     */
     public static ByteBuffer createBotElement(int elementByteLength) {
         validateElementByteLength(elementByteLength);
         byte[] botElementByteArray = new byte[elementByteLength];
@@ -67,18 +73,29 @@ public final class SetElementUtils {
         return new ArrayList<>(uniqueElements.values());
     }
 
+    /**
+     * Normalize protocol input elements: validate length and deduplicate.
+     * All byte strings of the configured length are valid, including all-{@code 0xFF}.
+     */
+    public static ArrayList<ByteBuffer> normalizeProtocolElements(
+        Set<ByteBuffer> elementSet, int elementByteLength, String elementName
+    ) {
+        validateProtocolElementByteLength(elementByteLength);
+        Preconditions.checkNotNull(elementName, "elementName");
+        return deduplicateElements(elementSet, elementByteLength);
+    }
+
+    /**
+     * @deprecated Prefer {@link #normalizeProtocolElements(Set, int, String)}. The bot argument is
+     *             ignored; all-{@code 0xFF} is a valid domain element.
+     */
+    @Deprecated
     public static ArrayList<ByteBuffer> normalizeProtocolElements(
         Set<ByteBuffer> elementSet, int elementByteLength, ByteBuffer botElementByteBuffer, String elementName
     ) {
-        validateProtocolElementByteLength(elementByteLength);
-        byte[] botElement = toFixedByteArray(botElementByteBuffer, elementByteLength);
-        ArrayList<ByteBuffer> normalized = deduplicateElements(elementSet, elementByteLength);
-        for (ByteBuffer element : normalized) {
-            Preconditions.checkArgument(
-                !Arrays.equals(toFixedByteArray(element, elementByteLength), botElement),
-                "%s must not equal bot element", elementName
-            );
+        if (botElementByteBuffer != null) {
+            toFixedByteArray(botElementByteBuffer, elementByteLength);
         }
-        return normalized;
+        return normalizeProtocolElements(elementSet, elementByteLength, elementName);
     }
 }
