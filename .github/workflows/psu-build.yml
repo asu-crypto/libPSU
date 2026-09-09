@@ -2,12 +2,12 @@ name: PSU-family build
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, 'fix/**']
   pull_request:
     branches: [main, master]
 
 jobs:
-  build:
+  install:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,7 +16,122 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: maven
-      - name: Compile PSU stack
-        run: mvn -pl mpc4j-psu -am package -DskipTests
-      - name: Test PSU modules
-        run: mvn -f mpc4j-psu/pom.xml -pl mpc4j-psu-tests test -Dmaven.test.skip=false -DfailIfNoTests=false
+      - name: Install current-source reactor (skip tests)
+        run: |
+          ./scripts/mvn-jdk17.sh \
+            -Dmaven.repo.local="${RUNNER_TEMP}/libpsu-m2" \
+            -pl :mpc4j-psu-tests -am \
+            install -DskipTests
+      - name: Upload local Maven repo
+        uses: actions/upload-artifact@v4
+        with:
+          name: libpsu-m2
+          path: ${{ runner.temp }}/libpsu-m2
+          retention-days: 1
+
+  api-factory:
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/download-artifact@v4
+        with:
+          name: libpsu-m2
+          path: ${{ runner.temp }}/libpsu-m2
+      - name: API / factory / smoke tests
+        run: |
+          ./scripts/mvn-jdk17.sh \
+            -Dmaven.repo.local="${RUNNER_TEMP}/libpsu-m2" \
+            -pl :libpsu-api,:libpsu-core,:libpsu-factory,:mpc4j-psu-tests \
+            test -Dmaven.test.skip=false \
+            -Dtest='ProtocolMetadataRegistryTest,LibPsu*FactorySmokeTest' \
+            -DfailIfNoTests=true
+
+  pt26:
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/download-artifact@v4
+        with:
+          name: libpsu-m2
+          path: ${{ runner.temp }}/libpsu-m2
+      - name: PT26 tests
+        run: |
+          ./scripts/mvn-jdk17.sh \
+            -Dmaven.repo.local="${RUNNER_TEMP}/libpsu-m2" \
+            -pl :mpc4j-psu-protocol-pt26 \
+            test -Dmaven.test.skip=false -Dtest='Pt26*Test' \
+            -DfailIfNoTests=true
+
+  pgt26:
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/download-artifact@v4
+        with:
+          name: libpsu-m2
+          path: ${{ runner.temp }}/libpsu-m2
+      - name: PGT26 tests
+        run: |
+          ./scripts/mvn-jdk17.sh \
+            -Dmaven.repo.local="${RUNNER_TEMP}/libpsu-m2" \
+            -pl :mpc4j-psu-protocol-pgt26 \
+            test -Dmaven.test.skip=false -Dtest='Pgt26*Test' \
+            -DfailIfNoTests=true
+
+  haowan:
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/download-artifact@v4
+        with:
+          name: libpsu-m2
+          path: ${{ runner.temp }}/libpsu-m2
+      - name: HaoWan OPF / ABY / protocol tests
+        run: |
+          ./scripts/mvn-jdk17.sh \
+            -Dmaven.repo.local="${RUNNER_TEMP}/libpsu-m2" \
+            -pl :mpc4j-s2pc-opf \
+            test -Dmaven.test.skip=false -Dtest='*HaoWan26*Test' -DfailIfNoTests=true
+          ./scripts/mvn-jdk17.sh \
+            -Dmaven.repo.local="${RUNNER_TEMP}/libpsu-m2" \
+            -pl :mpc4j-s2pc-aby \
+            test -Dmaven.test.skip=false \
+            -Dtest='*F32Wprf*Test,*SecureJoin*Test' -DfailIfNoTests=true
+          ./scripts/mvn-jdk17.sh \
+            -Dmaven.repo.local="${RUNNER_TEMP}/libpsu-m2" \
+            -pl :mpc4j-psu-protocol-haowan2026 \
+            test -Dmaven.test.skip=false -Dtest='*HaoWan2026*Test' -DfailIfNoTests=true
+
+  static-provenance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Python / shell / KAT verify / whitespace
+        run: |
+          python3 -m unittest discover -s scripts/libpsu/tests -v
+          find scripts tools -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n
+          bash tools/secure-join-altmod-kat/verify.sh
+          git diff --check
