@@ -67,7 +67,7 @@ public class Gmr21PsuPipelineClient extends AbstractOoPsuClient {
         var encPayload = rpc.receive(encHeader).getPayload();
 
         PsuUnionOutput unionOut = CotXorUnionDelivery.unionFromCotXor(
-            envType, elementByteLength, botElementByteBuffer, cotOut,
+            envType, elementByteLength, cotOut,
             new UnionDeliveryInput(clientElementSet, serverElementSize, elementByteLength, choices, encPayload)
         );
         logPhaseInfo(PtoState.PTO_END);

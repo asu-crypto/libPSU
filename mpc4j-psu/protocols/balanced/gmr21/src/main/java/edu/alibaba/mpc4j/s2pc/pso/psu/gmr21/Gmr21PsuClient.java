@@ -2,13 +2,13 @@ package edu.alibaba.mpc4j.s2pc.pso.psu.gmr21;
 
 import edu.alibaba.mpc4j.common.rpc.*;
 import edu.alibaba.mpc4j.common.rpc.utils.DataPacketHeader;
-import edu.alibaba.mpc4j.common.tool.crypto.prg.Prg;
-import edu.alibaba.mpc4j.common.tool.crypto.prg.PrgFactory;
-import edu.alibaba.mpc4j.common.tool.utils.BytesUtils;
 import edu.alibaba.mpc4j.s2pc.opf.mqrpmt.gmr21.Gmr21MqRpmtClient;
 import edu.alibaba.mpc4j.s2pc.pcg.ot.cot.*;
 import edu.alibaba.mpc4j.s2pc.pcg.ot.cot.core.CoreCotFactory;
 import edu.alibaba.mpc4j.s2pc.pcg.ot.cot.core.CoreCotReceiver;
+import edu.alibaba.mpc4j.psu.api.PsuUnionOutput;
+import edu.alibaba.mpc4j.psu.api.plugin.UnionDeliveryInput;
+import edu.alibaba.mpc4j.psu.core.union.CotXorUnionDelivery;
 import edu.alibaba.mpc4j.s2pc.pso.psu.AbstractOoPsuClient;
 import edu.alibaba.mpc4j.s2pc.pso.psu.PsuClientOutput;
 import edu.alibaba.mpc4j.s2pc.pso.psu.gmr21.Gmr21PsuPtoDesc.PtoStep;
@@ -93,21 +93,14 @@ public class Gmr21PsuClient extends AbstractOoPsuClient {
         );
         List<byte[]> encPayload = rpc.receive(encHeader).getPayload();
         MpcAbortPreconditions.checkArgument(encPayload.size() == coreCotNum);
-        ArrayList<byte[]> encArrayList = new ArrayList<byte[]>(encPayload);
-        // Y \cup Z
-        Prg encPrg = PrgFactory.createInstance(envType, elementByteLength);
-        Set<ByteBuffer> union = new HashSet<ByteBuffer>(coreCotNum + clientElementSize);
-        for (int index = 0; index < coreCotNum; index++) {
-            if (!choices[index]) {
-                // do not need CRHF since we call prg
-                byte[] message = encPrg.extendToBytes(cotReceiverOutput.getRb(index));
-                BytesUtils.xori(message, encArrayList.get(index));
-                union.add(ByteBuffer.wrap(message));
-            }
-        }
-        union.addAll(clientElementSet);
-        union.remove(botElementByteBuffer);
-        int psica = clientElementSize + serverElementSize - union.size();
+        PsuUnionOutput unionOut = CotXorUnionDelivery.unionFromCotXor(
+            envType,
+            elementByteLength,
+            cotReceiverOutput,
+            new UnionDeliveryInput(clientElementSet, serverElementSize, elementByteLength, choices, encPayload)
+        );
+        Set<ByteBuffer> union = unionOut.getUnionSet();
+        int psica = unionOut.getPsica();
         stopWatch.stop();
         long unionTime = stopWatch.getTime(TimeUnit.MILLISECONDS);
         stopWatch.reset();

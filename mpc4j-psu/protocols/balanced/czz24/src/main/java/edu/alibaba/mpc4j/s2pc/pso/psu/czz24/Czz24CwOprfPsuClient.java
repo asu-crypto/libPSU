@@ -16,10 +16,10 @@ import edu.alibaba.mpc4j.s2pc.pso.psu.czz24.Czz24CwOprfPsuPtoDesc.PtoStep;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
@@ -86,24 +86,19 @@ public class Czz24CwOprfPsuClient extends AbstractPsuClient {
         List<byte[]> encPayload = rpc.receive(encHeader).getPayload();
         MpcAbortPreconditions.checkArgument(encPayload.size() == coreCotNum);
         ArrayList<byte[]> encArrayList = new ArrayList<>(encPayload);
-        // Y \cup Z
         Prg encPrg = PrgFactory.createInstance(envType, elementByteLength);
+        Set<ByteBuffer> union = new HashSet<>(clientElementSet);
         IntStream decIntStream = IntStream.range(0, serverElementSize);
         decIntStream = parallel ? decIntStream.parallel() : decIntStream;
-        Set<ByteBuffer> union = decIntStream
-            .mapToObj(index -> {
-                if (choices[index]) {
-                    return botElementByteBuffer;
-                } else {
-                    // do not need CRHF since we call prg
-                    byte[] message = encPrg.extendToBytes(cotReceiverOutput.getRb(index));
-                    BytesUtils.xori(message, encArrayList.get(index));
-                    return ByteBuffer.wrap(message);
+        decIntStream.forEach(index -> {
+            if (!choices[index]) {
+                byte[] message = encPrg.extendToBytes(cotReceiverOutput.getRb(index));
+                BytesUtils.xori(message, encArrayList.get(index));
+                synchronized (union) {
+                    union.add(ByteBuffer.wrap(message));
                 }
-            })
-            .collect(Collectors.toSet());
-        union.addAll(clientElementSet);
-        union.remove(botElementByteBuffer);
+            }
+        });
         stopWatch.stop();
         long unionTime = stopWatch.getTime(TimeUnit.MILLISECONDS);
         stopWatch.reset();
