@@ -260,11 +260,12 @@ public class Tcl23UpsuReceiver extends AbstractUpsuReceiver {
         int maxBinSize = IntStream.range(0, params.getBinNum()).map(completeHash::binSize).max().orElse(0);
         alpha = CommonUtils.getUnitNum(maxBinSize, params.getMaxPartitionSizePerBin());
         List<List<HashBinEntry<ByteBuffer>>> completeHashBins = new ArrayList<>();
-        HashBinEntry<ByteBuffer> paddingEntry = HashBinEntry.fromEmptyItem(botElementByteBuffer);
         for (int i = 0; i < completeHash.binNum(); i++) {
             List<HashBinEntry<ByteBuffer>> binItems = new ArrayList<>(completeHash.getBin(i));
             int paddingNum = maxBinSize - completeHash.binSize(i);
-            IntStream.range(0, paddingNum).mapToObj(j -> paddingEntry).forEach(binItems::add);
+            IntStream.range(0, paddingNum)
+                .mapToObj(j -> HashBinEntry.<ByteBuffer>fromDummyItem(secureRandom))
+                .forEach(binItems::add);
             completeHashBins.add(binItems);
         }
         inputPrfs.clear();

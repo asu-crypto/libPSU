@@ -301,7 +301,7 @@ public class Tcl23UpsuSender extends AbstractUpsuSender {
         cuckooHashBin.insertItems(new ArrayList<>(oprfItemMap.keySet()));
         Preconditions.checkArgument(cuckooHashBin.itemNumInStash() == 0,
             "TCL23 cuckoo stash must be empty; got %s items", cuckooHashBin.itemNumInStash());
-        cuckooHashBin.insertPaddingItems(botElementByteBuffer);
+        cuckooHashBin.insertPaddingItems(secureRandom);
         return cuckooHashBin;
     }
 

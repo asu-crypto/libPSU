@@ -75,7 +75,7 @@ public class Tbz25PsuServer extends AbstractPsuServer {
         CuckooHashBin<ByteBuffer> cuckooHashBin = CuckooHashBinFactory.createEnforceNoStashCuckooHashBin(
             envType, config.getCuckooHashBinType(), serverElementSize, serverElementArrayList, secureRandom
         );
-        cuckooHashBin.insertPaddingItems(botElementByteBuffer);
+        cuckooHashBin.insertPaddingItems(secureRandom);
         sendOtherPartyPayload(
             PtoStep.CUCKOO_HASH_KEYS.ordinal(),
             Arrays.stream(cuckooHashBin.getHashKeys()).collect(Collectors.toList())

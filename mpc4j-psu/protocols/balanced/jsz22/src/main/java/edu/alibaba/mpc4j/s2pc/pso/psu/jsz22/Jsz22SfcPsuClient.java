@@ -242,7 +242,7 @@ public class Jsz22SfcPsuClient extends AbstractOoPsuClient {
         cuckooHashBin = CuckooHashBinFactory.<ByteBuffer>createEnforceNoStashCuckooHashBin(
             envType, cuckooHashBinType, clientElementSize, clientElementArrayList, secureRandom
         );
-        cuckooHashBin.insertPaddingItems(botElementByteBuffer);
+        cuckooHashBin.insertPaddingItems(secureRandom);
         byte[][] keys = cuckooHashBin.getHashKeys();
         List<byte[]> out = new ArrayList<byte[]>(keys.length);
         for (byte[] k : keys) {

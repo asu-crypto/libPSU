@@ -285,7 +285,7 @@ public class Jsz22SfsPsuServer extends AbstractOoPsuServer {
         cuckooHashBin = CuckooHashBinFactory.createEnforceNoStashCuckooHashBin(
             envType, cuckooHashBinType, serverElementSize, serverElementArrayList, secureRandom
         );
-        cuckooHashBin.insertPaddingItems(botElementByteBuffer);
+        cuckooHashBin.insertPaddingItems(secureRandom);
         return Arrays.stream(cuckooHashBin.getHashKeys()).collect(Collectors.toList());
     }
 

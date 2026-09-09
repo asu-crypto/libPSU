@@ -163,7 +163,9 @@ public class Krtw19PsuClient extends AbstractPsuClient {
         maxBinSize = Krtw19PsuPtoDesc.getMaxBinSize(n);
         hashBin = new EmptyPadHashBin<ByteBuffer>(envType, binNum, maxBinSize, clientElementSize, hashBinKeys);
         hashBin.insertItems(clientElementArrayList);
-        hashBin.insertPaddingItems(botElementByteBuffer);
+        hashBin.insertPaddingItems(edu.alibaba.libpsu.core.set.SetElementUtils.sampleUnusedPaddingElement(
+            new java.util.HashSet<>(clientElementArrayList), elementByteLength, secureRandom
+        ));
         fieldByteLength = Krtw19PsuPtoDesc.getFiniteFieldByteLength(binNum, maxBinSize);
         int fieldBitLength = fieldByteLength * Byte.SIZE;
         finiteFieldHash = HashFactory.createInstance(envType, fieldByteLength);

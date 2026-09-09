@@ -34,16 +34,40 @@ public final class SetElementUtils {
     }
 
     /**
-     * Temporary all-{@code 0xFF} filler for hash-bin {@code insertPaddingItems(T)} APIs that still
-     * require a stored dummy value. Padding must be detected via
-     * {@code HashBinEntry.DUMMY_ITEM_HASH_INDEX}, never by comparing element bytes to this value.
+     * Temporary all-{@code 0xFF} filler for legacy callers. Prefer
+     * {@link #sampleUnusedPaddingElement} or {@code insertPaddingItems(SecureRandom)}.
      * All-{@code 0xFF} is a valid user-domain element.
+     *
+     * @deprecated Do not use as a reserved domain sentinel.
      */
+    @Deprecated
     public static ByteBuffer createBotElement(int elementByteLength) {
         validateElementByteLength(elementByteLength);
         byte[] botElementByteArray = new byte[elementByteLength];
         Arrays.fill(botElementByteArray, (byte) 0xFF);
         return ByteBuffer.wrap(botElementByteArray);
+    }
+
+    /**
+     * Samples a fixed-length element that is not already present in {@code occupied}.
+     * Used only as a stored filler for hash-bin APIs that require a value; padding is
+     * still identified by {@code HashBinEntry.DUMMY_ITEM_HASH_INDEX}.
+     */
+    public static ByteBuffer sampleUnusedPaddingElement(
+        Set<ByteBuffer> occupied, int elementByteLength, java.security.SecureRandom secureRandom
+    ) {
+        validateElementByteLength(elementByteLength);
+        Preconditions.checkNotNull(occupied, "occupied");
+        Preconditions.checkNotNull(secureRandom, "secureRandom");
+        for (int attempt = 0; attempt < 10_000; attempt++) {
+            byte[] bytes = new byte[elementByteLength];
+            secureRandom.nextBytes(bytes);
+            ByteBuffer candidate = ByteBuffer.wrap(bytes);
+            if (!occupied.contains(candidate)) {
+                return candidate;
+            }
+        }
+        throw new IllegalStateException("unable to sample unused padding element");
     }
 
     public static byte[] toFixedByteArray(ByteBuffer buffer, int elementByteLength) {

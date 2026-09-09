@@ -19,9 +19,11 @@ import edu.alibaba.mpc4j.s2pc.pcg.ot.cot.core.CoreCotFactory;
 import edu.alibaba.mpc4j.s2pc.pcg.ot.cot.core.CoreCotSender;
 import edu.alibaba.mpc4j.s2pc.pso.psu.AbstractPsuServer;
 import edu.alibaba.mpc4j.s2pc.pso.psu.krtw19.Krtw19PsuPtoDesc.PtoStep;
+import edu.alibaba.libpsu.core.set.SetElementUtils;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -162,7 +164,9 @@ public class Krtw19PsuServer extends AbstractPsuServer {
         maxBinSize = Krtw19PsuPtoDesc.getMaxBinSize(n);
         hashBin = new EmptyPadHashBin<ByteBuffer>(envType, binNum, maxBinSize, serverElementSize, hashBinKeys);
         hashBin.insertItems(serverElementArrayList);
-        hashBin.insertPaddingItems(botElementByteBuffer);
+        hashBin.insertPaddingItems(SetElementUtils.sampleUnusedPaddingElement(
+            new HashSet<>(serverElementArrayList), elementByteLength, secureRandom
+        ));
         int fieldByteLength = Krtw19PsuPtoDesc.getFiniteFieldByteLength(binNum, maxBinSize);
         int fieldBitLength = fieldByteLength * Byte.SIZE;
         finiteFieldHash = HashFactory.createInstance(envType, fieldByteLength);
