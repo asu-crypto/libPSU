@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Semi-honest shuffled HashDH core (reference {@code onesided.rs} {@code PartySender}/{@code PartyReceiver}).
+ * Semi-honest shuffled HashDH core used by PGT26-2M.
  */
 public final class Pgt26ShuffledHashDh {
   private Pgt26ShuffledHashDh() {
