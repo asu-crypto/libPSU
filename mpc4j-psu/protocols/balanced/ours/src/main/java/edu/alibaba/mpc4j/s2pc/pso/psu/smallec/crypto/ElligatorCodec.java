@@ -45,8 +45,7 @@ public final class ElligatorCodec {
     public byte[] mapToPoint(byte[] item) {
         Preconditions.checkArgument(item.length == SmallEcConstants.ITEM_BYTE_LENGTH);
         byte[] raw = Pgt26InvertibleMap.mapToPointStrict(item, perm, SmallEcConstants.ITEM_BYTE_LENGTH);
-        EcGroupOps.validatePoint(raw);
-        // clearCofactor validates non-identity subgroup image.
+        // Raw M2P image may carry torsion; clearCofactor validates the prime-order image.
         return EcGroupOps.clearCofactor(raw);
     }
 
@@ -73,17 +72,14 @@ public final class ElligatorCodec {
         return Pgt26InvertibleMap.hasValidPadding(item, SmallEcConstants.ITEM_BYTE_LENGTH);
     }
 
-    /** Test helper: strict M2P image without cofactor clearing. */
+    /** Test helper: strict M2P image without cofactor clearing (torsion allowed). */
     byte[] mapToPointRawForTest(byte[] item) {
         Preconditions.checkArgument(item.length == SmallEcConstants.ITEM_BYTE_LENGTH);
-        byte[] point = Pgt26InvertibleMap.mapToPointStrict(item, perm, SmallEcConstants.ITEM_BYTE_LENGTH);
-        EcGroupOps.validatePoint(point);
-        return point;
+        return Pgt26InvertibleMap.mapToPointStrict(item, perm, SmallEcConstants.ITEM_BYTE_LENGTH);
     }
 
-    /** Test helper: strict inverse without cofactor removal. */
+    /** Test helper: strict inverse without cofactor removal (accepts torsion coset reps). */
     Optional<byte[]> inversePointToItemRawForTest(byte[] point) {
-        EcGroupOps.validatePoint(point);
         return Pgt26InvertibleMap.recoverFromPointStrict(
             point, perm, SmallEcConstants.ITEM_BYTE_LENGTH
         );

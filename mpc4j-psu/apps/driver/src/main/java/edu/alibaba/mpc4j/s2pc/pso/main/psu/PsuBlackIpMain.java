@@ -1,6 +1,6 @@
 package edu.alibaba.mpc4j.s2pc.pso.main.psu;
 
-import edu.alibaba.libpsu.factory.ProtocolRegistry;
+import edu.alibaba.libpsu.LibPsu;
 import edu.alibaba.mpc4j.common.rpc.MpcAbortException;
 import edu.alibaba.mpc4j.common.rpc.Party;
 import edu.alibaba.mpc4j.common.rpc.Rpc;
@@ -50,7 +50,7 @@ public class PsuBlackIpMain extends AbstractMainTwoPartyPto {
         clientSetSize = clientElementSet.size();
         LOGGER.info("Client contains {} IPs", clientSetSize);
         LOGGER.info("{} read PSU config", ownRpc.ownParty().getPartyName());
-        psuConfig = PsuConfigUtils.createConfig(properties);
+        psuConfig = LibPsu.createPsuConfig(properties);
     }
 
     @Override
@@ -65,11 +65,11 @@ public class PsuBlackIpMain extends AbstractMainTwoPartyPto {
                 "{}: serverSetSize = {}, clientSetSize = {}, parallel = {}",
                 serverRpc.ownParty().getPartyName(), serverSetSize, clientSetSize, true
             );
-            if (ProtocolRegistry.usesTwoSidedPublicFactory(psuConfig)) {
-                PsuTwoSidedServer server = ProtocolRegistry.createTwoSidedPsuServer(serverRpc, clientParty, psuConfig);
+            if (LibPsu.usesTwoSidedPublicFactory(psuConfig)) {
+                PsuTwoSidedServer server = LibPsu.createTwoSidedServer(serverRpc, clientParty, psuConfig);
                 runTwoSidedServer(server, taskId, printWriter);
             } else {
-                PsuServer server = ProtocolRegistry.createPsuServer(serverRpc, clientParty, psuConfig);
+                PsuServer server = LibPsu.createServer(serverRpc, clientParty, psuConfig);
                 runOneSidedServer(server, taskId, printWriter);
             }
             serverRpc.disconnect();
@@ -88,11 +88,11 @@ public class PsuBlackIpMain extends AbstractMainTwoPartyPto {
                 "{}: serverSetSize = {}, clientSetSize = {}, parallel = {}",
                 clientRpc.ownParty().getPartyName(), serverSetSize, clientSetSize, true
             );
-            if (ProtocolRegistry.usesTwoSidedPublicFactory(psuConfig)) {
-                PsuTwoSidedClient client = ProtocolRegistry.createTwoSidedPsuClient(clientRpc, serverParty, psuConfig);
+            if (LibPsu.usesTwoSidedPublicFactory(psuConfig)) {
+                PsuTwoSidedClient client = LibPsu.createTwoSidedClient(clientRpc, serverParty, psuConfig);
                 runTwoSidedClient(client, taskId, printWriter);
             } else {
-                PsuClient client = ProtocolRegistry.createPsuClient(clientRpc, serverParty, psuConfig);
+                PsuClient client = LibPsu.createClient(clientRpc, serverParty, psuConfig);
                 runOneSidedClient(client, taskId, printWriter);
             }
             clientRpc.disconnect();

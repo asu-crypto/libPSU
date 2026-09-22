@@ -1,5 +1,6 @@
 package edu.alibaba.libpsu.factory;
 
+import edu.alibaba.libpsu.LibPsu;
 import edu.alibaba.libpsu.api.OutputModel;
 import edu.alibaba.libpsu.api.PsuProtocolCapabilities;
 import edu.alibaba.mpc4j.common.rpc.Party;
@@ -37,20 +38,20 @@ public class LibPsuBalancedFactorySmokeTest extends AbstractTwoPartyMemoryRpcPto
             String name = type.name();
             Assert.assertTrue("metadata: " + name, ProtocolRegistry.isKnownBenchmarkProtocol(name));
             Properties p = minimalProperties(name);
-            PsuConfig config = PsuConfigUtils.createConfig(p);
+            PsuConfig config = LibPsu.createPsuConfig(p);
             Assert.assertEquals(type.protocolId(), config.getPtoType().protocolId());
             Assert.assertEquals(type, config.getPtoType());
 
-            PsuProtocolCapabilities caps = ProtocolRegistry.capabilitiesOf(config);
+            PsuProtocolCapabilities caps = LibPsu.capabilitiesOf(config);
             Rpc serverRpc = firstRpc;
             Rpc clientRpc = secondRpc;
             Party clientParty = secondRpc.ownParty();
             Party serverParty = firstRpc.ownParty();
 
-            if (ProtocolRegistry.usesTwoSidedPublicFactory(config)) {
+            if (LibPsu.usesTwoSidedPublicFactory(config)) {
                 Assert.assertTrue(caps.isTwoSided());
-                PsuTwoSidedServer server = ProtocolRegistry.createTwoSidedPsuServer(serverRpc, clientParty, config);
-                PsuTwoSidedClient client = ProtocolRegistry.createTwoSidedPsuClient(clientRpc, serverParty, config);
+                PsuTwoSidedServer server = LibPsu.createTwoSidedServer(serverRpc, clientParty, config);
+                PsuTwoSidedClient client = LibPsu.createTwoSidedClient(clientRpc, serverParty, config);
                 Assert.assertNotNull(server);
                 Assert.assertNotNull(client);
                 server.destroy();
@@ -60,8 +61,8 @@ public class LibPsuBalancedFactorySmokeTest extends AbstractTwoPartyMemoryRpcPto
                     "one-sided public API for " + caps.protocolId() + " / " + caps.outputModel(),
                     OutputModel.isOneSidedPublicApi(caps.outputModel())
                 );
-                PsuServer server = ProtocolRegistry.createPsuServer(serverRpc, clientParty, config);
-                PsuClient client = ProtocolRegistry.createPsuClient(clientRpc, serverParty, config);
+                PsuServer server = LibPsu.createServer(serverRpc, clientParty, config);
+                PsuClient client = LibPsu.createClient(clientRpc, serverParty, config);
                 Assert.assertNotNull(server);
                 Assert.assertNotNull(client);
                 server.destroy();
@@ -72,42 +73,42 @@ public class LibPsuBalancedFactorySmokeTest extends AbstractTwoPartyMemoryRpcPto
 
     @Test
     public void pt26MetadataAndFactoryAreTwoSided() {
-        PsuConfig config = PsuConfigUtils.createConfig(minimalProperties(PsuType.EUROCRYPT_PisTri26.name()));
-        PsuProtocolCapabilities caps = ProtocolRegistry.capabilitiesOf(config);
+        PsuConfig config = LibPsu.createPsuConfig(minimalProperties(PsuType.EUROCRYPT_PisTri26.name()));
+        PsuProtocolCapabilities caps = LibPsu.capabilitiesOf(config);
         Assert.assertEquals(OutputModel.TWO_SIDED, caps.outputModel());
-        Assert.assertTrue(ProtocolRegistry.usesTwoSidedPublicFactory(config));
-        PsuTwoSidedServer server = ProtocolRegistry.createTwoSidedPsuServer(firstRpc, secondRpc.ownParty(), config);
-        PsuTwoSidedClient client = ProtocolRegistry.createTwoSidedPsuClient(secondRpc, firstRpc.ownParty(), config);
+        Assert.assertTrue(LibPsu.usesTwoSidedPublicFactory(config));
+        PsuTwoSidedServer server = LibPsu.createTwoSidedServer(firstRpc, secondRpc.ownParty(), config);
+        PsuTwoSidedClient client = LibPsu.createTwoSidedClient(secondRpc, firstRpc.ownParty(), config);
         server.destroy();
         client.destroy();
     }
 
     @Test
     public void pgt26MetadataAndFactoryAreMaliciousTwoSided() {
-        PsuConfig config = PsuConfigUtils.createConfig(minimalProperties(PsuType.EUROCRYPT_PuGaoTri26.name()));
-        PsuProtocolCapabilities caps = ProtocolRegistry.capabilitiesOf(config);
+        PsuConfig config = LibPsu.createPsuConfig(minimalProperties(PsuType.EUROCRYPT_PuGaoTri26.name()));
+        PsuProtocolCapabilities caps = LibPsu.capabilitiesOf(config);
         Assert.assertEquals(OutputModel.MALICIOUS_TWO_SIDED, caps.outputModel());
-        Assert.assertTrue(ProtocolRegistry.usesTwoSidedPublicFactory(config));
-        PsuTwoSidedServer server = ProtocolRegistry.createTwoSidedPsuServer(firstRpc, secondRpc.ownParty(), config);
-        PsuTwoSidedClient client = ProtocolRegistry.createTwoSidedPsuClient(secondRpc, firstRpc.ownParty(), config);
+        Assert.assertTrue(LibPsu.usesTwoSidedPublicFactory(config));
+        PsuTwoSidedServer server = LibPsu.createTwoSidedServer(firstRpc, secondRpc.ownParty(), config);
+        PsuTwoSidedClient client = LibPsu.createTwoSidedClient(secondRpc, firstRpc.ownParty(), config);
         server.destroy();
         client.destroy();
     }
 
     @Test
     public void wrongOutputModelFactoryIsRejected() {
-        PsuConfig pt26 = PsuConfigUtils.createConfig(minimalProperties(PsuType.EUROCRYPT_PisTri26.name()));
+        PsuConfig pt26 = LibPsu.createPsuConfig(minimalProperties(PsuType.EUROCRYPT_PisTri26.name()));
         try {
-            ProtocolRegistry.createPsuServer(firstRpc, secondRpc.ownParty(), pt26);
+            LibPsu.createServer(firstRpc, secondRpc.ownParty(), pt26);
             Assert.fail("expected rejection of one-sided factory for PT26");
         } catch (IllegalArgumentException ex) {
             Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("TWO_SIDED"));
             Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("createTwoSided"));
         }
 
-        PsuConfig gmr21 = PsuConfigUtils.createConfig(minimalProperties(PsuType.PKC_GMRSS21.name()));
+        PsuConfig gmr21 = LibPsu.createPsuConfig(minimalProperties(PsuType.PKC_GMRSS21.name()));
         try {
-            ProtocolRegistry.createTwoSidedPsuServer(firstRpc, secondRpc.ownParty(), gmr21);
+            LibPsu.createTwoSidedServer(firstRpc, secondRpc.ownParty(), gmr21);
             Assert.fail("expected rejection of two-sided factory for GMR21");
         } catch (IllegalArgumentException ex) {
             Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("ONE_SIDED") || ex.getMessage().contains("createPsuServer"));
@@ -116,9 +117,9 @@ public class LibPsuBalancedFactorySmokeTest extends AbstractTwoPartyMemoryRpcPto
 
     @Test
     public void defaultTwoSidedMaliciousConfigIsPgt26() {
-        PsuConfig config = ProtocolRegistry.createDefaultTwoSidedConfig(SecurityModel.MALICIOUS);
+        PsuConfig config = LibPsu.createDefaultTwoSidedConfig(SecurityModel.MALICIOUS);
         Assert.assertEquals(PsuType.EUROCRYPT_PuGaoTri26, config.getPtoType());
-        Assert.assertEquals(OutputModel.MALICIOUS_TWO_SIDED, ProtocolRegistry.capabilitiesOf(config).outputModel());
+        Assert.assertEquals(OutputModel.MALICIOUS_TWO_SIDED, LibPsu.capabilitiesOf(config).outputModel());
     }
 
     private static Properties minimalProperties(String psuPtoName) {

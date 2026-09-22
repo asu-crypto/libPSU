@@ -97,9 +97,16 @@ public final class EcGroupOps {
         return scalarMul(point, COFACTOR_INVERSE);
     }
 
-    /** Map M2P outputs into the prime-order subgroup (cofactor 8) for HashDH blinding. */
+    /**
+     * Map M2P outputs into the prime-order subgroup (cofactor 8) for HashDH blinding.
+     * Raw Elligator/M2P images may carry torsion; only the cofactor-cleared image must be
+     * a non-identity prime-order point ({@link Pgt26EdwardsMath#isValidNonIdentityPoint}).
+     */
     public static byte[] clearCofactor(byte[] point) {
-        validatePoint(point);
+        if (!Pgt26EdwardsMath.isValidPoint(point)
+            || Arrays.equals(point, Ed25519ByteEccUtils.POINT_INFINITY)) {
+            throw new IllegalArgumentException("invalid or identity curve point");
+        }
         byte[] cleared = Pgt26EdwardsMath.pointMul(
             Pgt26EdwardsMath.canonicalizePoint(point), Ed25519ByteEccUtils.SCALAR_COFACTOR
         );

@@ -1,5 +1,6 @@
 package edu.alibaba.mpc4j.s2pc.pso.main.psi;
 
+import edu.alibaba.libpsu.LibPsu;
 import com.google.common.base.Preconditions;
 import edu.alibaba.mpc4j.common.rpc.MpcAbortException;
 import edu.alibaba.mpc4j.common.rpc.Party;
@@ -11,7 +12,6 @@ import edu.alibaba.mpc4j.common.tool.utils.PropertiesUtils;
 import edu.alibaba.mpc4j.psu.common.PsuBenchmarkUtils;
 import edu.alibaba.mpc4j.s2pc.pso.psi.PsiClient;
 import edu.alibaba.mpc4j.s2pc.pso.psi.PsiConfig;
-import edu.alibaba.mpc4j.s2pc.pso.psi.PsiFactory;
 import edu.alibaba.mpc4j.s2pc.pso.psi.PsiServer;
 import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
@@ -65,7 +65,7 @@ public class PsiMain extends AbstractMainTwoPartyPto {
         serverSetSizes = Arrays.stream(serverLogSetSizes).map(logSetSize -> 1 << logSetSize).toArray();
         clientSetSizes = Arrays.stream(clientLogSetSizes).map(logSetSize -> 1 << logSetSize).toArray();
         parallel = PropertiesUtils.readBoolean(properties, "parallel", false);
-        psiConfig = PsiConfigUtils.createConfig(properties);
+        psiConfig = LibPsu.createPsiConfig(properties);
         skipWarmup = PropertiesUtils.readBoolean(properties, "skip_warmup", false);
         skipGc = PropertiesUtils.readBoolean(properties, "skip_gc", false);
     }
@@ -197,7 +197,7 @@ public class PsiMain extends AbstractMainTwoPartyPto {
     private void warmupServer(Rpc serverRpc, Party clientParty, int taskId, int serverSetSize, int clientSetSize)
         throws IOException, MpcAbortException {
         Set<ByteBuffer> serverElementSet = readServerElementSet(serverSetSize, WARMUP_ELEMENT_BYTE_LENGTH);
-        PsiServer psiServer = PsiFactory.createServer(serverRpc, clientParty, psiConfig);
+        PsiServer psiServer = LibPsu.createPsiServer(serverRpc, clientParty, psiConfig);
         psiServer.setTaskId(taskId);
         psiServer.setParallel(parallel);
         psiServer.getRpc().synchronize();
@@ -212,7 +212,7 @@ public class PsiMain extends AbstractMainTwoPartyPto {
     private void warmupClient(Rpc clientRpc, Party serverParty, int taskId, int serverSetSize, int clientSetSize)
         throws IOException, MpcAbortException {
         Set<ByteBuffer> clientElementSet = readClientElementSet(clientSetSize, WARMUP_ELEMENT_BYTE_LENGTH);
-        PsiClient psiClient = PsiFactory.createClient(clientRpc, serverParty, psiConfig);
+        PsiClient psiClient = LibPsu.createPsiClient(clientRpc, serverParty, psiConfig);
         psiClient.setTaskId(taskId);
         psiClient.setParallel(parallel);
         psiClient.getRpc().synchronize();
@@ -229,7 +229,7 @@ public class PsiMain extends AbstractMainTwoPartyPto {
         int clientSetSize, int elementByteLength, PrintWriter printWriter
     ) throws MpcAbortException {
         int serverSetSize = serverElementSet.size();
-        PsiServer psiServer = PsiFactory.createServer(serverRpc, clientParty, psiConfig);
+        PsiServer psiServer = LibPsu.createPsiServer(serverRpc, clientParty, psiConfig);
         psiServer.setTaskId(taskId);
         psiServer.setParallel(parallel);
         psiServer.getRpc().synchronize();
@@ -271,7 +271,7 @@ public class PsiMain extends AbstractMainTwoPartyPto {
         int serverSetSize, int elementByteLength, PrintWriter printWriter
     ) throws MpcAbortException {
         int clientSetSize = clientElementSet.size();
-        PsiClient psiClient = PsiFactory.createClient(clientRpc, serverParty, psiConfig);
+        PsiClient psiClient = LibPsu.createPsiClient(clientRpc, serverParty, psiConfig);
         psiClient.setTaskId(taskId);
         psiClient.setParallel(parallel);
         psiClient.getRpc().synchronize();

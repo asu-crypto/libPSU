@@ -154,7 +154,10 @@ public class Krtw19PsuClient extends AbstractPsuClient {
         union.addAll(clientElementSet);
 
         logPhaseInfo(PtoState.PTO_END);
-        return new PsuClientOutput(union, serverElementSize - difference);
+        // difference counts PEQt mismatches across padded bin columns and can exceed |Y|.
+        // Derive PSI-CA from the reconstructed union (same approach as CSS25).
+        int psica = clientElementSize + serverElementSize - union.size();
+        return new PsuClientOutput(union, psica);
     }
 
     private void initParams() {

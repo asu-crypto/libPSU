@@ -50,6 +50,14 @@ jobs:
             test -Dmaven.test.skip=false \
             -Dtest='ProtocolMetadataRegistryTest,LibPsu*FactorySmokeTest' \
             -DfailIfNoTests=true
+      - name: Unified library and CLI tests
+        run: |
+          ./scripts/mvn-jdk17.sh \
+            -Dmaven.repo.local="${RUNNER_TEMP}/libpsu-m2" \
+            -pl :libpsu-factory,:libpsu,:mpc4j-psu-driver \
+            test -Dmaven.test.skip=false \
+            -Dtest='ProtocolRegistryTest,ProtocolRegistryRoutingTest,LibPsuTest,LibPsuMainTest' \
+            -DfailIfNoTests=true
 
   pt26:
     needs: install

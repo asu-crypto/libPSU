@@ -166,6 +166,7 @@ public final class ProtocolMetadataRegistry {
             .setSizeMode(SetSizeMode.BALANCED)
             .primitiveKind(PrimitiveKind.HYBRID)
             .readiness(ProtocolReadiness.EXPERIMENTAL)
+            .minimumInputSetSize(2)
             .smallSetOptimization(true)
             .mavenModule("mpc4j-psu-protocol-small-ec-elligator-psu")
             .configPropertyName("psu_pto_name")

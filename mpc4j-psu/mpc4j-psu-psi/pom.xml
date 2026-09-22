@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>mpc4j-psu-psi</artifactId>
-    <description>PSI factory</description>
+    <description>Legacy PSI runtime factories for libPSU</description>
     <dependencies>
         <dependency>
             <groupId>edu.alibaba</groupId>

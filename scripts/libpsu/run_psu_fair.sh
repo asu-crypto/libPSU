@@ -362,26 +362,17 @@ run_psu_fair_benchmarks() {
     basename "${conf}"
   }
 
-  fair_main_class() {
-    if is_upsu_conf "$1"; then
-      echo "edu.alibaba.mpc4j.s2pc.upso.main.UpsoMain"
-    else
-      echo "edu.alibaba.mpc4j.s2pc.pso.main.PsoMain"
-    fi
-  }
-
   # setsid: own session/process group so watchdog SIGKILL stops the whole JVM.
   run_java() {
-    local party="$1" target="$2" main_class opts resolved
+    local party="$1" target="$2" opts resolved
     resolved="$(psu_fair_conf_with_save_path "${target}")"
-    main_class="$(fair_main_class "${resolved}")"
     opts=("${JAVA_OPTS[@]}")
     if requires_native_fhe "${resolved}"; then opts=("${JAVA_OPTS_FHE[@]}"); fi
     if needs_large_heap "${resolved}"; then opts=("${JAVA_OPTS_LARGE[@]}"); fi
     if command -v setsid >/dev/null 2>&1; then
-      ( cd "${REPO_ROOT}" && exec setsid "${JAVA_BIN}" "${opts[@]}" -cp "${PSU_DRIVER_JAR}" "${main_class}" "${resolved}" "${party}" )
+      ( cd "${REPO_ROOT}" && exec setsid "${JAVA_BIN}" "${opts[@]}" -cp "${PSU_DRIVER_JAR}" edu.alibaba.libpsu.cli.LibPsuMain "${resolved}" "${party}" )
     else
-      ( cd "${REPO_ROOT}" && exec "${JAVA_BIN}" "${opts[@]}" -cp "${PSU_DRIVER_JAR}" "${main_class}" "${resolved}" "${party}" )
+      ( cd "${REPO_ROOT}" && exec "${JAVA_BIN}" "${opts[@]}" -cp "${PSU_DRIVER_JAR}" edu.alibaba.libpsu.cli.LibPsuMain "${resolved}" "${party}" )
     fi
   }
 

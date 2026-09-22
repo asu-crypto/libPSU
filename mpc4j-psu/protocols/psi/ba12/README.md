@@ -14,24 +14,27 @@ Secret-sharing MPC (not PSU/PSI). Implements oblivious set operations via **sort
 ## Tests (required sizes)
 
 ```bash
-mvn -pl mpc4j-psu/tests -Dtest=Ba12SetOps2p5Test test
+./scripts/mvn-jdk17.sh -pl :mpc4j-psu-tests -am \
+  -Dtest=Ba12SetOps2p5Test -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
 ## Fair benchmark (PSU driver)
 
-ASIACCS:BlaAgu12 runs through `PsoMain` with `pto_type = ASIACCS:BlaAgu12` and writes `PSU_ASIACCS:BlaAgu12_<append>_<ell>_<party>_<threads>.output` (same TSV format as balanced PSU).
+ASIACCS:BlaAgu12 runs through the unified `edu.alibaba.libpsu.cli.LibPsuMain`
+entry point with `pto_type = ASIACCS:BlaAgu12` (alias for `BA12`) and writes
+`PSU_ASIACCS:BlaAgu12_<append>_<ell>_<party>_<threads>.output` (same TSV format as balanced PSU).
 
 Configs:
 
-- `mpc4j-psu-tests/src/test/resources/ba12/01_ASIACCS:BlaAgu12/fair_bench_2p5.conf`
-- `mpc4j-psu-tests/src/test/resources/ba12/01_ASIACCS:BlaAgu12/fair_bench_2p20.conf`
+- `mpc4j-psu/bench/configs/ba12/01_BA12/fair_bench_2p5.conf`
+- `mpc4j-psu/bench/configs/ba12/01_BA12/fair_bench_2p20.conf`
 
 ```bash
-mvn -f mpc4j-psu/pom.xml install -DskipTests
+./scripts/mvn-jdk17.sh -pl :mpc4j-psu-driver -am package -DskipTests
 scripts/run_psu_fair.sh --only ba12
 python3 scripts/summarize_psu_fair_outputs.py --only-append fair_bench_2p5
 ```
 
-Default operation is `ASIACCS:BlaAgu12_UNION` (MPC set union). This is **not** DH/OPRF/OT PSU.
+Default operation is `BA12_UNION` (MPC set union). This is **not** DH/OPRF/OT PSU.
 
-See `ASIACCS:BlaAgu12_IMPLEMENTATION_NOTES.md` for primitive mapping and package layout.
+See [BA12_IMPLEMENTATION_NOTES.md](BA12_IMPLEMENTATION_NOTES.md) for primitive mapping and package layout.

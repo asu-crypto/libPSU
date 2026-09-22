@@ -11,6 +11,7 @@ import edu.alibaba.mpc4j.common.rpc.Party;
 import edu.alibaba.mpc4j.common.rpc.Rpc;
 import edu.alibaba.mpc4j.common.rpc.desc.SecurityModel;
 import edu.alibaba.mpc4j.common.rpc.pto.MultiPartyPtoConfig;
+import edu.alibaba.mpc4j.psu.balanced.PsuLibrary;
 import edu.alibaba.mpc4j.s2pc.pso.PsuPaperFidelity;
 import edu.alibaba.mpc4j.s2pc.pso.main.psu.PsuConfigUtils;
 import edu.alibaba.mpc4j.s2pc.pso.psu.PsuClient;
@@ -110,12 +111,12 @@ public final class ProtocolRegistry {
 
     public static PsuServer createPsuServer(Rpc serverRpc, Party clientParty, PsuConfig config) {
         requireOneSidedPublicFactory(config);
-        return PsuFactory.createServer(serverRpc, clientParty, config);
+        return PsuLibrary.createServer(serverRpc, clientParty, config);
     }
 
     public static PsuClient createPsuClient(Rpc clientRpc, Party serverParty, PsuConfig config) {
         requireOneSidedPublicFactory(config);
-        return PsuFactory.createClient(clientRpc, serverParty, config);
+        return PsuLibrary.createClient(clientRpc, serverParty, config);
     }
 
     public static PsuTwoSidedServer createTwoSidedPsuServer(
@@ -255,7 +256,9 @@ public final class ProtocolRegistry {
         public MultiPartyPtoConfig createConfig(Properties properties) {
             Properties merged = new Properties();
             if (properties != null) {
-                merged.putAll(properties);
+                for (String key : properties.stringPropertyNames()) {
+                    merged.setProperty(key, properties.getProperty(key));
+                }
             }
             merged.setProperty(PsuConfigUtils.PSU_PTO_NAME_KEY, protocolName);
             return PsuConfigUtils.createConfig(merged);

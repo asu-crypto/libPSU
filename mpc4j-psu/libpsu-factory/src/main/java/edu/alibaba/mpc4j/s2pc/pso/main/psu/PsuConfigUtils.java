@@ -278,7 +278,7 @@ public class PsuConfigUtils {
             builder.setCcpsiConfig(PsuCcpsiConfigUtils.createConfig(properties));
         }
         if (properties.containsKey(ROSN_TYPE)) {
-            RosnType rosnType = MainPtoConfigUtils.readEnum(RosnType.class, properties, ROSN_TYPE);
+            RosnType rosnType = readRosnType(properties);
             builder.setRosnConfig(RosnFactory.createRosnConfig(rosnType, silent));
         }
         return builder.build();
@@ -306,7 +306,7 @@ public class PsuConfigUtils {
 
     private static Gmr21PsuConfig generateGmr21PsuConfig(Properties properties) {
         boolean silent = MainPtoConfigUtils.readSilentCot(properties);
-        RosnType rosnType = MainPtoConfigUtils.readEnum(RosnType.class, properties, ROSN_TYPE);
+        RosnType rosnType = readRosnType(properties);
         RosnConfig rosnConfig = RosnFactory.createRosnConfig(rosnType, silent);
         Gmr21MqRpmtConfig gmr21MqRpmtConfig = new Gmr21MqRpmtConfig.Builder(silent)
             .setOkvsType(Gf2eDokvsType.MEGA_BIN)
@@ -334,14 +334,14 @@ public class PsuConfigUtils {
 
     private static Jsz22SfcPsuConfig createJsz22SfcPsuConfig(Properties properties) {
         boolean silent = MainPtoConfigUtils.readSilentCot(properties);
-        RosnType rosnType = MainPtoConfigUtils.readEnum(RosnType.class, properties, ROSN_TYPE);
+        RosnType rosnType = readRosnType(properties);
         RosnConfig rosnConfig = RosnFactory.createRosnConfig(rosnType, silent);
         return new Jsz22SfcPsuConfig.Builder(silent).setRosnConfig(rosnConfig).build();
     }
 
     private static Jsz22SfsPsuConfig createJsz22SfsPsuConfig(Properties properties) {
         boolean silent = MainPtoConfigUtils.readSilentCot(properties);
-        RosnType rosnType = MainPtoConfigUtils.readEnum(RosnType.class, properties, ROSN_TYPE);
+        RosnType rosnType = readRosnType(properties);
         RosnConfig rosnConfig = RosnFactory.createRosnConfig(rosnType, silent);
         return new Jsz22SfsPsuConfig.Builder(silent).setRosnConfig(rosnConfig).build();
     }
@@ -355,5 +355,16 @@ public class PsuConfigUtils {
             LOGGER.info("PKC:CheZhaZha24 filter_type={}", filterType);
         }
         return builder.build();
+    }
+
+    private static RosnType readRosnType(Properties properties) {
+        String raw = properties.getProperty(ROSN_TYPE);
+        if (raw != null && raw.trim().startsWith("PKC:GMRSS21_")) {
+            Properties normalized = new Properties();
+            normalized.putAll(properties);
+            normalized.setProperty(ROSN_TYPE, "GMR21_" + raw.trim().substring("PKC:GMRSS21_".length()));
+            return MainPtoConfigUtils.readEnum(RosnType.class, normalized, ROSN_TYPE);
+        }
+        return MainPtoConfigUtils.readEnum(RosnType.class, properties, ROSN_TYPE);
     }
 }
