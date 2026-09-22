@@ -1,5 +1,6 @@
 package edu.alibaba.mpc4j.s2pc.upso.upsu.tcl23;
 
+import com.google.common.base.Preconditions;
 import edu.alibaba.mpc4j.common.rpc.*;
 import edu.alibaba.mpc4j.common.rpc.utils.DataPacket;
 import edu.alibaba.mpc4j.common.rpc.utils.DataPacketHeader;
@@ -11,6 +12,7 @@ import edu.alibaba.mpc4j.common.tool.crypto.prg.PrgFactory;
 import edu.alibaba.mpc4j.common.tool.galoisfield.zp64.Zp64;
 import edu.alibaba.mpc4j.common.tool.galoisfield.zp64.Zp64Factory;
 import edu.alibaba.mpc4j.common.tool.hashbin.MaxBinSizeUtils;
+import edu.alibaba.mpc4j.common.tool.hashbin.object.HashBinEntry;
 import edu.alibaba.mpc4j.common.tool.hashbin.object.cuckoo.CuckooHashBin;
 import edu.alibaba.mpc4j.common.tool.hashbin.object.cuckoo.CuckooHashBinFactory;
 import edu.alibaba.mpc4j.common.tool.utils.BlockUtils;
@@ -99,7 +101,8 @@ public class Tcl23UpsuSender extends AbstractUpsuSender {
 
         stopWatch.start();
         params = Tcl23UpsuParams.RECEIVER_16M_SENDER_MAX_1024;
-        assert maxSenderElementSize <= params.maxSenderElementSize() : "the sender element size is too large";
+        Preconditions.checkArgument(maxSenderElementSize <= params.maxSenderElementSize(),
+            "the sender element size is too large: %s > %s", maxSenderElementSize, params.maxSenderElementSize());
         // init OPRF
         sqOprfReceiver.init(maxSenderElementSize);
         // create zp64 poly
@@ -230,15 +233,28 @@ public class Tcl23UpsuSender extends AbstractUpsuSender {
      */
     private List<byte[]> handleCotSenderOutput(CotSenderOutput cotSenderOutput, CuckooHashBin<ByteBuffer> cuckooHashBin,
                                                Map<ByteBuffer, byte[]> oprfItemMap, int[] columnPermutationMap) {
-        Prg encPrg = PrgFactory.createInstance(envType, elementByteLength);
+        int wireLen = elementByteLength + 1;
+        Prg encPrg = PrgFactory.createInstance(envType, wireLen);
         IntStream encIntStream = IntStream.range(0, params.getBinNum());
         encIntStream = parallel ? encIntStream.parallel() : encIntStream;
         return encIntStream
             .mapToObj(index -> {
-                // do not need CRHF since we call prg
                 byte[] ciphertext = encPrg.extendToBytes(cotSenderOutput.getR0(index));
-                ByteBuffer item = cuckooHashBin.getHashBinEntry(columnPermutationMap[index]).getItem();
-                BytesUtils.xori(ciphertext, oprfItemMap.containsKey(item) ? oprfItemMap.get(item) : botElementByteBuffer.array());
+                HashBinEntry<ByteBuffer> entry = cuckooHashBin.getHashBinEntry(columnPermutationMap[index]);
+                byte[] plaintext = new byte[wireLen];
+                if (entry.getHashIndex() == HashBinEntry.DUMMY_ITEM_HASH_INDEX) {
+                    plaintext[0] = 0;
+                } else {
+                    ByteBuffer item = entry.getItem();
+                    byte[] element = oprfItemMap.get(item);
+                    if (element == null) {
+                        plaintext[0] = 0;
+                    } else {
+                        plaintext[0] = 1;
+                        System.arraycopy(element, 0, plaintext, 1, elementByteLength);
+                    }
+                }
+                BytesUtils.xori(ciphertext, plaintext);
                 return ciphertext;
             })
             .collect(Collectors.toList());
@@ -283,8 +299,9 @@ public class Tcl23UpsuSender extends AbstractUpsuSender {
             envType, params.getCuckooHashBinType(), senderElementSize, params.getBinNum(), hashKeys
         );
         cuckooHashBin.insertItems(new ArrayList<>(oprfItemMap.keySet()));
-        assert cuckooHashBin.itemNumInStash() == 0;
-        cuckooHashBin.insertPaddingItems(botElementByteBuffer);
+        Preconditions.checkArgument(cuckooHashBin.itemNumInStash() == 0,
+            "TCL23 cuckoo stash must be empty; got %s items", cuckooHashBin.itemNumInStash());
+        cuckooHashBin.insertPaddingItems(secureRandom);
         return cuckooHashBin;
     }
 

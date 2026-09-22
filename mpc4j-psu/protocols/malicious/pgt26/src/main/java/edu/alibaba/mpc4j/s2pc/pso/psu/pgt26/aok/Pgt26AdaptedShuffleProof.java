@@ -416,11 +416,11 @@ public final class Pgt26AdaptedShuffleProof {
   }
 
   private static boolean isPoint(byte[] point) {
-    return Pgt26EdwardsMath.isValidPoint(point);
+    return Pgt26EdwardsMath.isValidPrimeSubgroupPoint(point);
   }
 
   private static boolean isScalar(byte[] scalar) {
-    return scalar != null && scalar.length == Ed25519ByteEccUtils.SCALAR_BYTES;
+    return Pgt26EdwardsMath.isCanonicalScalar(scalar);
   }
 
   private static KnownContentHint knownPreprocess(Pgt26PublicParams pp, int n, SecureRandom random) {

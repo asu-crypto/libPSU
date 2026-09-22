@@ -1,5 +1,6 @@
 package edu.alibaba.mpc4j.s2pc.pso.main.psu;
 
+import edu.alibaba.libpsu.LibPsu;
 import com.google.common.base.Preconditions;
 import edu.alibaba.mpc4j.common.rpc.MpcAbortException;
 import edu.alibaba.mpc4j.common.rpc.Party;
@@ -12,7 +13,6 @@ import edu.alibaba.mpc4j.psu.common.PsuBenchmarkUtils;
 import edu.alibaba.mpc4j.s2pc.pso.psu.OoPsuClient;
 import edu.alibaba.mpc4j.s2pc.pso.psu.OoPsuConfig;
 import edu.alibaba.mpc4j.s2pc.pso.psu.OoPsuServer;
-import edu.alibaba.mpc4j.s2pc.pso.psu.PsuFactory;
 import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -95,7 +95,7 @@ public class OoPsuMain extends AbstractMainTwoPartyPto {
         parallel = PropertiesUtils.readBoolean(properties, "parallel", false);
         // read PSU config
         LOGGER.info("{} read PSU config", ownRpc.ownParty().getPartyName());
-        psuConfig = OoPsuConfigUtils.createConfig(properties);
+        psuConfig = LibPsu.createOoPsuConfig(properties);
     }
 
     @Override
@@ -166,7 +166,7 @@ public class OoPsuMain extends AbstractMainTwoPartyPto {
 
     private void warmupServer(Rpc serverRpc, Party clientParty, OoPsuConfig config, int taskId) throws IOException, MpcAbortException {
         Set<ByteBuffer> serverElementSet = readServerElementSet(WARMUP_SET_SIZE, WARMUP_ELEMENT_BYTE_LENGTH);
-        OoPsuServer psuServer = PsuFactory.createOoPsuServer(serverRpc, clientParty, config);
+        OoPsuServer psuServer = LibPsu.createOoPsuServer(serverRpc, clientParty, config);
         psuServer.setTaskId(taskId);
         psuServer.setParallel(parallel);
         psuServer.getRpc().synchronize();
@@ -195,7 +195,7 @@ public class OoPsuMain extends AbstractMainTwoPartyPto {
             "{}: serverSetSize = {}, clientSetSize = {}, parallel = {}",
             serverRpc.ownParty().getPartyName(), serverSetSize, clientSetSize, parallel
         );
-        OoPsuServer psuServer = PsuFactory.createOoPsuServer(serverRpc, clientParty, config);
+        OoPsuServer psuServer = LibPsu.createOoPsuServer(serverRpc, clientParty, config);
         psuServer.setTaskId(taskId);
         psuServer.setParallel(parallel);
         // 启动测试
@@ -320,7 +320,7 @@ public class OoPsuMain extends AbstractMainTwoPartyPto {
 
     private void warmupClient(Rpc clientRpc, Party serverParty, OoPsuConfig config, int taskId) throws IOException, MpcAbortException {
         Set<ByteBuffer> clientElementSet = readClientElementSet(WARMUP_SET_SIZE, WARMUP_ELEMENT_BYTE_LENGTH);
-        OoPsuClient psuClient = PsuFactory.createOoPsuClient(clientRpc, serverParty, config);
+        OoPsuClient psuClient = LibPsu.createOoPsuClient(clientRpc, serverParty, config);
         psuClient.setTaskId(taskId);
         psuClient.setParallel(parallel);
         psuClient.getRpc().synchronize();
@@ -350,7 +350,7 @@ public class OoPsuMain extends AbstractMainTwoPartyPto {
             "{}: serverSetSize = {}, clientSetSize = {}, parallel = {}",
             clientRpc.ownParty().getPartyName(), serverSetSize, clientSetSize, parallel
         );
-        OoPsuClient psuClient = PsuFactory.createOoPsuClient(clientRpc, serverParty, config);
+        OoPsuClient psuClient = LibPsu.createOoPsuClient(clientRpc, serverParty, config);
         psuClient.setTaskId(taskId);
         psuClient.setParallel(parallel);
         // 启动测试

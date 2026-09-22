@@ -6,34 +6,14 @@
         <artifactId>apps</artifactId>
         <groupId>edu.alibaba</groupId>
         <version>1.1.5</version>
-            <relativePath>../pom.xml</relativePath>
-</parent>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>mpc4j-psu-driver</artifactId>
     <dependencies>
         <dependency>
             <groupId>edu.alibaba</groupId>
-            <artifactId>libpsu-factory</artifactId>
-            <version>1.1.5</version>
-        </dependency>
-        <dependency>
-            <groupId>edu.alibaba</groupId>
-            <artifactId>mpc4j-psu-balanced</artifactId>
-            <version>1.1.5</version>
-        </dependency>
-        <dependency>
-            <groupId>edu.alibaba</groupId>
-            <artifactId>mpc4j-psu-unbalanced</artifactId>
-            <version>1.1.5</version>
-        </dependency>
-        <dependency>
-            <groupId>edu.alibaba</groupId>
-            <artifactId>mpc4j-psu-psi</artifactId>
-            <version>1.1.5</version>
-        </dependency>
-        <dependency>
-            <groupId>edu.alibaba</groupId>
-            <artifactId>mpc4j-psu-protocol-ba12</artifactId>
+            <artifactId>libpsu</artifactId>
             <version>1.1.5</version>
         </dependency>
         <dependency>
@@ -51,6 +31,11 @@
             <artifactId>mpc4j-common-tool</artifactId>
             <version>1.1.5</version>
         </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
@@ -62,7 +47,7 @@
                     </descriptorRefs>
                     <archive>
                         <manifest>
-                            <mainClass>edu.alibaba.mpc4j.s2pc.pso.main.PsoMain</mainClass>
+                            <mainClass>edu.alibaba.libpsu.cli.LibPsuMain</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

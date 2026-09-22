@@ -129,26 +129,20 @@ public final class Pgt26_2mParty {
       byte[][] shuffledCompressed,
       byte[][] peerOriginalCompressed,
       Pgt26AdaptedShuffleProof proof,
-      boolean skipShuffleProof,
       SecureRandom random
   ) {
-    if (!skipShuffleProof) {
-      String shuffleFail = Pgt26AdaptedShuffleProof.verifyFailureStage(
-          pp, peerPk, ownPoints, shuffledPeer, ownCompressed, shuffledCompressed, proof, random
-      );
-      if (shuffleFail != null) {
-        lastShuffleVerifyFailure = shuffleFail;
-        return null;
-      }
+    String shuffleFail = Pgt26AdaptedShuffleProof.verifyFailureStage(
+        pp, peerPk, ownPoints, shuffledPeer, ownCompressed, shuffledCompressed, proof, random
+    );
+    if (shuffleFail != null) {
+      lastShuffleVerifyFailure = shuffleFail;
+      return null;
     }
     Set<ByteBuffer> peerSet = new HashSet<>();
     for (byte[] p : peerOriginalCompressed) {
       peerSet.add(ByteBuffer.wrap(BytesUtils.clone(p)));
     }
     int n = ownPoints.length;
-    int[] indices = new int[0];
-    byte[][] unblinded = new byte[0][];
-    byte[][] shrinked = new byte[0][];
     int count = 0;
     for (int i = 0; i < n; i++) {
       byte[] p = Pgt26EdwardsMath.pointMul(shuffledPeer[i], secretInv);
@@ -156,9 +150,9 @@ public final class Pgt26_2mParty {
         count++;
       }
     }
-    indices = new int[count];
-    unblinded = new byte[count][];
-    shrinked = new byte[count][];
+    int[] indices = new int[count];
+    byte[][] unblinded = new byte[count][];
+    byte[][] shrinked = new byte[count][];
     int k = 0;
     for (int i = 0; i < n; i++) {
       byte[] p = Pgt26EdwardsMath.pointMul(shuffledPeer[i], secretInv);
@@ -177,8 +171,7 @@ public final class Pgt26_2mParty {
       byte[] peerPk,
       byte[][] peerUnblinded,
       byte[][] peerShrinkedCompressed,
-      Pgt26BatchedRddhProof proof,
-      boolean skipRddhProof
+      Pgt26BatchedRddhProof proof
   ) {
     if (!Pgt26EdwardsMath.isValidNonIdentityPoint(peerPk)
         || peerUnblinded == null || peerShrinkedCompressed == null
@@ -193,14 +186,12 @@ public final class Pgt26_2mParty {
         return null;
       }
     }
-    if (!skipRddhProof) {
-      if (!Pgt26BatchedRddhProof.verify(
-          peerPk, peerUnblinded, peerShrinkedCompressed,
-          peerUnblinded, peerShrinkedCompressed, proof
-      )) {
-        lastRevealFailure = "bad RDDH proof";
-        return null;
-      }
+    if (!Pgt26BatchedRddhProof.verify(
+        peerPk, peerUnblinded, peerShrinkedCompressed,
+        peerUnblinded, peerShrinkedCompressed, proof
+    )) {
+      lastRevealFailure = "bad RDDH proof";
+      return null;
     }
     byte[][] items = new byte[peerUnblinded.length][];
     for (int i = 0; i < peerUnblinded.length; i++) {

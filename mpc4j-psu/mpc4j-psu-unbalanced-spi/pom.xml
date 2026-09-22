@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>mpc4j-psu-unbalanced-spi</artifactId>
-    <description>Compatibility shim — SPI types live in libpsu-spi</description>
+    <description>Deprecated compatibility adapter — use edu.alibaba:libpsu or libpsu-spi</description>
     <dependencies>
         <dependency>
             <groupId>edu.alibaba</groupId>

@@ -1,16 +1,22 @@
-# mpc4j-psu — libPSU reactor
+# libPSU implementation reactor
 
-Private Set Union / PSI / UPSU library layout:
+This directory contains the implementation of **libPSU**. Applications depend on
+`edu.alibaba:libpsu` and use `edu.alibaba.libpsu.LibPsu` for all protocol families.
+The `mpc4j-psu` directory name, internal artifacts, and legacy Java packages remain
+for compatibility. See [library usage](docs/LIBRARY_USAGE.md).
+
+Implementation layout:
 
 ```text
 mpc4j-psu/
+├── libpsu/              # Public application artifact and LibPsu facade
 ├── libpsu-api/          # SoK metadata (ProtocolInfo, ProtocolMetadataRegistry)
 ├── libpsu-core/         # SetElementUtils, bench metrics, validation
 ├── libpsu-spi/          # SPI aggregator + ProtocolDescriptor
 ├── libpsu-factory/      # PsuConfigUtils, ProtocolRegistry, config parsing
 ├── plugins/             # cot-union, mqrpmt, ccpsi, aon-output
 ├── protocols/           # balanced / unbalanced / psi / malicious implementations
-├── apps/driver/         # PsoMain, PsuMain, PsiMain, UpsuMain (fat JAR)
+├── apps/driver/         # Unified LibPsuMain CLI (fat JAR)
 ├── bench/               # Fair-benchmark configs (bench/configs/)
 ├── libpsu-test-fixtures/ # Shared integration-test helpers
 ├── tests/               # Integration and interop tests only
@@ -21,10 +27,15 @@ Full architecture: [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md) and [docs/PRO
 
 ## Build
 
+Run from the repository root so Maven includes the required MPC4J primitives:
+
 ```bash
-mvn -f mpc4j-psu/pom.xml install -DskipTests
-mvn -f mpc4j-psu/pom.xml -pl tests test
+./scripts/mvn-jdk17.sh -pl :libpsu -am install -DskipTests
+./scripts/mvn-jdk17.sh -pl :mpc4j-psu-driver -am package -DskipTests
 ```
+
+The wrapper selects JDK 17. See [TESTING.md](docs/TESTING.md) for the facade and
+protocol contract checks.
 
 ## Fair benchmark
 

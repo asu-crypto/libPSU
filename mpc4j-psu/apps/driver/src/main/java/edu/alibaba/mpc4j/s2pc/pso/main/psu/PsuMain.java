@@ -1,5 +1,6 @@
 package edu.alibaba.mpc4j.s2pc.pso.main.psu;
 
+import edu.alibaba.libpsu.LibPsu;
 import com.google.common.base.Preconditions;
 import edu.alibaba.mpc4j.common.rpc.MpcAbortException;
 import edu.alibaba.mpc4j.common.rpc.Party;
@@ -11,7 +12,6 @@ import edu.alibaba.mpc4j.common.tool.utils.PropertiesUtils;
 import edu.alibaba.mpc4j.psu.common.PsuBenchmarkUtils;
 import edu.alibaba.mpc4j.s2pc.pso.psu.PsuClient;
 import edu.alibaba.mpc4j.s2pc.pso.psu.PsuConfig;
-import edu.alibaba.mpc4j.s2pc.pso.psu.PsuFactory;
 import edu.alibaba.mpc4j.s2pc.pso.psu.PsuType;
 import edu.alibaba.mpc4j.s2pc.pso.psu.PsuServer;
 import edu.alibaba.mpc4j.s2pc.pso.psu.PsuTwoSidedClient;
@@ -112,7 +112,7 @@ public class PsuMain extends AbstractMainTwoPartyPto {
         parallel = PropertiesUtils.readBoolean(properties, "parallel", false);
         // read PSU config
         LOGGER.info("{} read PSU config", ownRpc.ownParty().getPartyName());
-        psuConfig = PsuConfigUtils.createConfig(properties);
+        psuConfig = LibPsu.createPsuConfig(properties);
         skipWarmup = PropertiesUtils.readBoolean(properties, "skip_warmup", false);
         skipGc = PropertiesUtils.readBoolean(properties, "skip_gc", false);
     }
@@ -125,7 +125,7 @@ public class PsuMain extends AbstractMainTwoPartyPto {
     }
 
     private static boolean isTwoSidedPsu(PsuConfig config) {
-        return config.getPtoType() == PsuType.EUROCRYPT_PuGaoTri26;
+        return LibPsu.usesTwoSidedPublicFactory(config);
     }
 
     /**
@@ -231,7 +231,7 @@ public class PsuMain extends AbstractMainTwoPartyPto {
                               int serverSetSize, int clientSetSize) throws IOException, MpcAbortException {
         Set<ByteBuffer> serverElementSet = readServerElementSet(serverSetSize, WARMUP_ELEMENT_BYTE_LENGTH);
         if (isTwoSidedPsu(config)) {
-            PsuTwoSidedServer psuServer = PsuFactory.createTwoSidedServer(serverRpc, clientParty, config);
+            PsuTwoSidedServer psuServer = LibPsu.createTwoSidedServer(serverRpc, clientParty, config);
             psuServer.setTaskId(taskId);
             psuServer.setParallel(parallel);
             psuServer.getRpc().synchronize();
@@ -246,7 +246,7 @@ public class PsuMain extends AbstractMainTwoPartyPto {
             LOGGER.info("(warmup) {} finish", psuServer.ownParty().getPartyName());
             return;
         }
-        PsuServer psuServer = PsuFactory.createServer(serverRpc, clientParty, config);
+        PsuServer psuServer = LibPsu.createServer(serverRpc, clientParty, config);
         psuServer.setTaskId(taskId);
         psuServer.setParallel(parallel);
         psuServer.getRpc().synchronize();
@@ -275,7 +275,7 @@ public class PsuMain extends AbstractMainTwoPartyPto {
             runTwoSidedServer(serverRpc, clientParty, config, taskId, serverElementSet, clientSetSize, elementByteLength, printWriter);
             return;
         }
-        PsuServer psuServer = PsuFactory.createServer(serverRpc, clientParty, config);
+        PsuServer psuServer = LibPsu.createServer(serverRpc, clientParty, config);
         psuServer.setTaskId(taskId);
         psuServer.setParallel(parallel);
         // 启动测试
@@ -323,7 +323,7 @@ public class PsuMain extends AbstractMainTwoPartyPto {
                                    Set<ByteBuffer> serverElementSet, int clientSetSize, int elementByteLength,
                                    PrintWriter printWriter) throws MpcAbortException {
         int serverSetSize = serverElementSet.size();
-        PsuTwoSidedServer psuServer = PsuFactory.createTwoSidedServer(serverRpc, clientParty, config);
+        PsuTwoSidedServer psuServer = LibPsu.createTwoSidedServer(serverRpc, clientParty, config);
         psuServer.setTaskId(taskId);
         psuServer.setParallel(parallel);
         psuServer.getRpc().synchronize();
@@ -449,7 +449,7 @@ public class PsuMain extends AbstractMainTwoPartyPto {
                               int serverSetSize, int clientSetSize) throws IOException, MpcAbortException {
         Set<ByteBuffer> clientElementSet = readClientElementSet(clientSetSize, WARMUP_ELEMENT_BYTE_LENGTH);
         if (isTwoSidedPsu(config)) {
-            PsuTwoSidedClient psuClient = PsuFactory.createTwoSidedClient(clientRpc, serverParty, config);
+            PsuTwoSidedClient psuClient = LibPsu.createTwoSidedClient(clientRpc, serverParty, config);
             psuClient.setTaskId(taskId);
             psuClient.setParallel(parallel);
             psuClient.getRpc().synchronize();
@@ -464,7 +464,7 @@ public class PsuMain extends AbstractMainTwoPartyPto {
             LOGGER.info("(warmup) {} finish", psuClient.ownParty().getPartyName());
             return;
         }
-        PsuClient psuClient = PsuFactory.createClient(clientRpc, serverParty, config);
+        PsuClient psuClient = LibPsu.createClient(clientRpc, serverParty, config);
         psuClient.setTaskId(taskId);
         psuClient.setParallel(parallel);
         psuClient.getRpc().synchronize();
@@ -494,7 +494,7 @@ public class PsuMain extends AbstractMainTwoPartyPto {
             runTwoSidedClient(clientRpc, serverParty, config, taskId, clientElementSet, serverSetSize, elementByteLength, printWriter);
             return;
         }
-        PsuClient psuClient = PsuFactory.createClient(clientRpc, serverParty, config);
+        PsuClient psuClient = LibPsu.createClient(clientRpc, serverParty, config);
         psuClient.setTaskId(taskId);
         psuClient.setParallel(parallel);
         // 启动测试
@@ -541,7 +541,7 @@ public class PsuMain extends AbstractMainTwoPartyPto {
                                    Set<ByteBuffer> clientElementSet, int serverSetSize, int elementByteLength,
                                    PrintWriter printWriter) throws MpcAbortException {
         int clientSetSize = clientElementSet.size();
-        PsuTwoSidedClient psuClient = PsuFactory.createTwoSidedClient(clientRpc, serverParty, config);
+        PsuTwoSidedClient psuClient = LibPsu.createTwoSidedClient(clientRpc, serverParty, config);
         psuClient.setTaskId(taskId);
         psuClient.setParallel(parallel);
         psuClient.getRpc().synchronize();

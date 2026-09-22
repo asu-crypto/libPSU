@@ -21,7 +21,6 @@ public abstract class AbstractPsuTwoSidedClient extends AbstractTwoPartyPto impl
     protected int clientElementSize;
     protected int serverElementSize;
     protected int elementByteLength;
-    protected ByteBuffer botElementByteBuffer;
 
     protected AbstractPsuTwoSidedClient(PtoDesc ptoDesc, Rpc clientRpc, Party serverParty, PsuConfig config) {
         super(ptoDesc, clientRpc, serverParty, config);
@@ -39,9 +38,8 @@ public abstract class AbstractPsuTwoSidedClient extends AbstractTwoPartyPto impl
         checkInitialized();
         SetElementUtils.validateProtocolElementByteLength(elementByteLength);
         this.elementByteLength = elementByteLength;
-        botElementByteBuffer = SetElementUtils.createBotElement(elementByteLength);
         clientElementArrayList = SetElementUtils.normalizeProtocolElements(
-            clientElementSet, elementByteLength, botElementByteBuffer, "client element"
+            clientElementSet, elementByteLength, "client element"
         );
         clientElementSize = clientElementArrayList.size();
         SetElementUtils.checkElementSizeInRange("clientElementSize", clientElementSize, maxClientElementSize, 2);

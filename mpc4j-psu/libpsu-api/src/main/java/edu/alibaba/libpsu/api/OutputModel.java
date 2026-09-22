@@ -19,4 +19,19 @@ public enum OutputModel {
      * difference pattern (Small-EC/Elligator leakage baseline — not standard one-sided PSU).
      */
     LEAKAGE_BASELINE,
+    ;
+
+    /**
+     * True when both parties learn the union under the declared output model.
+     */
+    public static boolean isTwoSided(OutputModel model) {
+        return model == TWO_SIDED || model == MALICIOUS_TWO_SIDED;
+    }
+
+    /**
+     * True when the public one-sided {@code createPsuServer/Client} API is appropriate.
+     */
+    public static boolean isOneSidedPublicApi(OutputModel model) {
+        return model == ONE_SIDED || model == AON || model == LEAKAGE_BASELINE;
+    }
 }

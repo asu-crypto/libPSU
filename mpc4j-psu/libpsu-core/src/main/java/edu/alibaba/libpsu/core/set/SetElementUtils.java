@@ -33,11 +33,41 @@ public final class SetElementUtils {
         MathPreconditions.checkLessOrEqual(name, size, maxSize);
     }
 
+    /**
+     * Temporary all-{@code 0xFF} filler for legacy callers. Prefer
+     * {@link #sampleUnusedPaddingElement} or {@code insertPaddingItems(SecureRandom)}.
+     * All-{@code 0xFF} is a valid user-domain element.
+     *
+     * @deprecated Do not use as a reserved domain sentinel.
+     */
+    @Deprecated
     public static ByteBuffer createBotElement(int elementByteLength) {
         validateElementByteLength(elementByteLength);
         byte[] botElementByteArray = new byte[elementByteLength];
         Arrays.fill(botElementByteArray, (byte) 0xFF);
         return ByteBuffer.wrap(botElementByteArray);
+    }
+
+    /**
+     * Samples a fixed-length element that is not already present in {@code occupied}.
+     * Used only as a stored filler for hash-bin APIs that require a value; padding is
+     * still identified by {@code HashBinEntry.DUMMY_ITEM_HASH_INDEX}.
+     */
+    public static ByteBuffer sampleUnusedPaddingElement(
+        Set<ByteBuffer> occupied, int elementByteLength, java.security.SecureRandom secureRandom
+    ) {
+        validateElementByteLength(elementByteLength);
+        Preconditions.checkNotNull(occupied, "occupied");
+        Preconditions.checkNotNull(secureRandom, "secureRandom");
+        for (int attempt = 0; attempt < 10_000; attempt++) {
+            byte[] bytes = new byte[elementByteLength];
+            secureRandom.nextBytes(bytes);
+            ByteBuffer candidate = ByteBuffer.wrap(bytes);
+            if (!occupied.contains(candidate)) {
+                return candidate;
+            }
+        }
+        throw new IllegalStateException("unable to sample unused padding element");
     }
 
     public static byte[] toFixedByteArray(ByteBuffer buffer, int elementByteLength) {
@@ -67,18 +97,29 @@ public final class SetElementUtils {
         return new ArrayList<>(uniqueElements.values());
     }
 
+    /**
+     * Normalize protocol input elements: validate length and deduplicate.
+     * All byte strings of the configured length are valid, including all-{@code 0xFF}.
+     */
+    public static ArrayList<ByteBuffer> normalizeProtocolElements(
+        Set<ByteBuffer> elementSet, int elementByteLength, String elementName
+    ) {
+        validateProtocolElementByteLength(elementByteLength);
+        Preconditions.checkNotNull(elementName, "elementName");
+        return deduplicateElements(elementSet, elementByteLength);
+    }
+
+    /**
+     * @deprecated Prefer {@link #normalizeProtocolElements(Set, int, String)}. The bot argument is
+     *             ignored; all-{@code 0xFF} is a valid domain element.
+     */
+    @Deprecated
     public static ArrayList<ByteBuffer> normalizeProtocolElements(
         Set<ByteBuffer> elementSet, int elementByteLength, ByteBuffer botElementByteBuffer, String elementName
     ) {
-        validateProtocolElementByteLength(elementByteLength);
-        byte[] botElement = toFixedByteArray(botElementByteBuffer, elementByteLength);
-        ArrayList<ByteBuffer> normalized = deduplicateElements(elementSet, elementByteLength);
-        for (ByteBuffer element : normalized) {
-            Preconditions.checkArgument(
-                !Arrays.equals(toFixedByteArray(element, elementByteLength), botElement),
-                "%s must not equal bot element", elementName
-            );
+        if (botElementByteBuffer != null) {
+            toFixedByteArray(botElementByteBuffer, elementByteLength);
         }
-        return normalized;
+        return normalizeProtocolElements(elementSet, elementByteLength, elementName);
     }
 }

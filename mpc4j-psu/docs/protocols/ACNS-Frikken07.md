@@ -19,7 +19,7 @@ Legacy polynomial + Paillier AHE.
 
 | | |
 |--|--|
-| Path | `mpc4j-psu/protocols/balanced/f07/` |
+| Path | `mpc4j-psu/protocols/balanced/fri07/` |
 | Maven artifact | `mpc4j-psu-protocol-f07` |
 | Classes | `ACNS:Frikken07PsuConfig, ACNS:Frikken07PsuServer, ACNS:Frikken07PsuClient` |
 

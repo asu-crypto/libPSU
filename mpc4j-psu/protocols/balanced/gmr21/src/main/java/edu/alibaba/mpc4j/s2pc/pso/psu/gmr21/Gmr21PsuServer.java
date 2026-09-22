@@ -12,6 +12,7 @@ import edu.alibaba.mpc4j.s2pc.pcg.ot.cot.*;
 import edu.alibaba.mpc4j.s2pc.pcg.ot.cot.core.CoreCotFactory;
 import edu.alibaba.mpc4j.s2pc.pcg.ot.cot.core.CoreCotSender;
 import edu.alibaba.mpc4j.psu.common.OtBenchmarkMetrics;
+import edu.alibaba.mpc4j.psu.core.union.CotXorUnionDelivery;
 import edu.alibaba.mpc4j.s2pc.pso.psu.AbstractOoPsuServer;
 import edu.alibaba.mpc4j.s2pc.pso.psu.gmr21.Gmr21PsuPtoDesc.PtoStep;
 
@@ -107,15 +108,15 @@ public class Gmr21PsuServer extends AbstractOoPsuServer {
         stopWatch.start();
         int coreCotNum = serverVector.length;
         CotSenderOutput cotSenderOutput = coreCotSender.send(coreCotNum);
-        Prg encPrg = PrgFactory.createInstance(envType, elementByteLength);
+        int wireLen = CotXorUnionDelivery.wireByteLength(elementByteLength);
+        Prg encPrg = PrgFactory.createInstance(envType, wireLen);
         List<byte[]> encPayload = new ArrayList<byte[]>(coreCotNum);
         for (int index = 0; index < coreCotNum; index++) {
             byte[] ciphertext = encPrg.extendToBytes(cotSenderOutput.getR0(index));
-            if (serverVector[index] == null) {
-                BytesUtils.xori(ciphertext, botElementByteBuffer.array());
-            } else {
-                BytesUtils.xori(ciphertext, serverVector[index].array());
-            }
+            byte[] plaintext = serverVector[index] == null
+                ? CotXorUnionDelivery.encodePadding(elementByteLength)
+                : CotXorUnionDelivery.encodeRealElement(serverVector[index].array());
+            BytesUtils.xori(ciphertext, plaintext);
             encPayload.add(ciphertext);
         }
         DataPacketHeader encHeader = new DataPacketHeader(

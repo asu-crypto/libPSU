@@ -23,13 +23,21 @@ import java.nio.ByteBuffer;
 public class CotXorUnionDeliveryPlugin implements PsuUnionDeliveryPlugin {
     private final CoreCotReceiver coreCotReceiver;
     private final EnvType envType;
-    private final ByteBuffer botElement;
     private PsuPluginInit init;
 
-    public CotXorUnionDeliveryPlugin(Rpc rpc, Party otherParty, CoreCotConfig config, EnvType envType, ByteBuffer botElement) {
+    public CotXorUnionDeliveryPlugin(Rpc rpc, Party otherParty, CoreCotConfig config, EnvType envType) {
+        this(rpc, otherParty, config, envType, null);
+    }
+
+    /**
+     * @param botElement ignored; retained for binary compatibility during migration
+     */
+    @Deprecated
+    public CotXorUnionDeliveryPlugin(
+        Rpc rpc, Party otherParty, CoreCotConfig config, EnvType envType, ByteBuffer botElement
+    ) {
         coreCotReceiver = CoreCotFactory.createReceiver(rpc, otherParty, config);
         this.envType = envType;
-        this.botElement = botElement;
     }
 
     @Override
@@ -46,15 +54,8 @@ public class CotXorUnionDeliveryPlugin implements PsuUnionDeliveryPlugin {
     @Override
     public PsuUnionOutput deliverUnion(UnionDeliveryInput input) throws MpcAbortException {
         CotReceiverOutput cotOut = coreCotReceiver.receive(input.getCotChoices());
-        ByteBuffer bot = botElement;
-        int elementByteLength = input.getElementByteLength();
-        if (bot == null) {
-            byte[] botBytes = new byte[elementByteLength];
-            java.util.Arrays.fill(botBytes, (byte) 0xFF);
-            bot = ByteBuffer.wrap(botBytes);
-        }
         return CotXorUnionDelivery.unionFromCotXor(
-            envType, elementByteLength, bot, cotOut, input
+            envType, input.getElementByteLength(), cotOut, input
         );
     }
 

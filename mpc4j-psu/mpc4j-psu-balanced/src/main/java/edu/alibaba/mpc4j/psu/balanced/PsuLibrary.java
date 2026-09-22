@@ -11,13 +11,18 @@ import edu.alibaba.mpc4j.s2pc.pso.psu.PsuServer;
 import edu.alibaba.mpc4j.s2pc.pso.psu.gmr21.Gmr21PsuConfig;
 
 /**
- * Public entry for balanced PSU protocols.
+ * Compatibility runtime entry for balanced PSU protocols.
  * <p>
- * For {@link PsuType#PKC_GMRSS21}, use {@link #usePluginPipeline()} or set
+ * For {@link PsuType#PKC_GMRSS21}, set
  * {@code -Dmpc4j.psu.usePluginPipeline=true} to obtain {@link Gmr21PsuPipelineClient}.
  * Other types delegate to {@link PsuFactory}.
  * </p>
+ *
+ * @deprecated Applications should depend on {@code edu.alibaba:libpsu} and use
+ * {@code edu.alibaba.libpsu.LibPsu}. The unified entry point preserves this
+ * compatibility runtime's plugin-pipeline selection.
  */
+@Deprecated
 public final class PsuLibrary {
     private static final String PLUGIN_PIPELINE_PROPERTY = "mpc4j.psu.usePluginPipeline";
 

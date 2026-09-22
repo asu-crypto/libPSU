@@ -20,7 +20,11 @@ public class Pgt26FieldMapDebugTest {
     for (boolean sign : new boolean[]{false, true}) {
       try {
         byte[] ed = Pgt26Field25519.fieldToEdwards(padded);
-        if (Pgt26EdwardsMath.isValidNonIdentityPoint(ed)) {
+        // Raw M2P image may carry a torsion component; wire validation uses
+        // isValidNonIdentityPoint after cofactor clearing in the protocol.
+        if (Pgt26EdwardsMath.isValidPoint(ed)
+            && !java.util.Arrays.equals(
+                ed, edu.alibaba.mpc4j.common.tool.crypto.ecc.utils.Ed25519ByteEccUtils.POINT_INFINITY)) {
           any = true;
         }
       } catch (Exception ignored) {
@@ -36,7 +40,10 @@ public class Pgt26FieldMapDebugTest {
     padded[0] = 42;
     byte[] mont = Pgt26Field25519.fieldToMontgomeryPublic(padded);
     byte[] ed = Pgt26Field25519.fieldToEdwards(padded);
-    Assert.assertTrue(Pgt26EdwardsMath.isValidNonIdentityPoint(ed));
+    Assert.assertTrue(Pgt26EdwardsMath.isValidPoint(ed));
+    Assert.assertTrue(
+        Pgt26EdwardsMath.isValidNonIdentityPoint(Pgt26EdwardsMath.cofactorClear(ed))
+    );
     byte[] montFromEd = Pgt26Field25519.edwardsToMontgomeryForTest(ed);
     Assert.assertNotNull(montFromEd);
     Assert.assertArrayEquals(

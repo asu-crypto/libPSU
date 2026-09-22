@@ -1,5 +1,6 @@
 package edu.alibaba.mpc4j.s2pc.pso.main.ba12;
 
+import edu.alibaba.libpsu.LibPsu;
 import com.google.common.base.Preconditions;
 import edu.alibaba.mpc4j.common.rpc.MpcAbortException;
 import edu.alibaba.mpc4j.common.rpc.Party;
@@ -79,9 +80,9 @@ public class Ba12Main extends AbstractMainTwoPartyPto {
     skipWarmup = PropertiesUtils.readBoolean(properties, "skip_warmup", false);
     skipGc = PropertiesUtils.readBoolean(properties, "skip_gc", false);
     logBa12Stats = PropertiesUtils.readBoolean(properties, "ba12_log_stats", false);
-    ba12PtoName = Ba12ConfigUtils.readBa12PtoName(properties);
-    operation = Ba12ConfigUtils.readOperation(properties);
-    ba12Config = Ba12ConfigUtils.createConfig(properties, elementByteLength);
+    ba12PtoName = LibPsu.readBa12ProtocolName(properties);
+    operation = LibPsu.readBa12Operation(properties);
+    ba12Config = LibPsu.createBa12Config(properties, elementByteLength);
     ell = ba12Config.getEll();
   }
 
@@ -169,7 +170,7 @@ public class Ba12Main extends AbstractMainTwoPartyPto {
     Rpc serverRpc, Party clientParty, int taskId, int serverSetSize, int clientSetSize, PrintWriter printWriter
   ) throws IOException, MpcAbortException {
     long[] serverElements = readElementArray(serverSetSize, elementByteLength, ell, true);
-    Ba12SetOpsParty party = new Ba12SetOpsParty(serverRpc, clientParty, ba12Config);
+    Ba12SetOpsParty party = LibPsu.createBa12Party(serverRpc, clientParty, ba12Config);
     party.setTaskId(taskId);
     party.setParallel(parallel);
     party.getRpc().synchronize();
@@ -211,7 +212,7 @@ public class Ba12Main extends AbstractMainTwoPartyPto {
     Rpc clientRpc, Party serverParty, int taskId, int serverSetSize, int clientSetSize, PrintWriter printWriter
   ) throws IOException, MpcAbortException {
     long[] clientElements = readElementArray(clientSetSize, elementByteLength, ell, false);
-    Ba12SetOpsParty party = new Ba12SetOpsParty(clientRpc, serverParty, ba12Config);
+    Ba12SetOpsParty party = LibPsu.createBa12Party(clientRpc, serverParty, ba12Config);
     party.setTaskId(taskId);
     party.setParallel(parallel);
     party.getRpc().synchronize();

@@ -1,5 +1,6 @@
 package edu.alibaba.mpc4j.s2pc.upso.main.upsu;
 
+import edu.alibaba.libpsu.LibPsu;
 import com.google.common.base.Preconditions;
 import edu.alibaba.mpc4j.common.rpc.MpcAbortException;
 import edu.alibaba.mpc4j.common.rpc.Party;
@@ -10,7 +11,6 @@ import edu.alibaba.mpc4j.common.tool.CommonConstants;
 import edu.alibaba.mpc4j.common.tool.utils.PropertiesUtils;
 import edu.alibaba.mpc4j.psu.common.PsuBenchmarkUtils;
 import edu.alibaba.mpc4j.s2pc.upso.upsu.UpsuConfig;
-import edu.alibaba.mpc4j.s2pc.upso.upsu.UpsuFactory;
 import edu.alibaba.mpc4j.s2pc.upso.upsu.UpsuReceiver;
 import edu.alibaba.mpc4j.s2pc.upso.upsu.UpsuSender;
 import org.bouncycastle.util.encoders.Hex;
@@ -106,7 +106,7 @@ public class UpsuMain extends AbstractMainTwoPartyPto {
         } else {
             throw new NullPointerException("Please set " + PTO_NAME_KEY + " or " + LEGACY_PSU_PTO_NAME_KEY);
         }
-        config = UpsuConfigUtils.createConfig(properties);
+        config = LibPsu.createUpsuConfig(properties);
     }
 
     @Override
@@ -168,7 +168,7 @@ public class UpsuMain extends AbstractMainTwoPartyPto {
 
     private void warmupServer(Rpc serverRpc, Party clientParty, UpsuConfig config, int taskId) throws IOException, MpcAbortException {
         Set<ByteBuffer> serverElementSet = readServerElementSet(WARMUP_SERVER_SET_SIZE, WARMUP_ELEMENT_BYTE_LENGTH);
-        UpsuSender upsuSender = UpsuFactory.createSender(serverRpc, clientParty, config);
+        UpsuSender upsuSender = LibPsu.createUpsuSender(serverRpc, clientParty, config);
         upsuSender.setTaskId(taskId);
         upsuSender.setParallel(false);
         upsuSender.getRpc().synchronize();
@@ -191,7 +191,7 @@ public class UpsuMain extends AbstractMainTwoPartyPto {
             "{}: serverSetSize = {}, clientSetSize = {}, parallel = {}",
             serverRpc.ownParty().getPartyName(), serverSetSize, clientSetSize, true
         );
-        UpsuSender upsuSender = UpsuFactory.createSender(serverRpc, clientParty, config);
+        UpsuSender upsuSender = LibPsu.createUpsuSender(serverRpc, clientParty, config);
         upsuSender.setTaskId(taskId);
         upsuSender.setParallel(true);
         upsuSender.getRpc().synchronize();
@@ -282,7 +282,7 @@ public class UpsuMain extends AbstractMainTwoPartyPto {
 
     private void warmupClient(Rpc clientRpc, Party serverParty, UpsuConfig config, int taskId) throws IOException, MpcAbortException {
         Set<ByteBuffer> clientElementSet = readClientElementSet(WARMUP_CLIENT_SET_SIZE, WARMUP_ELEMENT_BYTE_LENGTH);
-        UpsuReceiver upsuReceiver = UpsuFactory.createReceiver(clientRpc, serverParty, config);
+        UpsuReceiver upsuReceiver = LibPsu.createUpsuReceiver(clientRpc, serverParty, config);
         upsuReceiver.setTaskId(taskId);
         upsuReceiver.setParallel(false);
         upsuReceiver.getRpc().synchronize();
@@ -305,7 +305,7 @@ public class UpsuMain extends AbstractMainTwoPartyPto {
             "{}: serverSetSize = {}, clientSetSize = {}, parallel = {}",
             clientRpc.ownParty().getPartyName(), serverSetSize, clientSetSize, true
         );
-        UpsuReceiver upsuReceiver = UpsuFactory.createReceiver(clientRpc, serverParty, config);
+        UpsuReceiver upsuReceiver = LibPsu.createUpsuReceiver(clientRpc, serverParty, config);
         upsuReceiver.setTaskId(taskId);
         upsuReceiver.setParallel(true);
         upsuReceiver.getRpc().synchronize();

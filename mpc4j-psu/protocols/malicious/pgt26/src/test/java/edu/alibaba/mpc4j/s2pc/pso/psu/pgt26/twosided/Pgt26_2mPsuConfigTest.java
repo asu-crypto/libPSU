@@ -5,9 +5,11 @@ import org.junit.Test;
 
 public class Pgt26_2mPsuConfigTest {
   @Test
-  public void testDefaultProofFlagsAreSecure() {
+  public void testDefaultConfigIsMaliciousWithoutBypassApi() {
     Pgt26_2mPsuConfig config = new Pgt26_2mPsuConfig.Builder().build();
-    Assert.assertFalse(config.isSkipShuffleProof());
-    Assert.assertFalse(config.isSkipRddhProof());
+    Assert.assertEquals(
+        edu.alibaba.mpc4j.common.rpc.desc.SecurityModel.MALICIOUS,
+        config.getSecurityModel()
+    );
   }
 }

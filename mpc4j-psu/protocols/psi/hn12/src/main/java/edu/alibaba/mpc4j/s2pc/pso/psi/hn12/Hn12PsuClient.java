@@ -19,9 +19,8 @@ import edu.alibaba.mpc4j.s2pc.pso.psi.hn12.prf.Hn12PrfPayload;
 import edu.alibaba.mpc4j.s2pc.pso.psi.hn12.zk.Hn12ZkCom;
 import edu.alibaba.mpc4j.s2pc.pso.psi.hn12.zk.Hn12ZkDl;
 import edu.alibaba.mpc4j.s2pc.pso.psi.hn12.zk.Hn12ZkPoly;
-import edu.alibaba.mpc4j.s2pc.pso.psu.AbstractPsuClient;
-import edu.alibaba.mpc4j.s2pc.pso.psu.PsuClient;
-import edu.alibaba.mpc4j.s2pc.pso.psu.PsuClientOutput;
+import edu.alibaba.mpc4j.s2pc.pso.psu.AbstractPsuTwoSidedClient;
+import edu.alibaba.mpc4j.s2pc.pso.psu.PsuTwoSidedOutput;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -33,13 +32,14 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * JOC:HazNis12 PSU client (P1): learns {@code X ∪ Y} (Protocol 8 π∪, semi-honest path).
+ * JOC:HazNis12 PSU client (P1): learns {@code X ∪ Y} (Protocol 8 π∪, semi-honest path) and
+ * forwards the union so P2 also obtains two-sided output.
  * <p>
  * Differs from Protocol 5 by recovering server elements where both polynomial evaluations are
  * nonzero ({@code Y \ X}), then forwarding the union to P2.
  * </p>
  */
-public class Hn12PsuClient extends AbstractPsuClient implements PsuClient {
+public class Hn12PsuClient extends AbstractPsuTwoSidedClient {
     private final Hn12PsuConfig config;
     private Hn12DdhGroup group;
     private Hn12ElGamal elGamal;
@@ -63,7 +63,7 @@ public class Hn12PsuClient extends AbstractPsuClient implements PsuClient {
     }
 
     @Override
-    public PsuClientOutput psu(Set<ByteBuffer> clientElementSet, int serverElementSize, int elementByteLength)
+    public PsuTwoSidedOutput psu(Set<ByteBuffer> clientElementSet, int serverElementSize, int elementByteLength)
         throws MpcAbortException {
         setPtoInput(clientElementSet, serverElementSize, elementByteLength);
         logPhaseInfo(PtoState.PTO_BEGIN);
@@ -142,14 +142,12 @@ public class Hn12PsuClient extends AbstractPsuClient implements PsuClient {
             rpc, encodeTaskId, getPtoDesc(), extraInfo, ownParty(), otherParty(), PtoStep.P2_SEND_EVALS.ordinal()
         );
         Set<ByteBuffer> union = new HashSet<>(clientElementArrayList);
-        int intersectionSize = 0;
         for (int alpha = 0; alpha < serverElementSize; alpha++) {
             Hn12MessageIO.EvalRow row = Hn12MessageIO.parseEvalRow(evalPayload.get(alpha), group);
             BigInteger dec0 = elGamal.decryptToExponent(row.eval0);
             BigInteger dec1 = elGamal.decryptToExponent(row.eval1);
             boolean inIntersection = dec0.equals(group.identity()) || dec1.equals(group.identity());
             if (inIntersection) {
-                intersectionSize++;
                 continue;
             }
             // Protocol 8: both nonzero ⇒ y ∈ Y \ X — recover via PRF mask.
@@ -184,6 +182,6 @@ public class Hn12PsuClient extends AbstractPsuClient implements PsuClient {
             PtoStep.P1_SEND_UNION.ordinal(), unionPayload);
 
         logPhaseInfo(PtoState.PTO_END);
-        return new PsuClientOutput(union, intersectionSize);
+        return new PsuTwoSidedOutput(union);
     }
 }

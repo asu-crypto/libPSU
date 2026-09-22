@@ -1,0 +1,1 @@
+A_SEED_CLASS=CC

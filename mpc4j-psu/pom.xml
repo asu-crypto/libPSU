@@ -15,12 +15,14 @@
     <description>libPSU — Private Set Union library reactor</description>
 
     <modules>
+        <!-- Single public consumer artifact -->
+        <module>libpsu</module>
         <!-- Library layers -->
         <module>libpsu-api</module>
         <module>libpsu-core</module>
         <module>libpsu-spi</module>
         <module>libpsu-factory</module>
-        <!-- Legacy shared modules (SPI + common; Stage 5 may fold into libpsu-spi) -->
+        <!-- Deprecated binary-compatibility adapters; not public library layers. -->
         <module>mpc4j-psu-api</module>
         <module>mpc4j-psu-core</module>
         <module>mpc4j-psu-common</module>

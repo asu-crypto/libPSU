@@ -44,16 +44,15 @@ public class Pgt26_2mFairBenchConfigTest {
   }
 
   @Test
-  public void testFairBenchGuardRejectsProofSkipping() {
+  public void testFactoryRejectsProofBypassProperties() {
     Properties p = new Properties();
     p.setProperty(PsuConfigUtils.PSU_PTO_NAME_KEY, "EUROCRYPT_PuGaoTri26");
-    p.setProperty("append_string", "fair_bench_2p5");
     p.setProperty("pgt26_2m_skip_shuffle_proof", "true");
     try {
       PsuConfigUtils.createConfig(p);
       Assert.fail("expected IllegalArgumentException");
     } catch (IllegalArgumentException expected) {
-      Assert.assertTrue(expected.getMessage().contains("EUROCRYPT_PuGaoTri26 fair benchmark"));
+      Assert.assertTrue(expected.getMessage().contains("proof-bypass"));
     }
   }
 
@@ -70,9 +69,6 @@ public class Pgt26_2mFairBenchConfigTest {
     Assert.assertFalse("skip RDDH in " + confPath, skipRddh);
     PsuConfig config = PsuConfigUtils.createConfig(properties);
     Assert.assertTrue(config instanceof Pgt26_2mPsuConfig);
-    Pgt26_2mPsuConfig pgt = (Pgt26_2mPsuConfig) config;
-    Assert.assertFalse(pgt.isSkipShuffleProof());
-    Assert.assertFalse(pgt.isSkipRddhProof());
   }
 
   private static Path resolveFairBenchConfigDir() {
@@ -82,7 +78,6 @@ public class Pgt26_2mFairBenchConfigTest {
     candidates.add(userDir.resolve(Paths.get("bench", "configs", "psu", "18_PGT26_2M")));
     candidates.add(userDir.resolve(Paths.get("..", "bench", "configs", "psu", "18_PGT26_2M")).normalize());
     candidates.add(userDir.resolve(Paths.get("..", "..", "bench", "configs", "psu", "18_PGT26_2M")).normalize());
-    // libpsu-factory module cwd
     candidates.add(userDir.resolve(Paths.get("..", "bench", "configs", "psu", "18_PGT26_2M")).normalize());
     for (Path c : candidates) {
       if (Files.isDirectory(c)) {

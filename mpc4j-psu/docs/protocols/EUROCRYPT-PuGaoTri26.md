@@ -14,6 +14,17 @@ Pu–Gao–Trieu malicious two-sided (EC + AoK shuffle/RDDH).
 | **Driver** | `PsuMain` |
 | **Config key** | `psu_pto_name = EUROCRYPT:PuGaoTri26` |
 | **OT / cost** | NO_OT |
+| **Init order** | Server: `init(maxServerElementSize, maxClientElementSize)`; Client: `init(maxClientElementSize, maxServerElementSize)` |
+| **Public support** | **2M only.** PGT26-1M production client/server/config were removed; `PsuFactory` / `PsuType` reject `PGT26_1M`. |
+
+## Malicious checks
+
+* Adapted shuffle and batched RDDH proofs are verified unconditionally (no production bypass).
+* Proof commitments must be canonical prime-subgroup points (`isValidPrimeSubgroupPoint`); identity allowed for commitments.
+* Statement points / public keys use `isValidNonIdentityPoint`.
+* Figure 6 Round-4 coverage: receiver aborts if revealed index multiset ≠ expected difference indices (before RDDH verify).
+
+Honest union tests do **not** certify malicious security.
 
 ## Implementation
 
@@ -50,6 +61,12 @@ Summarize:
 ```bash
 python3 scripts/summarize_psu_fair_outputs.py --out temp/psu_fair_summary_2p5.csv
 ```
+
+## Fidelity status
+
+* Unconditional shuffle/RDDH verification; torsion-free prime-subgroup validation; canonical scalar checks; bidirectional Round-4 coverage adversarial coverage: matched in Java tests.
+* Cross-language Rust transcript/vector byte compatibility is **not claimed** (deterministic CRS / hash-to-curve public-parameter adaptation may differ from the Rust reference’s sampled multiples).
+* **PGT26-1M is unsupported:** production onesided client/server/config removed; factory rejects the ID.
 
 ## Notes
 

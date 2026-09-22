@@ -76,4 +76,17 @@ public class F32WprfMatrixFactory {
             case LONG -> F32WprfLongMatrix.create(z3Field, elements);
         };
     }
+
+    /**
+     * Public factory for building a matrix from explicit F_3 elements
+     * ({@link F32WprfMatrix#ROWS} rows × {@link F32WprfMatrix#COLUMNS} columns).
+     *
+     * @param z3Field  Z3-field.
+     * @param elements elements in MPC4J storage layout.
+     * @param type     matrix encoding type.
+     * @return a matrix.
+     */
+    public static F32WprfMatrix createFromElements(Z3ByteField z3Field, byte[][] elements, F32WprfMatrixType type) {
+        return create(z3Field, elements, type);
+    }
 }

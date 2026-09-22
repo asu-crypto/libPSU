@@ -1,5 +1,6 @@
 package edu.alibaba.mpc4j.s2pc.upso.upsu.tcl23;
 
+import com.google.common.base.Preconditions;
 import edu.alibaba.mpc4j.common.rpc.*;
 import edu.alibaba.mpc4j.common.rpc.utils.DataPacket;
 import edu.alibaba.mpc4j.common.rpc.utils.DataPacketHeader;
@@ -107,7 +108,8 @@ public class Tcl23UpsuReceiver extends AbstractUpsuReceiver {
 
         stopWatch.start();
         params = Tcl23UpsuParams.RECEIVER_16M_SENDER_MAX_1024;
-        assert maxSenderElementSize <= params.maxSenderElementSize() : "the sender element size is too large";
+        Preconditions.checkArgument(maxSenderElementSize <= params.maxSenderElementSize(),
+            "the sender element size is too large: %s > %s", maxSenderElementSize, params.maxSenderElementSize());
         // init OPRF
         SqOprfKey sqOprfKey = sqOprfSender.keyGen();
         sqOprfSender.init(maxSenderElementSize, sqOprfKey);
@@ -258,11 +260,12 @@ public class Tcl23UpsuReceiver extends AbstractUpsuReceiver {
         int maxBinSize = IntStream.range(0, params.getBinNum()).map(completeHash::binSize).max().orElse(0);
         alpha = CommonUtils.getUnitNum(maxBinSize, params.getMaxPartitionSizePerBin());
         List<List<HashBinEntry<ByteBuffer>>> completeHashBins = new ArrayList<>();
-        HashBinEntry<ByteBuffer> paddingEntry = HashBinEntry.fromEmptyItem(botElementByteBuffer);
         for (int i = 0; i < completeHash.binNum(); i++) {
             List<HashBinEntry<ByteBuffer>> binItems = new ArrayList<>(completeHash.getBin(i));
             int paddingNum = maxBinSize - completeHash.binSize(i);
-            IntStream.range(0, paddingNum).mapToObj(j -> paddingEntry).forEach(binItems::add);
+            IntStream.range(0, paddingNum)
+                .mapToObj(j -> HashBinEntry.<ByteBuffer>fromDummyItem(secureRandom))
+                .forEach(binItems::add);
             completeHashBins.add(binItems);
         }
         inputPrfs.clear();
@@ -338,7 +341,7 @@ public class Tcl23UpsuReceiver extends AbstractUpsuReceiver {
         for (int i = 0; i < params.getCiphertextNum(); i++) {
             for (int j = 0; j < alpha; j++) {
                 long[] r = IntStream.range(0, params.getPolyModulusDegree())
-                    .mapToLong(l -> Math.abs(secureRandom.nextLong()) % params.getPlainModulus())
+                    .mapToLong(l -> UpsoUtils.uniformLong(secureRandom, params.getPlainModulus()))
                     .toArray();
                 coeffList.add(r);
             }
@@ -381,22 +384,25 @@ public class Tcl23UpsuReceiver extends AbstractUpsuReceiver {
     private Set<ByteBuffer> handleEncPayload(List<byte[]> encPayload, boolean[] choiceArray,
                                              CotReceiverOutput cotReceiverOutput) {
         List<byte[]> encArrayList = new ArrayList<>(encPayload);
-        Prg encPrg = PrgFactory.createInstance(envType, elementByteLength);
+        int wireLen = elementByteLength + 1;
+        Prg encPrg = PrgFactory.createInstance(envType, wireLen);
         IntStream decIntStream = IntStream.range(0, params.getBinNum());
         decIntStream = parallel ? decIntStream.parallel() : decIntStream;
-        Set<ByteBuffer> union = decIntStream
-            .mapToObj(index -> {
-                if (choiceArray[index]) {
-                    return botElementByteBuffer;
-                } else {
-                    // do not need CRHF since we call prg
-                    byte[] message = encPrg.extendToBytes(cotReceiverOutput.getRb(index));
-                    BytesUtils.xori(message, encArrayList.get(index));
-                    return ByteBuffer.wrap(message);
-                }
-            })
-            .collect(Collectors.toSet());
-        union.remove(botElementByteBuffer);
+        Set<ByteBuffer> union = new HashSet<>();
+        decIntStream.forEach(index -> {
+            if (choiceArray[index]) {
+                return;
+            }
+            byte[] message = encPrg.extendToBytes(cotReceiverOutput.getRb(index));
+            BytesUtils.xori(message, encArrayList.get(index));
+            if (message.length != wireLen || message[0] != 1) {
+                return;
+            }
+            byte[] element = Arrays.copyOfRange(message, 1, wireLen);
+            synchronized (union) {
+                union.add(ByteBuffer.wrap(element));
+            }
+        });
         union.addAll(receiverElementList);
         return union;
     }

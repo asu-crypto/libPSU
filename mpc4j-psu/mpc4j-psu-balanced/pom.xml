@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>mpc4j-psu-balanced</artifactId>
-    <description>Balanced PSU factory and public library facade</description>
+    <description>Balanced PSU runtime factories and legacy facade for libPSU</description>
     <dependencies>
         <dependency>
             <groupId>edu.alibaba</groupId>

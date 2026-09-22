@@ -30,7 +30,7 @@
         </dependency>
         <dependency>
             <groupId>edu.alibaba</groupId>
-            <artifactId>libpsu-factory</artifactId>
+            <artifactId>libpsu</artifactId>
             <version>1.1.5</version>
         </dependency>
         <dependency>

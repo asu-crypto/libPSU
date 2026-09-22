@@ -30,17 +30,6 @@ public final class Pgt26ProtocolTag {
     return java.util.Arrays.copyOf(tag, 16);
   }
 
-  public static byte[] oneSided1m(PtoDesc desc, int round, int clientSize, int serverSize) {
-    Blake2s256 h = new Blake2s256();
-    h.update(desc.getPtoName().getBytes(StandardCharsets.UTF_8));
-    h.update(new byte[]{(byte) round});
-    h.update(intLe(clientSize));
-    h.update(intLe(serverSize));
-    h.update(new byte[]{(byte) Pgt26Constants.ITEM_BYTE_LENGTH});
-    h.update("X25519".getBytes(StandardCharsets.UTF_8));
-    return h.digest();
-  }
-
   private static byte[] intLe(int v) {
     return new byte[]{
         (byte) v, (byte) (v >> 8), (byte) (v >> 16), (byte) (v >> 24),

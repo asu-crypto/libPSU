@@ -21,7 +21,6 @@ public abstract class AbstractPsiServer extends AbstractTwoPartyPto implements P
     protected int serverElementSize;
     protected int clientElementSize;
     protected int elementByteLength;
-    protected ByteBuffer botElementByteBuffer;
 
     protected AbstractPsiServer(PtoDesc ptoDesc, Rpc serverRpc, Party clientParty, PsiConfig config) {
         super(ptoDesc, serverRpc, clientParty, config);
@@ -39,9 +38,8 @@ public abstract class AbstractPsiServer extends AbstractTwoPartyPto implements P
         checkInitialized();
         SetElementUtils.validateProtocolElementByteLength(elementByteLength);
         this.elementByteLength = elementByteLength;
-        botElementByteBuffer = SetElementUtils.createBotElement(elementByteLength);
         serverElementArrayList = SetElementUtils.normalizeProtocolElements(
-            serverElementSet, elementByteLength, botElementByteBuffer, "server element"
+            serverElementSet, elementByteLength, "server element"
         );
         serverElementSize = serverElementArrayList.size();
         SetElementUtils.checkElementSizeInRange("serverElementSize", serverElementSize, maxServerElementSize, 2);

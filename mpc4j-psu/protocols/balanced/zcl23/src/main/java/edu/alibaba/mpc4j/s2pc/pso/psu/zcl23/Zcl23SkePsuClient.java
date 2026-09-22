@@ -197,15 +197,13 @@ public class Zcl23SkePsuClient extends AbstractPsuClient {
         Set<ByteBuffer> union = new HashSet<ByteBuffer>(serverElementSize + clientElementSize);
         for (int index = 0; index < serverElementSize; index++) {
             if (choices[index]) {
-                union.add(botElementByteBuffer);
-            } else {
-                byte[] message = encPrg.extendToBytes(cotReceiverOutput.getRb(index));
-                BytesUtils.xori(message, encArrayList.get(index));
-                union.add(ByteBuffer.wrap(message));
+                continue;
             }
+            byte[] message = encPrg.extendToBytes(cotReceiverOutput.getRb(index));
+            BytesUtils.xori(message, encArrayList.get(index));
+            union.add(ByteBuffer.wrap(message));
         }
         union.addAll(clientElementSet);
-        union.remove(botElementByteBuffer);
         endPhaseMetric("UNION_DEC", parallel ? PARALLEL_STREAM : SERIAL);
 
         logPhaseInfo(PtoState.PTO_END);

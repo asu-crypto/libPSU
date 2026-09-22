@@ -4,7 +4,7 @@ import edu.alibaba.mpc4j.common.rpc.desc.PtoDesc;
 import edu.alibaba.mpc4j.common.rpc.desc.PtoDescManager;
 
 /**
- * Hao–Wan 2026 ssPMT-fast (Figure 17): RS21 MP-OPRF + OKVS + CGS22 ssPEQT.
+ * Hao–Wan 2026 ssPMT-fast (Figure 17): APRR24 F32 shared-output OPRF + OKVS + CGS22 ssPEQT.
  */
 class HaoWan26SsPmtFastPtoDesc implements PtoDesc {
     private static final int PTO_ID = Math.abs((int) 0x48573626L);
@@ -12,11 +12,7 @@ class HaoWan26SsPmtFastPtoDesc implements PtoDesc {
 
     enum PtoStep {
         /**
-         * Client sends random PRF share masks {@code [t_i]_1}.
-         */
-        CLIENT_SEND_T_SHARES,
-        /**
-         * Client sends OKVS keys and encoded storage for {@code (y_i, F(y_i))}.
+         * Client sends OKVS keys and encoded storage for {@code (y_i, truncate(F(y_i)))}.
          */
         CLIENT_SEND_OKVS,
     }

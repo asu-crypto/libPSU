@@ -43,7 +43,7 @@ Sub-protocols share the root `Rpc`, so **any** wire traffic during `init()` coun
 | Ours | Ours | PSU | no | EC HashDH | — | NO_OT | — | none | **Sender-side set-diff leakage** (not standard PSU); see Ours doc |
 | ASIACCS:BlaAgu12 | ASIACCS:BlaAgu12 | GC / MPC set ops | yes | Bea91 `Z2c` → Z2 triple + COT (ALSZ13 chain) | NP01 via COT | INCLUDED_INIT | `Ba12SetOpsParty.init()` | none | **Not** `PsuMain`; `Ba12Main` + `pto_type=ASIACCS:BlaAgu12`; fair scripts include ASIACCS:BlaAgu12 |
 | USENIX:BinYujConYanYu25 | USENIX:BinYujConYanYu25 | PSU / UPSU | yes | RS21 MP-OPRF + Core COT (nECRG) | NP01_BYTE (via ALSZ13) | INCLUDED_INIT | init() | none | Balanced pnMCRG + OTP; linear UPSU wrapper |
-| USENIX:HaoWan26 | USENIX:HaoWan26 | PSU | yes | RS21 + Core COT (ssPMT-fast + ssOTd) | NP01_BYTE (via ALSZ13) | INCLUDED_INIT | init() | none | ePSU-fast only |
+| USENIX:HaoWan26 | USENIX:HaoWan26 | PSU | yes | F32 SOW OPRF + CotFactory (ssPMT-fast + ssOTd) | NP01_BYTE / silent COT | INCLUDED_INIT | init() | none | Fig.17 ePSU-fast; secure-join AltMod G/A/B |
 
 **ASIACCS:BlaAgu12** (`Ba12Main`, not `PsuMain`): `Ba12SetOpsParty.init()` → `z2c.init()` → `Bea91Z2c` initializes COT sender/receiver (Base OT inside that init). Timed the same way as PSU Init columns (`rpc.reset()` then `party.init()`).
 

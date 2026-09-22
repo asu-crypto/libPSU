@@ -116,17 +116,17 @@ These do **not** add columns to `.output` files; they appear in logs when INFO i
 | USENIX:JSZDG22_SFS | USENIX:JSZDG22_SFS | yes | `protocols/balanced/jsz22` |
 | USENIX:ConYuWeiminDon23_PKE | USENIX:ConYuWeiminDon23_PKE | yes | `protocols/balanced/zcl23` |
 | USENIX:ConYuWeiminDon23_SKE | USENIX:ConYuWeiminDon23_SKE | yes — **PsuMain uses 2-party**; optional 3-party+aider API | `protocols/balanced/zcl23` |
-| PKC:CheZhaZha24 | PKC:CheZhaZha24 | yes | `protocols/balanced/czz24-cw-oprf` |
-| ASIACCS:CSSW25 | ASIACCS:CSSW25 | yes — experimental runnable proxy | `protocols/balanced/css25` |
+| PKC:CheZhaZha24 | PKC:CheZhaZha24 | yes | `protocols/balanced/czz24` |
+| ASIACCS:CSSW25 | ASIACCS:CSSW25 | yes — experimental runnable proxy | `protocols/balanced/cssw25` |
 | USENIX:BinYujConYanYu25 | USENIX:BinYujConYanYu25 | yes | `protocols/balanced/tbz25` |
-| USENIX:HaoWan26 | USENIX:HaoWan26 | yes | `protocols/balanced/haowan2026` |
+| USENIX:HaoWan26 | USENIX:HaoWan26 | yes | `protocols/balanced/hwy26` |
 | EUROCRYPT:PisTri26 | EUROCRYPT:PisTri26 | yes | `protocols/balanced/pt26` |
 | ACISP:DavCid17 | ACISP:DavCid17 | yes | `protocols/balanced/dc17` |
-| ACNS:Frikken07 | ACNS:Frikken07 | yes | `protocols/balanced/f07` |
+| ACNS:Frikken07 | ACNS:Frikken07 | yes | `protocols/balanced/fri07` |
 | C:KisSon05 | C:KisSon05 | yes | `protocols/psi/ks05` |
 | JOC:HazNis12 | JOC:HazNis12 | yes | `protocols/psi/hn12` |
-| Ours | Ours | yes | `protocols/balanced/small-ec-elligator-psu` |
-| USENIX:YanShiHonDaw24 | USENIX:YanShiHonDaw24 | yes | `protocols/malicious/jszg24-becrg-psu` |
+| Ours | Ours | yes | `protocols/balanced/ours` |
+| USENIX:YanShiHonDaw24 | USENIX:YanShiHonDaw24 | yes | `protocols/malicious/jszg24` |
 | EUROCRYPT:PuGaoTri26 | EUROCRYPT:PuGaoTri26 | yes (`PsuTwoSided*`) | `protocols/malicious/pgt26` |
 
 ### Legacy PSI (`PsiType`, unit tests)
@@ -568,7 +568,7 @@ polynomial evaluations are nonzero, then sends the union to P2.
 
 **Paper / family:** Hao–Wang USENIX Security 2026 enhanced PSU (**ePSU-fast**). ssPMT-fast (RS21 MP-OPRF + GF2k OKVS + CGS22 ssPEQT) + ssOTd (Core COT + PRG masking, Fig. 15).
 
-**Classes:** `HaoWan2026PsuConfig`, `HaoWan2026PsuServer`, `HaoWan2026PsuClient` (`protocols/balanced/haowan2026`). OPF: `HaoWan26SsPmtFast*`, `HaoWan26SsOtd*`.
+**Classes:** `HaoWan2026PsuConfig`, `HaoWan2026PsuServer`, `HaoWan2026PsuClient` (`protocols/balanced/hwy26`). OPF: `HaoWan26SsPmtFast*`, `HaoWan26SsOtd*`.
 
 **Init:** `ssPmtFastServer/Client.init` + `ssOtdServer/Client.init` (RS21 + Core COT Base OT inside sub-PTOs).
 

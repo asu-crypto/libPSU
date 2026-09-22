@@ -1,6 +1,7 @@
 package edu.alibaba.mpc4j.s2pc.upso;
 
 import edu.alibaba.mpc4j.common.tool.galoisfield.zp64.Zp64;
+import com.google.common.base.Preconditions;
 import edu.alibaba.mpc4j.common.tool.hashbin.object.HashBinEntry;
 import edu.alibaba.mpc4j.common.tool.hashbin.object.cuckoo.NoStashCuckooHashBin;
 import edu.alibaba.mpc4j.common.tool.polynomial.power.PowersDag;
@@ -26,6 +27,21 @@ import java.util.stream.IntStream;
  * @date 2023/7/24
  */
 public class UpsoUtils {
+
+    /**
+     * Uniform sample in {@code [0, bound)}. Uses rejection sampling; never {@code Math.abs}.
+     *
+     * @param secureRandom randomness source
+     * @param bound        exclusive upper bound; must be positive
+     * @return value in {@code [0, bound)}
+     */
+    public static long uniformLong(SecureRandom secureRandom, long bound) {
+        if (bound <= 0L) {
+            throw new IllegalArgumentException("bound must be positive: " + bound);
+        }
+        // Java 17 SecureRandom.nextLong(bound) uses rejection sampling.
+        return secureRandom.nextLong(bound);
+    }
 
     /**
      * return encoded array.
@@ -74,7 +90,7 @@ public class UpsoUtils {
                                        SecureRandom secureRandom) {
         long[][] items = IntStream.range(0, ciphertextNum)
             .mapToObj(i -> IntStream.range(0, polyModulusDegree)
-                .mapToLong(l -> Math.abs(secureRandom.nextLong()) % plainModulus)
+                .mapToLong(l -> uniformLong(secureRandom, plainModulus))
                 .toArray())
             .toArray(long[][]::new);
         for (int i = 0; i < ciphertextNum; i++) {
@@ -123,7 +139,7 @@ public class UpsoUtils {
      * @return powers.
      */
     public static long[][] computePowers(long[] base, Zp64 zp64, int[] exponents, boolean parallel) {
-        assert exponents[0] == 1;
+        Preconditions.checkArgument(exponents[0] == 1, "exponents[0] must be 1");
         long[][] result = new long[exponents.length][base.length];
         result[0] = base;
         IntStream intStream = IntStream.range(1, exponents.length);
@@ -152,7 +168,7 @@ public class UpsoUtils {
             }
             // padding dummy elements
             for (int j = 0; j < binSize - hashBins[i].length; j++) {
-                encodedItemArray[i][j + hashBins[i].length] = Math.abs(secureRandom.nextLong()) % plainModulus;
+                encodedItemArray[i][j + hashBins[i].length] = uniformLong(secureRandom, plainModulus);
             }
         }
         return encodedItemArray;
@@ -289,11 +305,13 @@ public class UpsoUtils {
                                                      int itemEncodedSlotSize, long plainModulus) {
         long[] encodedArray = new long[itemEncodedSlotSize];
         int bitLength = (BigInteger.valueOf(plainModulus).bitLength() - 1) * itemEncodedSlotSize;
-        assert bitLength >= 80;
+        Preconditions.checkArgument(bitLength >= 80, "encoded bit length must be >= 80: %s", bitLength);
         int shiftBits = BigInteger.valueOf(plainModulus).bitLength() - 1;
         BigInteger shiftMask = BigInteger.ONE.shiftLeft(shiftBits).subtract(BigInteger.ONE);
         if (hashBinEntry.getHashIndex() != -1) {
-            assert hashBinEntry.getHashIndex() < 3 : "hash index should be [0, 1, 2]";
+            Preconditions.checkArgument(
+                hashBinEntry.getHashIndex() < 3, "hash index should be [0, 1, 2]: %s", hashBinEntry.getHashIndex()
+            );
             BigInteger input = BigIntegerUtils.byteArrayToNonNegBigInteger(hashBinEntry.getItem().array());
             input = input.shiftRight(input.bitLength() - bitLength);
             for (int i = 0; i < itemEncodedSlotSize; i++) {

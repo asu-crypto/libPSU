@@ -6,10 +6,10 @@ Per-paper protocol implementations. **Maven artifact IDs are unchanged** (`mpc4j
 
 | Tree | Protocols |
 |------|-----------|
-| `balanced/` | AC:KRTW19, PKC:GMRSS21, JSZ22, ZCL23, CZZ24, ASIACCS:CSSW25, EUROCRYPT:PisTri26, ACISP:DavCid17, ACNS:Frikken07, USENIX:BinYujConYanYu25, Ours |
-| `unbalanced/` | CCS:TCLZ23, USENIX:BinYujConYanYu25 (UPSU) |
-| `psi/` | C:KisSon05 (PSU + legacy PSI), JOC:HazNis12 (PSU + legacy PSI), ASIACCS:BlaAgu12 |
-| `malicious/` | USENIX:YanShiHonDaw24, EUROCRYPT:PuGaoTri26 |
+| `balanced/` | `krtw19`, `gmr21`, `jsz22`, `zcl23`, `czz24`, `cssw25`, `dc17`, `fri07`, `ours`, `tbz25`, `hwy26`, `pt26` |
+| `unbalanced/` | `tcl23`, `tbz25` |
+| `psi/` | `ks05`, `hn12`, `ba12` |
+| `malicious/` | `jszg24`, `pgt26` |
 
 Removed from this fork (no longer built): ZCL24/DGG25/LBL26/ZLP24 UPSU variants.
 

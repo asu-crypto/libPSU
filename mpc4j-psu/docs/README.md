@@ -1,6 +1,8 @@
 # libPSU documentation
 
-Documentation for the `mpc4j-psu` reactor: protocol implementations, fair benchmarks, and integration.
+Applications use `edu.alibaba:libpsu` and `edu.alibaba.libpsu.LibPsu`.
+The `mpc4j-psu/` reactor contains its implementation: protocol modules, fair
+benchmarks, and integration tests.
 
 ## Quick links
 
@@ -12,6 +14,7 @@ Documentation for the `mpc4j-psu` reactor: protocol implementations, fair benchm
 | OT / Base OT audit | [OT_BASE_COST_AUDIT.md](OT_BASE_COST_AUDIT.md) |
 | Add a new protocol | [ADD_NEW_PROTOCOL.md](ADD_NEW_PROTOCOL.md) |
 | Library usage | [LIBRARY_USAGE.md](LIBRARY_USAGE.md) |
+| Facade and protocol tests | [TESTING.md](TESTING.md) |
 | Reactor layout | [ARCHITECTURE.md](ARCHITECTURE.md) |
 
 ## Display names

@@ -2,16 +2,19 @@
 
 **libPSU** is a Java library for **Private Set Union (PSU)** and related private set operations, built on [mpc4j](https://github.com/alibaba-edu/mpc4j). It provides balanced PSU, unbalanced UPSU, legacy PSI unit-test drivers, and the ASIACCS:BlaAgu12 garbled-circuit construction, with a unified fair-benchmark harness for reproducible comparisons.
 
-The Maven reactor lives under [`mpc4j-psu/`](mpc4j-psu/) (artifact name unchanged for compatibility).
+Applications use one Maven dependency, **`edu.alibaba:libpsu`**, and one Java entry point,
+**`edu.alibaba.libpsu.LibPsu`**. The implementation lives under [`mpc4j-psu/`](mpc4j-psu/);
+that historical directory and its compatibility artifacts are part of the same library.
+The command-line entry point is **`edu.alibaba.libpsu.cli.LibPsuMain`**, packaged in the existing driver JAR.
 
 ## What is included
 
-| Family | Description | Factory / driver |
+| Family | Description | `LibPsu` configuration |
 |--------|-------------|------------------|
-| **Balanced PSU** | Two parties with equal set sizes; receiver learns the union | `PsuFactory`, `PsuMain` |
-| **Unbalanced UPSU** | Sender and receiver with different set sizes | `UpsuFactory`, `UpsuMain` |
-| **Legacy PSI** | Optional Protocol 5 / Kissner–Song PSI drivers (unit tests; fair bench uses PSU) | `PsiFactory`, `PsiMain` |
-| **ASIACCS:BlaAgu12** | Bea91 garbled-circuit MPC union (separate `pto_type`) | `Ba12Main` |
+| **Balanced PSU** | One-sided, two-sided, and offline/online union protocols | `createPsuConfig` |
+| **Unbalanced UPSU** | Sender and receiver with different set sizes | `createUpsuConfig` |
+| **Legacy PSI** | Optional Protocol 5 / Kissner–Song intersection protocols | `createPsiConfig` |
+| **ASIACCS:BlaAgu12** | Bea91 garbled-circuit MPC union | `createBa12Config` |
 
 Protocols are **research-oriented**: semi-honest by default unless noted (e.g. `EUROCRYPT:PuGaoTri26` is malicious two-sided). The library assumes synchronized, non-crashing parties over a reliable network.
 
@@ -27,13 +30,14 @@ Build native libraries per [`mpc4j-native-tool/README.md`](mpc4j-native-tool/REA
 
 ```text
 mpc4j-psu/
+├── libpsu/               # Public LibPsu facade and application dependency
 ├── libpsu-api/           # Protocol metadata (ProtocolInfo, SoK registry)
 ├── libpsu-spi/           # PsuType, PsiType, UpsuType, protocol interfaces
 ├── libpsu-core/          # Set elements, validation, bench helpers
 ├── libpsu-factory/       # ProtocolRegistry, config parsing
 ├── plugins/              # Shared building blocks (COT, CCPSI, …)
 ├── protocols/            # Implementations (balanced / malicious / psi / unbalanced)
-├── apps/driver/          # PsuMain, PsiMain, UpsuMain, Ba12Main (fat JAR)
+├── apps/driver/          # Unified LibPsuMain CLI (fat JAR)
 ├── bench/configs/        # Fair-benchmark configs (psu/, psi/, upsu/, ba12/)
 └── tests/                # Integration tests
 
@@ -49,10 +53,12 @@ Benchmark scripts and multi-trial workflow: [`docs/BENCHMARKS.md`](docs/BENCHMAR
 ## Build
 
 ```bash
-# JDK 17 (example on Ubuntu)
-export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+# Run from the repository root; the wrapper selects JDK 17.
+# Build the public library and its dependencies from source.
+./scripts/mvn-jdk17.sh -pl :libpsu -am install -DskipTests
 
-mvn -f mpc4j-psu/pom.xml install -DskipTests
+# Build the command-line driver and its dependencies.
+./scripts/mvn-jdk17.sh -pl :mpc4j-psu-driver -am package -DskipTests
 ```
 
 Driver JAR:
@@ -73,12 +79,18 @@ export MPC4J_NATIVE_FHE_DIR=$PWD/mpc4j-native-fhe/cmake-build-release   # CCS:TC
 
 JAR=mpc4j-psu/apps/driver/target/mpc4j-psu-driver-*-jar-with-dependencies.jar
 
-java -Djava.library.path=$MPC4J_NATIVE_TOOL_DIR:$MPC4J_NATIVE_FHE_DIR \
+java --enable-preview --add-modules jdk.incubator.vector \
+  -Djava.library.path=$MPC4J_NATIVE_TOOL_DIR:$MPC4J_NATIVE_FHE_DIR \
   -jar $JAR mpc4j-psu/tests/src/test/resources/conf_psu_example.conf server
 
-java -Djava.library.path=$MPC4J_NATIVE_TOOL_DIR:$MPC4J_NATIVE_FHE_DIR \
+java --enable-preview --add-modules jdk.incubator.vector \
+  -Djava.library.path=$MPC4J_NATIVE_TOOL_DIR:$MPC4J_NATIVE_FHE_DIR \
   -jar $JAR mpc4j-psu/tests/src/test/resources/conf_psu_example.conf client
 ```
+
+The same JAR accepts PSU, OO_PSU, PSU_BLACK_IP, PSI, UPSU, and BA12 configs,
+selecting the driver from `pto_type`. Existing `PsoMain` and `UpsoMain` class names
+delegate to this entry point for compatibility. Run with JDK 17.
 
 ## Fair benchmark
 
@@ -179,7 +191,7 @@ Full mapping: [`mpc4j-psu/docs/PROTOCOL_MAPPING.md`](mpc4j-psu/docs/PROTOCOL_MAP
 
 AC:KRTW19, PKC:GMRSS21, USENIX:JSZDG22, USENIX:JSZDG22_SFS, USENIX:ConYuWeiminDon23_PKE, USENIX:ConYuWeiminDon23_SKE, PKC:CheZhaZha24, ASIACCS:CSSW25, EUROCRYPT:PisTri26, ACISP:DavCid17, ACNS:Frikken07, C:KisSon05, JOC:HazNis12, USENIX:BinYujConYanYu25, USENIX:YanShiHonDaw24, EUROCRYPT:PuGaoTri26, Ours.
 
-Deprecated enum ids (`PKC:GMRSS21_PROXY`, `JSZ22_*_PROXY`, `EUROCRYPT:PuGaoTri26`) are not runnable; use the non-`_PROXY` names above.
+Deprecated `_PROXY` enum ids are not runnable; use the protocol names above.
 
 ### Unbalanced UPSU (`UpsuType`)
 
@@ -191,9 +203,23 @@ Optional unit-test drivers for C:KisSon05 / JOC:HazNis12 Protocol 5 intersection
 
 ### ASIACCS:BlaAgu12
 
-Garbled-circuit union via `Ba12Main`; configs under `bench/configs/ba12/`.
+Garbled-circuit union through the same `LibPsu` facade and CLI; configs under `bench/configs/ba12/`.
 
 ## Use as a Java library
+
+```xml
+<dependency>
+  <groupId>edu.alibaba</groupId>
+  <artifactId>libpsu</artifactId>
+  <version>1.1.5</version>
+</dependency>
+```
+
+`libpsu` is the single application-facing artifact. The `libpsu-api`, `libpsu-core`,
+`libpsu-spi`, and `libpsu-factory` artifacts are internal extension layers; the
+`mpc4j-psu-*` shared artifacts are compatibility adapters or protocol runtimes.
+
+For builds that manage versions centrally, import the BOM:
 
 ```xml
 <dependencyManagement>
@@ -210,8 +236,13 @@ Garbled-circuit union via `Ba12Main`; configs under `bench/configs/ba12/`.
 ```
 
 ```java
-ProtocolInfo info = ProtocolMetadataRegistry.findByName("AC:KRTW19").orElseThrow();
-PsuConfig config = ProtocolRegistry.createPsuConfig("AC:KRTW19", new Properties());
+import edu.alibaba.libpsu.LibPsu;
+import edu.alibaba.libpsu.api.ProtocolInfo;
+import edu.alibaba.mpc4j.s2pc.pso.psu.PsuConfig;
+import java.util.List;
+
+PsuConfig config = LibPsu.createPsuConfig("AC:KRTW19");
+List<ProtocolInfo> protocols = LibPsu.protocols();
 ```
 
 Details: [`mpc4j-psu/docs/LIBRARY_USAGE.md`](mpc4j-psu/docs/LIBRARY_USAGE.md).

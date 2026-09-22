@@ -78,6 +78,22 @@ public class Pt26Iblt {
     }
 
     /**
+     * After a successful peel cascade every local bin must satisfy {@code cnt == 0} and
+     * {@code sum == 0}. Residual state means listing failure — callers must abort rather than
+     * return a partial union.
+     */
+    public boolean isFullyPeeled() {
+        for (int i = 0; i < params.getK(); i++) {
+            for (int j = 0; j < params.getSubtableSize(); j++) {
+                if (cnt[i][j] != 0 || !Pt26Zm.isZero(sum[i][j], params)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
      * Plaintext union peel (Definition 2).
      */
     public static byte[] uPeel(Pt26Iblt iblt0, Pt26Iblt iblt1, int i, int j) {

@@ -20,8 +20,8 @@ import edu.alibaba.mpc4j.s2pc.pso.psi.hn12.prf.Hn12PrfPayload;
 import edu.alibaba.mpc4j.s2pc.pso.psi.hn12.zk.Hn12ZkCom;
 import edu.alibaba.mpc4j.s2pc.pso.psi.hn12.zk.Hn12ZkDl;
 import edu.alibaba.mpc4j.s2pc.pso.psi.hn12.zk.Hn12ZkPoly;
-import edu.alibaba.mpc4j.s2pc.pso.psu.AbstractPsuServer;
-import edu.alibaba.mpc4j.s2pc.pso.psu.PsuServer;
+import edu.alibaba.mpc4j.s2pc.pso.psu.AbstractPsuTwoSidedServer;
+import edu.alibaba.mpc4j.s2pc.pso.psu.PsuTwoSidedOutput;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -32,9 +32,9 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * JOC:HazNis12 PSU server (P2): Protocol 8 π∪ (semi-honest path; receives union from P1).
+ * JOC:HazNis12 PSU server (P2): Protocol 8 π∪ (semi-honest path; learns union from P1).
  */
-public class Hn12PsuServer extends AbstractPsuServer implements PsuServer {
+public class Hn12PsuServer extends AbstractPsuTwoSidedServer {
     private final Hn12PsuConfig config;
     private byte[] prfKey;
 
@@ -52,7 +52,7 @@ public class Hn12PsuServer extends AbstractPsuServer implements PsuServer {
     }
 
     @Override
-    public void psu(Set<ByteBuffer> serverElementSet, int clientElementSize, int elementByteLength)
+    public PsuTwoSidedOutput psu(Set<ByteBuffer> serverElementSet, int clientElementSize, int elementByteLength)
         throws MpcAbortException {
         setPtoInput(serverElementSet, clientElementSize, elementByteLength);
         logPhaseInfo(PtoState.PTO_BEGIN);
@@ -151,6 +151,7 @@ public class Hn12PsuServer extends AbstractPsuServer implements PsuServer {
         }
 
         logPhaseInfo(PtoState.PTO_END);
+        return new PsuTwoSidedOutput(union);
     }
 
     private static byte[] elementBytes(ByteBuffer buf, int len) {

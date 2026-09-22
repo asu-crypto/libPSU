@@ -3,7 +3,6 @@ package edu.alibaba.mpc4j.s2pc.pso.psu.pt26;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -18,7 +17,7 @@ public class Pt26PeelQueueUtilsTest {
         Pt26IbltParams params = new Pt26IbltParams(
             Pt26IbltParams.DEFAULT_K,
             subtableSize,
-            BigInteger.ONE.shiftLeft(72).nextProbablePrime(),
+            Pt26Zm.modulusFor(9),
             9,
             hashKeys(Pt26IbltParams.DEFAULT_K)
         );

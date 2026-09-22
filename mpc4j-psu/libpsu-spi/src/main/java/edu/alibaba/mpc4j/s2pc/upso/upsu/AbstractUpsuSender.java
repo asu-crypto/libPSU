@@ -35,10 +35,6 @@ public abstract class AbstractUpsuSender extends AbstractTwoPartyPto implements 
      */
     protected int receiverElementSize;
     /**
-     * bot element bytebuffer
-     */
-    protected ByteBuffer botElementByteBuffer;
-    /**
      * element byte length
      */
     protected int elementByteLength;
@@ -58,9 +54,8 @@ public abstract class AbstractUpsuSender extends AbstractTwoPartyPto implements 
     protected void setPtoInput(Set<ByteBuffer> senderElementSet, int elementByteLength) {
         checkInitialized();
         SetElementUtils.validateProtocolElementByteLength(elementByteLength);
-        this.botElementByteBuffer = SetElementUtils.createBotElement(elementByteLength);
         this.senderElementList = SetElementUtils.normalizeProtocolElements(
-            senderElementSet, elementByteLength, botElementByteBuffer, "sender element"
+            senderElementSet, elementByteLength, "sender element"
         );
         this.senderElementSize = senderElementList.size();
         MathPreconditions.checkPositiveInRangeClosed("sender element size", senderElementSize, maxSenderElementSize);

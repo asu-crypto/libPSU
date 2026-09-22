@@ -18,6 +18,9 @@ class Pt26PsuPtoDesc implements PtoDesc {
         CLIENT_SEND_OT12_PAYLOAD,
         SERVER_SEND_OT3_PAYLOAD,
         CLIENT_SEND_PEEL_VALUES,
+        /** Synchronized success/failure after residual IBLT check (1-byte status). */
+        CLIENT_SEND_PEEL_STATUS,
+        SERVER_SEND_PEEL_STATUS,
     }
 
     private static final Pt26PsuPtoDesc INSTANCE = new Pt26PsuPtoDesc();

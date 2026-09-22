@@ -14,7 +14,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Curve25519 helpers for PGT26-1M (Edwards, reference {@code onesided.rs} HashDH2}) and Montgomery HashDH.
+ * Curve25519 helpers for PGT26-2M HashDH (Edwards / Montgomery).
  */
 public final class Pgt26CurveOps {
   private static final ByteMulEcc MONTGOMERY_ECC =

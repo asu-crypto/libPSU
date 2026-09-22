@@ -17,10 +17,23 @@ public class SetElementUtilsTest {
         Assert.assertEquals(2, SetElementUtils.deduplicateElements(in, 2).size());
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void normalizeRejectsBotElement() {
+    @Test
+    public void normalizeAcceptsAllFfElement() {
         Set<ByteBuffer> in = new HashSet<>();
         in.add(SetElementUtils.createBotElement(16));
-        SetElementUtils.normalizeProtocolElements(in, 16, SetElementUtils.createBotElement(16), "element");
+        in.add(ByteBuffer.wrap(new byte[16]));
+        Assert.assertEquals(2, SetElementUtils.normalizeProtocolElements(in, 16, "element").size());
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    public void deprecatedNormalizeIgnoresBotArgument() {
+        Set<ByteBuffer> in = new HashSet<>();
+        ByteBuffer allFf = SetElementUtils.createBotElement(16);
+        in.add(allFf);
+        Assert.assertEquals(
+            1,
+            SetElementUtils.normalizeProtocolElements(in, 16, allFf, "element").size()
+        );
     }
 }

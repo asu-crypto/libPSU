@@ -26,6 +26,16 @@ public interface F32SowOprfConfig extends MultiPartyPtoConfig {
     F32WprfMatrixType getMatrixType();
 
     /**
+     * Public A/B parameter profile. Defaults to {@link F32WprfPublicParamsType#MPC4J_NATIVE}
+     * for existing APRR24 callers.
+     *
+     * @return public params type.
+     */
+    default F32WprfPublicParamsType getPublicParamsType() {
+        return F32WprfPublicParamsType.MPC4J_NATIVE;
+    }
+
+    /**
      * Gets input length n, where the input is x ∈ F_3^n.
      *
      * @return input length.

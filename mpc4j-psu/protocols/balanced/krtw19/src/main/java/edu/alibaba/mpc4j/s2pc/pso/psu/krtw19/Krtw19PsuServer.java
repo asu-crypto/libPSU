@@ -8,6 +8,7 @@ import edu.alibaba.mpc4j.common.tool.crypto.hash.HashFactory;
 import edu.alibaba.mpc4j.common.tool.crypto.prg.Prg;
 import edu.alibaba.mpc4j.common.tool.crypto.prg.PrgFactory;
 import edu.alibaba.mpc4j.common.tool.hashbin.object.EmptyPadHashBin;
+import edu.alibaba.mpc4j.common.tool.hashbin.object.HashBinEntry;
 import edu.alibaba.mpc4j.common.tool.polynomial.gf2e.Gf2ePoly;
 import edu.alibaba.mpc4j.common.tool.polynomial.gf2e.Gf2ePolyFactory;
 import edu.alibaba.mpc4j.common.tool.utils.BlockUtils;
@@ -18,9 +19,11 @@ import edu.alibaba.mpc4j.s2pc.pcg.ot.cot.core.CoreCotFactory;
 import edu.alibaba.mpc4j.s2pc.pcg.ot.cot.core.CoreCotSender;
 import edu.alibaba.mpc4j.s2pc.pso.psu.AbstractPsuServer;
 import edu.alibaba.mpc4j.s2pc.pso.psu.krtw19.Krtw19PsuPtoDesc.PtoStep;
+import edu.alibaba.libpsu.core.set.SetElementUtils;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -35,6 +38,9 @@ import java.util.stream.IntStream;
  * @date 2022/02/20
  */
 public class Krtw19PsuServer extends AbstractPsuServer {
+    private static final byte PAYLOAD_VALID_FLAG = 0x01;
+    private static final byte PAYLOAD_INVALID_FLAG = 0x00;
+    private static final int OTP_FLAG_BYTE_LENGTH = 1;
     /**
      * OPRF used in RMPT
      */
@@ -158,7 +164,9 @@ public class Krtw19PsuServer extends AbstractPsuServer {
         maxBinSize = Krtw19PsuPtoDesc.getMaxBinSize(n);
         hashBin = new EmptyPadHashBin<ByteBuffer>(envType, binNum, maxBinSize, serverElementSize, hashBinKeys);
         hashBin.insertItems(serverElementArrayList);
-        hashBin.insertPaddingItems(botElementByteBuffer);
+        hashBin.insertPaddingItems(SetElementUtils.sampleUnusedPaddingElement(
+            new HashSet<>(serverElementArrayList), elementByteLength, secureRandom
+        ));
         int fieldByteLength = Krtw19PsuPtoDesc.getFiniteFieldByteLength(binNum, maxBinSize);
         int fieldBitLength = fieldByteLength * Byte.SIZE;
         finiteFieldHash = HashFactory.createInstance(envType, fieldByteLength);
@@ -167,14 +175,17 @@ public class Krtw19PsuServer extends AbstractPsuServer {
         coefficientNum = gf2ePoly.rootCoefficientNum(maxBinSize - 1);
         int peqtLength = Krtw19PsuPtoDesc.getPeqtByteLength(binNum, maxBinSize);
         peqtHash = HashFactory.createInstance(getEnvType(), peqtLength);
-        encPrg = PrgFactory.createInstance(envType, elementByteLength);
+        encPrg = PrgFactory.createInstance(envType, elementByteLength + OTP_FLAG_BYTE_LENGTH);
     }
 
     private void handleBinColumn(int binColumnIndex) throws MpcAbortException {
         stopWatch.start();
         byte[][] xs = new byte[binNum][];
+        boolean[] dummyColumn = new boolean[binNum];
         for (int binIndex = 0; binIndex < binNum; binIndex++) {
-            xs[binIndex] = hashBin.getBin(binIndex).get(binColumnIndex).getItem().array();
+            HashBinEntry<ByteBuffer> entry = hashBin.getBin(binIndex).get(binColumnIndex);
+            dummyColumn[binIndex] = entry.getHashIndex() == HashBinEntry.DUMMY_ITEM_HASH_INDEX;
+            xs[binIndex] = entry.getItem().array();
         }
         OprfReceiverOutput rpmtOprfReceiverOprfOutput = rpmtOprfReceiver.oprf(xs);
         byte[][] qs = new byte[rpmtOprfReceiverOprfOutput.getBatchSize()][];
@@ -234,10 +245,17 @@ public class Krtw19PsuServer extends AbstractPsuServer {
         stopWatch.start();
         CotSenderOutput cotSenderOutput = coreCotSender.send(binNum);
         List<byte[]> encPayload = new java.util.ArrayList<byte[]>(binNum);
+        int otpByteLength = elementByteLength + OTP_FLAG_BYTE_LENGTH;
         for (int binIndex = 0; binIndex < binNum; binIndex++) {
-            byte[] element = xs[binIndex];
+            byte[] payload = new byte[otpByteLength];
+            if (dummyColumn[binIndex]) {
+                payload[0] = PAYLOAD_INVALID_FLAG;
+            } else {
+                payload[0] = PAYLOAD_VALID_FLAG;
+                System.arraycopy(xs[binIndex], 0, payload, OTP_FLAG_BYTE_LENGTH, elementByteLength);
+            }
             byte[] ciphertext = encPrg.extendToBytes(cotSenderOutput.getR0(binIndex));
-            BytesUtils.xori(ciphertext, element);
+            BytesUtils.xori(ciphertext, payload);
             encPayload.add(ciphertext);
         }
         DataPacketHeader encHeader = new DataPacketHeader(

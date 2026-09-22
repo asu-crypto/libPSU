@@ -8,7 +8,10 @@ import org.junit.Test;
 import java.util.Properties;
 
 /**
- * Public factory/config APIs must reject one-sided PGT26_1M (internal only).
+ * Public factory/config APIs must reject one-sided PGT26_1M.
+ * <p>
+ * Production onesided client/server/config were removed; this active suite replaces the
+ * former {@code @Ignore}'d 1M e2e tests as the supported regression surface for the ID.
  */
 public class Pgt26_1mPublicApiRejectionTest {
     @Test

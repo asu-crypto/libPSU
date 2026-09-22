@@ -19,7 +19,7 @@ MP-OPRF + CCPSI + ROSN + Core COT.
 
 | | |
 |--|--|
-| Path | `mpc4j-psu/protocols/balanced/css25/` |
+| Path | `mpc4j-psu/protocols/balanced/cssw25/` |
 | Maven artifact | `mpc4j-psu-protocol-css25` |
 | Classes | `Css25PsuConfig, Css25PsuServer, Css25PsuClient` |
 

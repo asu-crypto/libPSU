@@ -278,31 +278,26 @@ public class PsuConfigUtils {
             builder.setCcpsiConfig(PsuCcpsiConfigUtils.createConfig(properties));
         }
         if (properties.containsKey(ROSN_TYPE)) {
-            RosnType rosnType = MainPtoConfigUtils.readEnum(RosnType.class, properties, ROSN_TYPE);
+            RosnType rosnType = readRosnType(properties);
             builder.setRosnConfig(RosnFactory.createRosnConfig(rosnType, silent));
         }
         return builder.build();
     }
 
     private static Pgt26_2mPsuConfig createPgt26_2mPsuConfig(Properties properties) {
-        boolean skipShuffle = PropertiesUtils.readBoolean(properties, "pgt26_2m_skip_shuffle_proof", false);
-        boolean skipRddh = PropertiesUtils.readBoolean(properties, "pgt26_2m_skip_rddh_proof", false);
-        String append = properties.getProperty("append_string", "");
-        if (append.contains("fair_bench") && (skipShuffle || skipRddh)) {
-            throw new IllegalArgumentException(
-                "EUROCRYPT_PuGaoTri26 fair benchmark must not skip shuffle/RDDH proofs"
-            );
+        boolean skipShufflePresent = properties.containsKey("pgt26_2m_skip_shuffle_proof");
+        boolean skipRddhPresent = properties.containsKey("pgt26_2m_skip_rddh_proof");
+        if (skipShufflePresent || skipRddhPresent) {
+            boolean skipShuffle = PropertiesUtils.readBoolean(properties, "pgt26_2m_skip_shuffle_proof", false);
+            boolean skipRddh = PropertiesUtils.readBoolean(properties, "pgt26_2m_skip_rddh_proof", false);
+            if (skipShuffle || skipRddh) {
+                throw new IllegalArgumentException(
+                    "EUROCRYPT_PuGaoTri26 does not allow proof-bypass properties in production configs"
+                );
+            }
+            // Legacy conf files may still list the keys as false; ignore them.
         }
-        if (skipShuffle || skipRddh) {
-            LOGGER.warn(
-                "EUROCRYPT_PuGaoTri26 debug mode: skipShuffleProof={}, skipRddhProof={} (not malicious-security accounting)",
-                skipShuffle, skipRddh
-            );
-        }
-        return new Pgt26_2mPsuConfig.Builder()
-            .setSkipShuffleProof(skipShuffle)
-            .setSkipRddhProof(skipRddh)
-            .build();
+        return new Pgt26_2mPsuConfig.Builder().build();
     }
 
     private static Krtw19PsuConfig createKrtw19PsuConfig() {
@@ -311,7 +306,7 @@ public class PsuConfigUtils {
 
     private static Gmr21PsuConfig generateGmr21PsuConfig(Properties properties) {
         boolean silent = MainPtoConfigUtils.readSilentCot(properties);
-        RosnType rosnType = MainPtoConfigUtils.readEnum(RosnType.class, properties, ROSN_TYPE);
+        RosnType rosnType = readRosnType(properties);
         RosnConfig rosnConfig = RosnFactory.createRosnConfig(rosnType, silent);
         Gmr21MqRpmtConfig gmr21MqRpmtConfig = new Gmr21MqRpmtConfig.Builder(silent)
             .setOkvsType(Gf2eDokvsType.MEGA_BIN)
@@ -339,14 +334,14 @@ public class PsuConfigUtils {
 
     private static Jsz22SfcPsuConfig createJsz22SfcPsuConfig(Properties properties) {
         boolean silent = MainPtoConfigUtils.readSilentCot(properties);
-        RosnType rosnType = MainPtoConfigUtils.readEnum(RosnType.class, properties, ROSN_TYPE);
+        RosnType rosnType = readRosnType(properties);
         RosnConfig rosnConfig = RosnFactory.createRosnConfig(rosnType, silent);
         return new Jsz22SfcPsuConfig.Builder(silent).setRosnConfig(rosnConfig).build();
     }
 
     private static Jsz22SfsPsuConfig createJsz22SfsPsuConfig(Properties properties) {
         boolean silent = MainPtoConfigUtils.readSilentCot(properties);
-        RosnType rosnType = MainPtoConfigUtils.readEnum(RosnType.class, properties, ROSN_TYPE);
+        RosnType rosnType = readRosnType(properties);
         RosnConfig rosnConfig = RosnFactory.createRosnConfig(rosnType, silent);
         return new Jsz22SfsPsuConfig.Builder(silent).setRosnConfig(rosnConfig).build();
     }
@@ -360,5 +355,16 @@ public class PsuConfigUtils {
             LOGGER.info("PKC:CheZhaZha24 filter_type={}", filterType);
         }
         return builder.build();
+    }
+
+    private static RosnType readRosnType(Properties properties) {
+        String raw = properties.getProperty(ROSN_TYPE);
+        if (raw != null && raw.trim().startsWith("PKC:GMRSS21_")) {
+            Properties normalized = new Properties();
+            normalized.putAll(properties);
+            normalized.setProperty(ROSN_TYPE, "GMR21_" + raw.trim().substring("PKC:GMRSS21_".length()));
+            return MainPtoConfigUtils.readEnum(RosnType.class, normalized, ROSN_TYPE);
+        }
+        return MainPtoConfigUtils.readEnum(RosnType.class, properties, ROSN_TYPE);
     }
 }

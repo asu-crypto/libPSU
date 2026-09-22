@@ -2,7 +2,6 @@ package edu.alibaba.mpc4j.s2pc.pso.psu;
 
 import edu.alibaba.mpc4j.s2pc.pso.psu.pgt26.Pgt26Constants;
 import edu.alibaba.mpc4j.s2pc.pso.psu.pgt26.Pgt26EdwardsMath;
-import edu.alibaba.mpc4j.s2pc.pso.psu.pgt26.Pgt26TestHooks;
 import edu.alibaba.mpc4j.s2pc.pso.psu.pgt26.mapping.Pgt26FeistelPrp256;
 import edu.alibaba.mpc4j.s2pc.pso.psu.pgt26.mapping.Pgt26InvertibleMap;
 import org.junit.Assert;
@@ -15,11 +14,6 @@ import java.util.Optional;
  * PGT26-2M mapping tests at n = 2^5 scale (single-item round trips).
  */
 public class Pgt26MappingTest {
-  @org.junit.After
-  public void tearDown() {
-    Pgt26TestHooks.reset();
-  }
-
   @Test
   public void testPGT26_MAPPING_2p5_roundTrip() {
     byte[] key = new byte[16];
@@ -27,7 +21,6 @@ public class Pgt26MappingTest {
     Pgt26FeistelPrp256 prp = new Pgt26FeistelPrp256(key);
     byte[] item = new byte[Pgt26Constants.ITEM_BYTE_LENGTH];
     item[0] = 42;
-    Pgt26TestHooks.candidateItems = java.util.List.of(item);
     byte[] point = Pgt26InvertibleMap.hashToPoint(item, prp);
     Optional<byte[]> recovered = Pgt26InvertibleMap.recoverFromPoint(point, prp);
     Assert.assertTrue(recovered.isPresent());
@@ -38,7 +31,6 @@ public class Pgt26MappingTest {
   public void testPGT26_MAPPING_2p5_invalidDomainRejection() {
     byte[] key = new byte[16];
     Pgt26FeistelPrp256 prp = new Pgt26FeistelPrp256(key);
-    byte[] item = new byte[Pgt26Constants.ITEM_BYTE_LENGTH];
     byte[] point = Pgt26EdwardsMath.publicKey(Pgt26EdwardsMath.randomScalar(new java.security.SecureRandom()));
     Optional<byte[]> recovered = Pgt26InvertibleMap.recoverFromPoint(point, prp);
     if (recovered.isPresent()) {
